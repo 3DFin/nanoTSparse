@@ -24,23 +24,23 @@
 #include "others/sparsemapping_cuda.h"
 #include "voxelize/voxelize_cpu.h"
 #include "voxelize/voxelize_cuda.h"
-#include "hashmap/hashmap_cuda.cuh"
+#include "hashmap/hashmap_cuda.h"
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  py::class_<hashtable>(m, "GPUHashTable")
+  py::class_<GPUHashMap>(m, "GPUHashTable")
         .def(py::init<const int>())
         .def(py::init<torch::Tensor, torch::Tensor>())
-        .def("insert_vals", &hashtable::insert_vals)
-        .def("lookup_vals", &hashtable::lookup_vals)
-        .def("insert_coords", &hashtable::insert_coords)
-        .def("lookup_coords", &hashtable::lookup_coords);
-  py::class_<hashtable32>(m, "GPUHashTable32")
+        .def("insert_vals", &GPUHashMap::insert_vals)
+        .def("lookup_vals", &GPUHashMap::lookup_vals)
+        .def("insert_coords", &GPUHashMap::insert_coords)
+        .def("lookup_coords", &GPUHashMap::lookup_coords);
+  py::class_<GPUHashMap32>(m, "GPUHashTable32")
         .def(py::init<const int>())
         .def(py::init<torch::Tensor, torch::Tensor>())
-        .def("insert_vals", &hashtable32::insert_vals)
-        .def("lookup_vals", &hashtable32::lookup_vals)
-        .def("insert_coords", &hashtable32::insert_coords)
-        .def("lookup_coords", &hashtable32::lookup_coords);
+        .def("insert_vals", &GPUHashMap32::insert_vals)
+        .def("lookup_vals", &GPUHashMap32::lookup_vals)
+        .def("insert_coords", &GPUHashMap32::insert_coords)
+        .def("lookup_coords", &GPUHashMap32::lookup_coords);
   m.def("conv_forward_gather_scatter_cpu", &conv_forward_gather_scatter_cpu);
   m.def("conv_forward_gather_scatter_cuda", &conv_forward_gather_scatter_cuda);
   m.def("conv_forward_fetch_on_demand_cuda", &conv_forward_fetch_on_demand_cuda);

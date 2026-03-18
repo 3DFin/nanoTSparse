@@ -6,7 +6,9 @@
 #include <cstdlib>
 #include <vector>
 #include <utility>
-#include "cuda_runtime.h"
+
+#include <cuda_runtime.h>
+
 #include <torch/extension.h>
 
 /** Reserved value for indicating "empty". */
@@ -71,7 +73,7 @@ class GPUHashTable {
   key_type* table_keys;
   val_type* table_vals;
   void insert_many_coords(int *coords, const int n);
-  void lookup_many_coords(int *coords, val_type *results, 
+  void lookup_many_coords(int *coords, val_type *results,
     const int* kernel_sizes, const int* tensor_strides,
     const int n, const int kernel_volume);
  public:
@@ -117,8 +119,8 @@ class GPUHashTable {
   }
 };
 
-using hashtable = GPUHashTable<int64_t, int>;
-using hashtable32 = GPUHashTable<int, int>;
+using GPUHashMap = GPUHashTable<int64_t, int>;
+using GPUHashMap32 = GPUHashTable<int, int>;
 
 // Insert into hashmap
 template <typename key_type=int64_t, typename val_type=int>
@@ -183,7 +185,7 @@ __global__ void lookup_kernel(key_type* table_keys, val_type* table_vals, const 
         {
             key_type cur_key = table_keys[slot];
             if (key == cur_key)
-            { 
+            {
                 vals[idx] = table_vals[slot];
             }
             if (table_keys[slot] == EMPTY_CELL)
@@ -198,8 +200,8 @@ __global__ void lookup_kernel(key_type* table_keys, val_type* table_vals, const 
 
 template <typename key_type=int64_t, typename val_type=int, bool odd>
 __global__ void lookup_coords_kernel(
-  key_type* table_keys, val_type* table_vals, int* coords, val_type* vals, 
-  const int* kernel_sizes, const int* strides, 
+  key_type* table_keys, val_type* table_vals, int* coords, val_type* vals,
+  const int* kernel_sizes, const int* strides,
   int n, int _capacity, int kernel_volume)
 {
     int tidx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -209,8 +211,8 @@ __global__ void lookup_coords_kernel(
     int* in_coords = coords + 4 * idx;
     int coords_out[4];
     coords_out[3] = in_coords[3];
-    
-    if constexpr (odd) 
+
+    if constexpr (odd)
     {
       #pragma unroll
       for(int i = 0; i <= 2; i++){
@@ -230,7 +232,7 @@ __global__ void lookup_coords_kernel(
         _kernel_idx /= kernel_sizes[i];
       }
     }
-    
+
     if (idx < n)
     {
         key_type key = (key_type)(hash_func_64b(coords_out));
@@ -240,7 +242,7 @@ __global__ void lookup_coords_kernel(
         {
             key_type cur_key = table_keys[slot];
             if (key == cur_key)
-            { 
+            {
                 vals[idx * kernel_volume + kernel_idx] = table_vals[slot];
             }
             if (table_keys[slot] == EMPTY_CELL)
@@ -281,7 +283,7 @@ void GPUHashTable<key_type, val_type>::lookup_many(const key_type *keys, val_typ
 
 template <typename key_type, typename val_type>
 void GPUHashTable<key_type, val_type>::lookup_many_coords(
-  int *coords, val_type *results, 
+  int *coords, val_type *results,
   const int* kernel_sizes, const int* strides,
   const int n, const int kernel_volume){
   if (kernel_volume % 2)
@@ -308,7 +310,7 @@ at::Tensor GPUHashTable<key_type, val_type>::lookup_coords(at::Tensor coords, at
   auto options =
       torch::TensorOptions().dtype(at::ScalarType::Int).device(coords.device());
   at::Tensor results = torch::zeros({(coords.size(0) + _divisor - 1) / _divisor * _divisor, kernel_volume}, options);
-  lookup_many_coords(coords.data_ptr<int>(), results.data_ptr<val_type>(), 
+  lookup_many_coords(coords.data_ptr<int>(), results.data_ptr<val_type>(),
   kernel_sizes.data_ptr<int>(), strides.data_ptr<int>(), coords.size(0), kernel_volume);
   return results;
 }
@@ -336,7 +338,7 @@ __device__ val_type GPUHashTable<key_type, val_type>::device_view::lookup(const 
   {
     key_type cur_key = _table_keys[slot];
     if (key == cur_key)
-    { 
+    {
       return _table_vals[slot];
     }
     if (_table_keys[slot] == EMPTY_CELL)

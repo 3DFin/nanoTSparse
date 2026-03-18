@@ -93,4 +93,3 @@ struct global_load<2>
     }
   }
 };
-

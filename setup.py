@@ -1,7 +1,5 @@
 import glob
 import os
-from pathlib import Path
-from subprocess import run
 
 import torch
 import torch.cuda
@@ -29,26 +27,29 @@ else:
     device = "cpu"
     pybind_fn = f"pybind_{device}.cpp"
 
-sources = [os.path.join("torchsparse", "backend", pybind_fn)]
-for fpath in glob.glob(os.path.join("torchsparse", "backend", "**", "*")):
+device = "cpu"
+pybind_fn = f"pybind_{device}.cpp"
+
+base_dir = os.path.join("torchsparse", "backend")
+
+sources = [os.path.join(base_dir, pybind_fn)]
+
+for fpath in glob.glob(os.path.join(base_dir, "**", "*")):
     if (fpath.endswith("_cpu.cpp") and device in ["cpu", "cuda"]) or (
         fpath.endswith("_cuda.cu") and device == "cuda"
     ):
         sources.append(fpath)
 
-extension_type = CUDAExtension if device == "cuda" else CppExtension
-current_dir = Path(__file__).parent.resolve()
-sparsehash_dir = current_dir / "torchsparse" / "backend" / "third_party" / "sparsehash"
-sparsehash_dir_inc = sparsehash_dir / "src"
-sparseconfig_path = sparsehash_dir_inc / "sparsehash" / "internal" / "sparseconfig.h"
+# collect header files to include them in sdist
+header_files = [file for file in glob.glob(os.path.join(base_dir, "**", "*")) if file.endswith("h")]
 
-if not sparseconfig_path.exists():
-    print("Generating sparseconfig.h ...")
-    run(["./configure"], cwd=sparsehash_dir, check=True)
-    run(["make", "src/sparsehash/internal/sparseconfig.h"], cwd=sparsehash_dir, check=True)
+# set all dir as include dir
+include_dirs = [d for d in glob.glob(os.path.join(base_dir, "*")) if os.path.isdir(d)]
+
+extension_type = CUDAExtension if device == "cuda" else CppExtension
 
 extra_compile_args = {
-    "cxx": ["-O3", "-fopenmp", "-lgomp", f"-I{sparsehash_dir_inc}"],
+    "cxx": ["-O3", "-fopenmp", "-lgomp"],
     "nvcc": ["-O3"],
 }
 
@@ -63,6 +64,8 @@ setup(
     ],
     url="https://github.com/mit-han-lab/torchsparse",
     include_package_data=True,
+    include_dirs=include_dirs,
+    data_files=header_files,
     install_requires=[
         "ninja",
         "numpy",
@@ -74,15 +77,5 @@ setup(
         "torchvision"
     ],
     cmdclass={"build_ext": build_ext},
-    zip_safe=False,
+    zip_safe=False
 )
-
-for f in [
-    "Makefile",
-    "config.log",
-    "config.status",
-    "src/config.h",
-    "src/sparsehash/internal/sparseconfig.h",
-    "src/stamp-h1",
-]:
-    (sparsehash_dir / f).unlink(missing_ok=True)

@@ -27,9 +27,6 @@ else:
     device = "cpu"
     pybind_fn = f"pybind_{device}.cpp"
 
-device = "cpu"
-pybind_fn = f"pybind_{device}.cpp"
-
 base_dir = os.path.join("torchsparse", "backend")
 
 sources = [os.path.join(base_dir, pybind_fn)]
@@ -48,9 +45,16 @@ include_dirs = [d for d in glob.glob(os.path.join(base_dir, "*")) if os.path.isd
 
 extension_type = CUDAExtension if device == "cuda" else CppExtension
 
+all_cuda_archs = [
+    '-gencode', 'arch=compute_89,code=sm_89',
+    # '-gencode', 'arch=compute_75,code=sm_75',
+    # '-gencode', 'arch=compute_80,code=sm_80',
+    # '-gencode', 'arch=compute_86,code=sm_86'
+]
+
 extra_compile_args = {
     "cxx": ["-O3", "-fopenmp", "-lgomp"],
-    "nvcc": ["-O3"],
+    "nvcc": ["-O3"]+all_cuda_archs,
 }
 
 setup(
@@ -67,12 +71,8 @@ setup(
     include_dirs=include_dirs,
     data_files=header_files,
     install_requires=[
-        "ninja",
         "numpy",
-        "backports.cached_property",
         "tqdm",
-        "typing-extensions",
-        "wheel",
         "torch",
         "torchvision"
     ],

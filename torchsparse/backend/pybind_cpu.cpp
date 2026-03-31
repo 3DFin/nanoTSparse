@@ -19,13 +19,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       .def("lookup_vals", &CPUHashMap::lookup_vals)
       .def("insert_coords", &CPUHashMap::insert_coords)
       .def("lookup_coords", &CPUHashMap::lookup_coords);
-  py::class_<CPUHashMap32>(m, "CPUHashTable32")
-      .def(py::init<torch::Tensor, torch::Tensor>())
-      .def(py::init<>())
-      .def("insert_vals", &CPUHashMap32::insert_vals)
-      .def("lookup_vals", &CPUHashMap32::lookup_vals)
-      .def("insert_coords", &CPUHashMap32::insert_coords)
-      .def("lookup_coords", &CPUHashMap32::lookup_coords);
+  m.def("build_mask_from_kmap", &build_mask_from_kmap_native);
   m.def("conv_forward_gather_scatter_cpu", &conv_forward_gather_scatter_cpu);
   m.def("conv_backward_gather_scatter_cpu", &conv_backward_gather_scatter_cpu);
   m.def("voxelize_forward_cpu", &voxelize_forward_cpu);

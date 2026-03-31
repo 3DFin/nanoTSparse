@@ -38,7 +38,7 @@ at::Tensor hash_query_cuda(const at::Tensor hash_query,
   // return group_point_forward_gpu(points, indices);
   int n = hash_target.size(0);
   int n1 = hash_query.size(0);
-  hashtable in_hash_table(n * 2);
+  GPUHashMap in_hash_table(n * 2);
 
   in_hash_table.insert_many(hash_target.data_ptr<int64_t>(), n);
 

@@ -1,3 +1,0 @@
-[submodule "torchsparse/backend/third_party/sparsehash"]
-	path = torchsparse/backend/third_party/sparsehash
-	url = https://github.com/sparsehash/sparsehash.git

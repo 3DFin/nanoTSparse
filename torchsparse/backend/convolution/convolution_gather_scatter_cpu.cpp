@@ -1,34 +1,32 @@
 #include "convolution_gather_scatter_cpu.h"
 
+#include <algorithm>
 #include <torch/extension.h>
 
-#include <algorithm>
-#include <chrono>
+void scatter_cpu(const int n_in, const int c, const float *in_feat,
+                 float *out_feat, const int *kmap, const bool transpose) {
 
-void scatter_cpu(const int n_in, const int n_out, const int c,
-                 const float *in_feat, float *out_feat, const int *kmap,
-                 const bool transpose) {
+#pragma omp parallel for
   for (int i = 0; i < n_in; i++) {
     int out_pos = kmap[2 * i + 1 - transpose];
     if (out_pos < 0) {
       continue;
     }
-#pragma omp parallel for
     for (int j = 0; j < c; j++) {
       out_feat[out_pos * c + j] += in_feat[i * c + j];
     }
   }
 }
 
-void gather_cpu(const int n_k, const int n_in, const int c,
+void gather_cpu(const int n_k, const int c,
                 const float *in_feat, float *out_feat, const int *kmap,
                 const bool transpose) {
+#pragma omp parallel for
   for (int i = 0; i < n_k; i++) {
     int in_pos = kmap[2 * i + transpose];
     if (in_pos < 0) {
       continue;
     }
-#pragma omp parallel for
     for (int j = 0; j < c; j++) {
       out_feat[i * c + j] = in_feat[in_pos * c + j];
     }
@@ -36,8 +34,9 @@ void gather_cpu(const int n_k, const int n_in, const int c,
 }
 
 void conv_forward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor out_feat,
-                             at::Tensor kernel, at::Tensor neighbor_map,
-                             at::Tensor neighbor_offset, const bool transpose) {
+                                     at::Tensor kernel, at::Tensor neighbor_map,
+                                     at::Tensor neighbor_offset,
+                                     const bool transpose) {
   if (in_feat.size(1) != kernel.size(1)) {
     throw std::invalid_argument("Input feature size and kernel size mismatch");
   }
@@ -73,46 +72,53 @@ void conv_forward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor out_feat,
       torch::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
   auto in_buffer = torch::zeros({in_buffer_size, in_feat.size(1)}, options);
   auto out_buffer = torch::zeros({in_buffer_size, kernel.size(2)}, options);
+
+  auto* in_buffer_ptr = in_buffer.data_ptr<float>();
+  auto* out_buffer_ptr = out_buffer.data_ptr<float>();
+  const auto* neighbor_offset_ptr = neighbor_offset.data_ptr<int>();
+  const auto* in_feat_ptr = in_feat.data_ptr<float>();
+  auto* out_feat_ptr = out_feat.data_ptr<float>();
+
+
   int cur_offset = 0;
   for (int i = 0; i < kernel_volume; i++) {
     if (flag && (i == kernel_volume / 2)) {
-      cur_offset += 2 * neighbor_offset.data_ptr<int>()[i];
+      cur_offset += 2 * neighbor_offset_ptr[i];
       continue;
     }
 
-    if (neighbor_offset.data_ptr<int>()[i] == 0) {
+    if (neighbor_offset_ptr[i] == 0) {
       continue;
     }
 
     auto out_buffer_activated = torch::from_blob(
-        out_buffer.data_ptr<float>(),
-        {neighbor_offset.data_ptr<int>()[i], kernel.size(2)}, options);
+        static_cast<void *>(out_buffer_ptr),
+        {neighbor_offset_ptr[i], kernel.size(2)}, options);
     auto in_buffer_activated = torch::from_blob(
-        in_buffer.data_ptr<float>(),
-        {neighbor_offset.data_ptr<int>()[i], in_feat.size(1)}, options);
+        static_cast<void *>(in_buffer_ptr),
+        {neighbor_offset_ptr[i], in_feat.size(1)}, options);
 
     // gather
-    gather_cpu(in_buffer_activated.size(0), in_feat.size(0), kernel.size(1),
-               in_feat.data_ptr<float>(), in_buffer_activated.data_ptr<float>(),
+    gather_cpu(in_buffer_activated.size(0), kernel.size(1),
+               in_feat_ptr, in_buffer_activated.data_ptr<float>(),
                neighbor_map.data_ptr<int>() + cur_offset, transpose);
 
     // matmul
     torch::mm_out(out_buffer_activated, in_buffer_activated, kernel[i]);
 
     // scatter
-    scatter_cpu(neighbor_offset.data_ptr<int>()[i], out_nrows, kernel.size(2),
+    scatter_cpu(neighbor_offset_ptr[i], kernel.size(2),
                 out_buffer_activated.data_ptr<float>(),
-                out_feat.data_ptr<float>(),
+                out_feat_ptr,
                 neighbor_map.data_ptr<int>() + cur_offset, transpose);
-    cur_offset += 2 * neighbor_offset.data_ptr<int>()[i];
+    cur_offset += 2 * neighbor_offset_ptr[i];
   }
 }
 
-void conv_backward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor grad_in_feat,
-                              at::Tensor grad_out_feat, at::Tensor kernel,
-                              at::Tensor grad_kernel, at::Tensor neighbor_map,
-                              at::Tensor neighbor_offset,
-                              const bool transpose) {
+void conv_backward_gather_scatter_cpu(
+    at::Tensor in_feat, at::Tensor grad_in_feat, at::Tensor grad_out_feat,
+    at::Tensor kernel, at::Tensor grad_kernel, at::Tensor neighbor_map,
+    at::Tensor neighbor_offset, const bool transpose) {
   grad_in_feat.resize_as_(in_feat);
   grad_in_feat.zero_();
   grad_kernel.resize_as_(kernel);
@@ -156,12 +162,12 @@ void conv_backward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor grad_in_fea
         {neighbor_offset.data_ptr<int>()[i], in_feat.size(1)}, options);
 
     // gather
-    gather_cpu(out_grad_buffer_activated.size(0), grad_out_feat.size(0),
+    gather_cpu(out_grad_buffer_activated.size(0),
                kernel.size(2), grad_out_feat.data_ptr<float>(),
                out_grad_buffer_activated.data_ptr<float>(),
                neighbor_map.data_ptr<int>() + cur_offset, !transpose);
 
-    gather_cpu(in_buffer_activated.size(0), in_feat.size(0), kernel.size(1),
+    gather_cpu(in_buffer_activated.size(0), kernel.size(1),
                in_feat.data_ptr<float>(), in_buffer_activated.data_ptr<float>(),
                neighbor_map.data_ptr<int>() + cur_offset, transpose);
 
@@ -173,8 +179,8 @@ void conv_backward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor grad_in_fea
                   out_grad_buffer_activated);
 
     // scatter
-    scatter_cpu(neighbor_offset.data_ptr<int>()[i], in_feat.size(0),
-                kernel.size(1), in_grad_buffer_activated.data_ptr<float>(),
+    scatter_cpu(neighbor_offset.data_ptr<int>()[i], kernel.size(1),
+                in_grad_buffer_activated.data_ptr<float>(),
                 grad_in_feat.data_ptr<float>(),
                 neighbor_map.data_ptr<int>() + cur_offset, !transpose);
 

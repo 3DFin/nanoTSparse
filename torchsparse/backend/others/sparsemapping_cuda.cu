@@ -250,7 +250,7 @@ __global__ void get_masks_from_kmap_kernel(int n_points, int n_points_out,
 }
 
 std::vector<at::Tensor> build_kernel_map_subm_hashmap_int32(
-    hashtable32 &table, at::Tensor _in_coords, at::Tensor _coords_min,
+    GPUHashMap32 &table, at::Tensor _in_coords, at::Tensor _coords_min,
     at::Tensor _coords_max, at::Tensor _kernel_sizes, at::Tensor _stride,
     at::Tensor _padding, bool to_insert) {
   c10::cuda::CUDAGuard guard(_in_coords.device());
@@ -275,19 +275,19 @@ std::vector<at::Tensor> build_kernel_map_subm_hashmap_int32(
   int *out_in_map = _out_in_map.data_ptr<int>();
   // stage1: insert to hashmap
   if (to_insert)
-    subm_hashmap_kmap_stage1<hashtable32::device_view, int32_t>
+    subm_hashmap_kmap_stage1<GPUHashMap32::device_view, int32_t>
         <<<(int)ceil((double)n_points / 256), 256>>>(
             table.get_device_view(), n_points, kernel_volume, in_coords,
             coords_min, coords_max, out_coords);
   // stage2: query
   if (kernel_volume % 2 != 0) {
-    subm_hashmap_kmap_stage2_odd_kernel<hashtable32::device_view, int32_t>
+    subm_hashmap_kmap_stage2_odd_kernel<GPUHashMap32::device_view, int32_t>
         <<<(int)ceil((double)n_points * (kernel_volume / 2) / 256), 256>>>(
             table.get_device_view(), n_points, kernel_volume, in_coords,
             coords_min, coords_max, kernel_sizes,
             out_in_map); // only support odd kernel shapes
   } else {
-    subm_hashmap_kmap_stage2_even_kernel<hashtable32::device_view, int32_t>
+    subm_hashmap_kmap_stage2_even_kernel<GPUHashMap32::device_view, int32_t>
         <<<(int)ceil((double)n_points * (kernel_volume) / 256), 256>>>(
             table.get_device_view(), n_points, kernel_volume, in_coords,
             coords_min, coords_max, kernel_sizes,
@@ -298,7 +298,7 @@ std::vector<at::Tensor> build_kernel_map_subm_hashmap_int32(
 }
 
 std::vector<at::Tensor>
-build_kernel_map_subm_hashmap(hashtable &table, at::Tensor _in_coords,
+build_kernel_map_subm_hashmap(GPUHashMap &table, at::Tensor _in_coords,
                               at::Tensor _coords_min, at::Tensor _coords_max,
                               at::Tensor _kernel_sizes, at::Tensor _stride,
                               at::Tensor _padding, bool to_insert) {
@@ -327,19 +327,19 @@ build_kernel_map_subm_hashmap(hashtable &table, at::Tensor _in_coords,
   int *out_in_map = _out_in_map.data_ptr<int>();
   // stage1: insert to hashmap
   if (to_insert)
-    subm_hashmap_kmap_stage1<hashtable::device_view, int64_t>
+    subm_hashmap_kmap_stage1<GPUHashMap::device_view, int64_t>
         <<<(int)ceil((double)n_points / 256), 256>>>(
             table.get_device_view(), n_points, kernel_volume, in_coords,
             coords_min, coords_max, out_coords);
   // stage2: query
   if (kernel_volume % 2 != 0) {
-    subm_hashmap_kmap_stage2_odd_kernel<hashtable::device_view, int64_t>
+    subm_hashmap_kmap_stage2_odd_kernel<GPUHashMap::device_view, int64_t>
         <<<(int)ceil((double)n_points * (kernel_volume / 2) / 256), 256>>>(
             table.get_device_view(), n_points, kernel_volume, in_coords,
             coords_min, coords_max, kernel_sizes,
             out_in_map); // only support odd kernel shapes
   } else {
-    subm_hashmap_kmap_stage2_even_kernel<hashtable::device_view, int64_t>
+    subm_hashmap_kmap_stage2_even_kernel<GPUHashMap::device_view, int64_t>
         <<<(int)ceil((double)n_points * (kernel_volume) / 256), 256>>>(
             table.get_device_view(), n_points, kernel_volume, in_coords,
             coords_min, coords_max, kernel_sizes,
@@ -349,7 +349,7 @@ build_kernel_map_subm_hashmap(hashtable &table, at::Tensor _in_coords,
 }
 
 std::vector<at::Tensor> build_kernel_map_downsample_hashmap_int32(
-    hashtable32 &table, at::Tensor _in_coords, at::Tensor _coords_min,
+    GPUHashMap32 &table, at::Tensor _in_coords, at::Tensor _coords_min,
     at::Tensor _coords_max, at::Tensor _kernel_sizes, at::Tensor _stride,
     at::Tensor _padding, bool to_insert) {
   c10::cuda::CUDAGuard guard(_in_coords.device());
@@ -435,7 +435,7 @@ std::vector<at::Tensor> build_kernel_map_downsample_hashmap_int32(
 }
 
 std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
-    hashtable &table, at::Tensor _in_coords, at::Tensor _coords_min,
+    GPUHashMap &table, at::Tensor _in_coords, at::Tensor _coords_min,
     at::Tensor _coords_max, at::Tensor _kernel_sizes, at::Tensor _stride,
     at::Tensor _padding, bool to_insert) {
   c10::cuda::CUDAGuard guard(_in_coords.device());

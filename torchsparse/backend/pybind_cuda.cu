@@ -15,6 +15,7 @@
 #include "hash/hash_cuda.h"
 #include "others/count_cpu.h"
 #include "others/count_cuda.h"
+#include "hashmap/hashmap_cpu.h"
 #include "others/downsample_cuda.h"
 #include "others/exclusive_scan_cuda.h"
 #include "others/query_cpu.h"

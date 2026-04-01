@@ -31,24 +31,6 @@ __global__ void derive_bit_mask_from_out_in_map_kernel(int* out_in_map, int* bit
   bitmask[split_mask_iter * n + idx] = cur_bitmask;
 }
 
-at::Tensor hash_query_cuda(const at::Tensor hash_query,
-                           const at::Tensor hash_target,
-                           const at::Tensor idx_target) {
-  c10::cuda::CUDAGuard guard(hash_query.device());
-  // return group_point_forward_gpu(points, indices);
-  int n = hash_target.size(0);
-  int n1 = hash_query.size(0);
-  GPUHashMap in_hash_table(n * 2);
-
-  in_hash_table.insert_many(hash_target.data_ptr<int64_t>(), n);
-
-  at::Tensor out = torch::zeros(
-      {n1}, at::device(hash_query.device()).dtype(at::ScalarType::Int));
-  in_hash_table.lookup_many(hash_query.data_ptr<int64_t>(), out.data_ptr<int>(), n1);
-  return out;
-}
-
-
 void convert_transposed_out_in_map(const at::Tensor out_in_map,
                             at::Tensor out_in_map_t) {
   c10::cuda::CUDAGuard guard(out_in_map.device());

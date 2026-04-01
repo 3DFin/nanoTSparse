@@ -1,10 +1,8 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <torch/torch.h>
 
 #include <c10/cuda/CUDAGuard.h>
 #include <cmath>
-#include <vector>
 
 // counting
 // input N*3 int32 tensor output N*1 int64 tensor

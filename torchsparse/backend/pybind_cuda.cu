@@ -11,18 +11,14 @@
 #include "convolution/convolution_backward_wgrad_implicit_gemm_sorted_cuda.h"
 #include "devoxelize/devoxelize_cpu.h"
 #include "devoxelize/devoxelize_cuda.h"
-#include "hash/hash_cpu.h"
-#include "hash/hash_cuda.h"
 #include "others/count_cpu.h"
 #include "others/count_cuda.h"
-#include "hashmap/hashmap_cpu.h"
 #include "others/downsample_cuda.h"
 #include "others/exclusive_scan_cuda.h"
-#include "others/query_cpu.h"
-#include "others/query_cuda.h"
 #include "others/reduce_bitmask_cuda.h"
 #include "others/reorder_map_cuda.h"
 #include "others/sparsemapping_cuda.h"
+#include "others/query_cuda.h"
 #include "voxelize/voxelize_cpu.h"
 #include "voxelize/voxelize_cuda.h"
 #include "hashmap/hashmap_cuda.h"
@@ -63,12 +59,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("devoxelize_backward_cpu", &devoxelize_backward_cpu);
   m.def("devoxelize_backward_cuda", &devoxelize_backward_cuda);
   m.def("exclusive_scan_quantified_wrapper", &exclusive_scan_quantified_wrapper);
-  m.def("hash_cpu", &hash_cpu);
-  m.def("hash_cuda", &hash_cuda);
-  m.def("kernel_hash_cpu", &kernel_hash_cpu);
-  m.def("kernel_hash_cuda", &kernel_hash_cuda);
-  m.def("hash_query_cpu", &hash_query_cpu);
-  m.def("hash_query_cuda", &hash_query_cuda);
   m.def("convert_transposed_out_in_map", &convert_transposed_out_in_map);
   m.def("derive_bitmask_from_out_in_map", &derive_bitmask_from_out_in_map);
   m.def("reduce_bitmask_cuda", &reduce_bitmask_cuda);

@@ -21,7 +21,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode1_f16f16f32
 {
   const int K_tile = 16;
   int K_tile_padded = K_tile * ((K_original + K_tile - 1) / K_tile);
-  int K_implicit = K_tile_padded * kernel_volume;
+  // int K_implicit = K_tile_padded * kernel_volume;
 
   float C_warp[32];
   __shared__ half A_shared[5120];
@@ -81,8 +81,8 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode1_f16f16f32
     B_pred_guard = 1;
 
   // Shang: kernel offset for loading B
-  int B_kernel_offset =  threadIdx.y * 256 / 16
-                        + threadIdx.x * 8 / 16;
+  // int B_kernel_offset =  threadIdx.y * 256 / 16
+  //                      + threadIdx.x * 8 / 16;
   int K_st = blockIdx_z * split_mask_len;
   int K_ed = min(kernel_volume, (blockIdx_z + 1) * split_mask_len);
 
@@ -279,7 +279,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode1_f16f16f32
 // conv_forward_cuda_m128n16k32_m64n16k32_m16n16k16_f16f16f32_sort
 __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode1_f16f16f32(int M, int K_original, int N, int kernel_volume, int split_mask_len, int reduced_mask_len, int reorder_loc_len, half *__restrict__ A, half *__restrict__ B, int *__restrict__ reduced_mask, int *__restrict__ out_in_map, int *__restrict__ reorder_loc, half *__restrict__ C)
 {
-  int K_implicit = K_original * kernel_volume;
+  // int K_implicit = K_original * kernel_volume;
   float C_warp[32];
   __shared__ half A_shared[5120];
   __shared__ half B_shared[1280];
@@ -328,8 +328,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode1_f16f16f32
     //+ (threadIdx.x / 4) * N;
 
   // Shang: kernel offset for loading B
-  int B_kernel_offset =  threadIdx.y * 256 / 16
-                        + threadIdx.x * 8 / 16;
+  // int B_kernel_offset =  threadIdx.y * 256 / 16 + threadIdx.x * 8 / 16;
   int K_st = blockIdx_z * split_mask_len;
   int K_ed = min(kernel_volume, (blockIdx_z + 1) * split_mask_len);
 
@@ -495,7 +494,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode1_f16f16f32
 // conv_forward_cuda_m128n64k32_m64n32k32_m16n16k16_f16f16f32_sort
 __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode1_f16f16f32(int M, int K_original, int N, int kernel_volume, int split_mask_len, int reduced_mask_len, int reorder_loc_len, half *__restrict__ A, half *__restrict__ B, int *__restrict__ reduced_mask, int *__restrict__ out_in_map, int *__restrict__ reorder_loc, half *__restrict__ C)
 {
-  int K_implicit = K_original * kernel_volume;
+  // int K_implicit = K_original * kernel_volume;
   float C_warp[64];
   __shared__ half A_shared[5120];
   __shared__ half B_shared[2304];
@@ -549,8 +548,8 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode1_f16f16f3
     //+ (threadIdx.x / 4) * N;
 
   // Shang: kernel offset for loading B
-  int B_kernel_offset =  threadIdx.y * 256 / 64
-                        + threadIdx.x * 8 / 64;
+  // int B_kernel_offset =  threadIdx.y * 256 / 64
+  //                      + threadIdx.x * 8 / 64;
   int K_st = blockIdx_z * split_mask_len;
   int K_ed = min(kernel_volume, (blockIdx_z + 1) * split_mask_len);
 
@@ -739,7 +738,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode1_tf32tf32f
 {
   const int K_tile = 16;
   int K_tile_padded = K_tile * ((K_original + K_tile - 1) / K_tile);
-  int K_implicit = K_tile_padded * kernel_volume;
+  // int K_implicit = K_tile_padded * kernel_volume;
 
   float C_warp[32];
   __shared__ float A_shared[5120];
@@ -799,8 +798,8 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode1_tf32tf32f
     B_pred_guard = 3;
 
   // Shang: kernel offset for loading B
-  int B_kernel_offset =  threadIdx.y * 256 / 16
-                        + threadIdx.x * 8 / 16;
+  // int B_kernel_offset =  threadIdx.y * 256 / 16
+  //                      + threadIdx.x * 8 / 16;
   int K_st = blockIdx_z * split_mask_len;
   int K_ed = min(kernel_volume, (blockIdx_z + 1) * split_mask_len);
 
@@ -958,7 +957,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode1_tf32tf32f
 // conv_forward_cuda_m128n16k32_m64n16k32_m16n16k16_tf32tf32f32_sort
 __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode1_tf32tf32f32(int M, int K_original, int N, int kernel_volume, int split_mask_len, int reduced_mask_len, int reorder_loc_len, float *__restrict__ A, float *__restrict__ B, int *__restrict__ reduced_mask, int *__restrict__ out_in_map, int *__restrict__ reorder_loc, float *__restrict__ C)
 {
-  int K_implicit = K_original * kernel_volume;
+  // int K_implicit = K_original * kernel_volume;
   float C_warp[32];
   __shared__ float A_shared[5120];
   __shared__ float B_shared[1280];
@@ -1007,8 +1006,8 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode1_tf32tf32f
     //+ (threadIdx.x / 4) * N;
 
   // Shang: kernel offset for loading B
-  int B_kernel_offset =  threadIdx.y * 256 / 16
-                        + threadIdx.x * 8 / 16;
+  // int B_kernel_offset =  threadIdx.y * 256 / 16
+  //                      + threadIdx.x * 8 / 16;
   int K_st = blockIdx_z * split_mask_len;
   int K_ed = min(kernel_volume, (blockIdx_z + 1) * split_mask_len);
 
@@ -1135,7 +1134,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode1_tf32tf32f
 // conv_forward_cuda_m128n64k32_m64n32k32_m16n16k16_tf32tf32f32_sort
 __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode1_tf32tf32f32(int M, int K_original, int N, int kernel_volume, int split_mask_len, int reduced_mask_len, int reorder_loc_len, float *__restrict__ A, float *__restrict__ B, int *__restrict__ reduced_mask, int *__restrict__ out_in_map, int *__restrict__ reorder_loc, float *__restrict__ C)
 {
-  int K_implicit = K_original * kernel_volume;
+  // int K_implicit = K_original * kernel_volume;
   float C_warp[64];
   __shared__ float A_shared[5120];
   __shared__ float B_shared[2304];
@@ -1189,8 +1188,8 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode1_tf32tf32
     //+ (threadIdx.x / 4) * N;
 
   // Shang: kernel offset for loading B
-  int B_kernel_offset =  threadIdx.y * 256 / 64
-                        + threadIdx.x * 8 / 64;
+  // int B_kernel_offset =  threadIdx.y * 256 / 64
+  //                      + threadIdx.x * 8 / 64;
   int K_st = blockIdx_z * split_mask_len;
   int K_ed = min(kernel_volume, (blockIdx_z + 1) * split_mask_len);
 
@@ -1338,7 +1337,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode1_f32f32f32
 {
 
   int j_factors1 = (N - 1) / 16 + 1;
-  int blockIdx_x = 0;
+  // int blockIdx_x = 0;
   int blockIdx_y = blockIdx.x % ((M + 127) / 128 * j_factors1);
   int blockIdx_z = blockIdx.x / ((M + 127) / 128 * j_factors1);
 
@@ -1522,7 +1521,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode1_f32f32f32
 {
 
   int j_factors1 = (N - 1) / 16 + 1;
-  int blockIdx_x = 0;
+  // int blockIdx_x = 0;
   int blockIdx_y = blockIdx.x % ((M + 127) / 128 * j_factors1);
   int blockIdx_z = blockIdx.x / ((M + 127) / 128 * j_factors1);
 
@@ -1639,7 +1638,7 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode1_f32f32f3
 {
 
   int j_factors1 = (N - 1) / 64 + 1;
-  int blockIdx_x = 0;
+  // int blockIdx_x = 0;
   int blockIdx_y = blockIdx.x % ((M + 127) / 128 * j_factors1);
   int blockIdx_z = blockIdx.x / ((M + 127) / 128 * j_factors1);
 

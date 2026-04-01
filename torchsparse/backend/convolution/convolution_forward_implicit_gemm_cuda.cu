@@ -476,7 +476,7 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f16f16f3
   //+ (threadIdx.x / 4) * N;
 
   // Shang: kernel offset for loading B
-  int B_kernel_offset = threadIdx.y * 256 / 64 + threadIdx.x * 8 / 64;
+  // int B_kernel_offset = threadIdx.y * 256 / 64 + threadIdx.x * 8 / 64;
 
   for (int i2_0_0 = 0; i2_0_0 < K_implicit / 32; ++i2_0_0)
 
@@ -511,7 +511,7 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f16f16f3
     for (int ax0_ax1_fused_0_1 = 0; ax0_ax1_fused_0_1 < 2; ++ax0_ax1_fused_0_1)
     {
       // Shang: skip loading B
-      int B_kernel_offset_local = (B_kernel_offset + i2_0_0 * 32 + ax0_ax1_fused_0_1 * 1024 / 64) / K_original;
+      // int B_kernel_offset_local = (B_kernel_offset + i2_0_0 * 32 + ax0_ax1_fused_0_1 * 1024 / 64) / K_original;
       *(uint4 *)(B_shared + ((((ax0_ax1_fused_0_1 * 1152) + (((int)threadIdx.y) * 288)) + ((((int)threadIdx.x) >> 3) * 72)) + ((((int)threadIdx.x) & 7) * 8))) =
           // original:
           // *(uint4*)(B + ((((i2_0_0 * 2048) + (ax0_ax1_fused_0_1 * 1024)) + (((int)threadIdx.y) * 256)) + (((int)threadIdx.x) * 8)));
@@ -1014,7 +1014,7 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_tf32tf32
   //+ (threadIdx.x / 4) * N;
 
   // Shang: kernel offset for loading B
-  int B_kernel_offset = threadIdx.y * 256 / 64 + threadIdx.x * 8 / 64;
+  // int B_kernel_offset = threadIdx.y * 256 / 64 + threadIdx.x * 8 / 64;
 
   for (int i2_0_0 = 0; i2_0_0 < K_implicit / 32; ++i2_0_0)
 
@@ -1048,7 +1048,7 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_tf32tf32
     for (int ax0_ax1_fused_0_1 = 0; ax0_ax1_fused_0_1 < 2; ++ax0_ax1_fused_0_1)
     {
       // Shang: skip loading B
-      int B_kernel_offset_local = (B_kernel_offset + i2_0_0 * 32 + ax0_ax1_fused_0_1 * 1024 / 64) / K_original;
+      // int B_kernel_offset_local = (B_kernel_offset + i2_0_0 * 32 + ax0_ax1_fused_0_1 * 1024 / 64) / K_original;
 
       *(ulonglong4 *)(B_shared + ((((ax0_ax1_fused_0_1 * 1152) + (((int)threadIdx.y) * 288)) + ((((int)threadIdx.x) >> 3) * 72)) + ((((int)threadIdx.x) & 7) * 8))) =
           // original:

@@ -207,7 +207,6 @@ __global__ void scatter_all_kernel_pad_sep_with_mask_float(
   int i, j;
   i = index / (c >> 2);
   j = index % (c >> 2);
-  float tmp = 0.0f;
   if (i >= n) return;
 
   float tmps[4];
@@ -321,7 +320,6 @@ void group_strategy_generation(
     std::vector<int> &group_sizes, at::Tensor cum_buffer_sizes,
     int &buffer_size) {
   buffer_size = 0;
-  bool new_group = true;
   int group_min_size, group_max_size;
   group_min_size = group_max_size = *neighbor_offset.data_ptr<int>();
   std::vector<int> kernel_order;

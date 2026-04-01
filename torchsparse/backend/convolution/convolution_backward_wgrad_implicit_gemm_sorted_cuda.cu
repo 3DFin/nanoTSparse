@@ -34,7 +34,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode1_f16f16f3
 
   // hoisting shared pointer offsets
   int j_factors1 = (N + 15) / 16 / 1;
-  int blockIdx_x = 0;
+  // int blockIdx_x = 0;
   int blockIdx_y = blockIdx.x % ((K_original + 15) / 16 * kernel_volume * j_factors1);
   int blockIdx_z = blockIdx.x / ((K_original + 15) / 16 * kernel_volume * j_factors1);
   half *cur_C = C + blockIdx_z * kernel_volume * K_original * N;
@@ -768,7 +768,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode1_tf32tf32
 
   // hoisting shared pointer offsets
   int j_factors1 = (N + 15) / 16 / 1;
-  int blockIdx_x = 0;
+  // int blockIdx_x = 0;
   int blockIdx_y = blockIdx.x % ((K_original + 15) / 16 * kernel_volume * j_factors1);
   int blockIdx_z = blockIdx.x / ((K_original + 15) / 16 * kernel_volume * j_factors1);
   float *cur_C = C + blockIdx_z * kernel_volume * K_original * N;
@@ -1327,7 +1327,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode1_f32f32f3
 {
 
   int j_factors1 = (N + 15) / 16;
-  int blockIdx_x = 0;
+  // int blockIdx_x = 0;
   int blockIdx_y = blockIdx.x % ((K_original + 15) / 16 * kernel_volume * j_factors1);
   int blockIdx_z = blockIdx.x / ((K_original + 15) / 16 * kernel_volume * j_factors1);
 
@@ -1562,7 +1562,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode1_f32f32f3
 {
 
   int j_factors1 = (N + 63) / 64;
-  int blockIdx_x = 0;
+  // nt blockIdx_x = 0;
   int blockIdx_y = blockIdx.x % ((K_original * kernel_volume + 31) / 32 * j_factors1);
   int blockIdx_z = blockIdx.x / ((K_original * kernel_volume + 31) / 32 * j_factors1);
 

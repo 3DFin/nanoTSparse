@@ -2,7 +2,6 @@ import glob
 import os
 
 import torch
-import torch.cuda
 from setuptools import find_packages, setup
 from torch.utils.cpp_extension import (
     CUDA_HOME,
@@ -45,16 +44,33 @@ include_dirs = [d for d in glob.glob(os.path.join(base_dir, "*")) if os.path.isd
 
 extension_type = CUDAExtension if device == "cuda" else CppExtension
 
-all_cuda_archs = [
-    '-gencode', 'arch=compute_89,code=sm_89',
-    # '-gencode', 'arch=compute_75,code=sm_75',
-    # '-gencode', 'arch=compute_80,code=sm_80',
-    # '-gencode', 'arch=compute_86,code=sm_86'
-]
+# https://en.wikipedia.org/wiki/CUDA
+def get_cuda_arch_list():
+    if not torch.cuda.is_available():
+        return None
+
+    arch_list = []
+    for i in range(torch.cuda.device_count()):
+        props = torch.cuda.get_device_properties(i)
+        # Convert major.minor to string format
+        arch = f"{props.major}.{props.minor}"
+        if arch not in arch_list:
+            arch_list.append(arch)
+
+    return ";".join(arch_list)
+
+if "TORCH_CUDA_ARCH_LIST" not in os.environ:
+    cuda_archs_list = get_cuda_arch_list()
+    if cuda_archs_list is not None:
+        cuda_archs_list += "+PTX"
+        print(f"computed TORCH_CUDA_ARCH_LIST={cuda_archs_list}")
+        os.environ["TORCH_CUDA_ARCH_LIST"] = cuda_archs_list
+    else:
+        print("Using default CUDA architecture list for build")
 
 extra_compile_args = {
     "cxx": ["-O3", "-fopenmp", "-lgomp"],
-    "nvcc": ["-O3"]+all_cuda_archs,
+    "nvcc": ["-O3"],
 }
 
 setup(
@@ -77,5 +93,4 @@ setup(
         "torchvision"
     ],
     cmdclass={"build_ext": build_ext},
-    zip_safe=False
 )

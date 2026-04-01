@@ -72,7 +72,7 @@ def build_kmap_implicit_GEMM_hashmap(
     if not generative:
         results = (
             hashmap.lookup_coords(
-                coords[:, [1, 2, 3, 0]].continuous(), kernel_size.contiguous(), stride.contiguous(), kernel_volume
+                coords[:, [1, 2, 3, 0]].contiguous(), kernel_size.contiguous(), stride.contiguous(), kernel_volume
             )
             - 1
         )

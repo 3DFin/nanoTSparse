@@ -24,6 +24,8 @@ __inline__ __device__ int8_t atomicCAS(int8_t* address, int8_t compare, int8_t v
 }
 
 // TODO: can we do this more efficiently?
+// RJ: Yes we can, using native atomic CAS for ui16 (starting CUDA 11.6).
+// But I dont think this code is used somewhere
 __inline__ __device__ int16_t atomicCAS(int16_t* address, int16_t compare, int16_t val) {
   int32_t* base_address = (int32_t*)((char*)address - ((size_t)address & 2));
   int32_t int_val = (int32_t)val << (((size_t)address & 2) * 8);
@@ -54,7 +56,6 @@ __device__ int hash(key_type key, int _capacity){
 
 template <typename key_type>
 __device__ int hash_murmur3(key_type key, int _capacity){
-  // use the murmur3 hash function for int32
   int64_t k = (int64_t)key;
   k ^= k >> 16;
   k *= 0x85ebca6b;

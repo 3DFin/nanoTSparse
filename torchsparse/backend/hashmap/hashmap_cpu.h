@@ -59,7 +59,7 @@ public:
   ~HashTableCPU() = default;
 
   void insert_vals(torch::Tensor keys) {
-    // TODO: Implement if needed
+    // TODO: Implement if needed but it seems to be used nowhere in the code.
   }
 
   torch::Tensor lookup_vals(torch::Tensor keys) {

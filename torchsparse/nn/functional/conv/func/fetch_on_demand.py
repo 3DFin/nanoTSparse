@@ -16,7 +16,7 @@ __all__ = ["FetchOnDemandConvolutionFuntion"]
 
 class FetchOnDemandConvolutionFuntion(Function):
     @staticmethod
-    # @custom_fwd(cast_inputs=torch.half)
+    @torch.amp.custom_fwd(device_type="cuda", cast_inputs=torch.half)
     def forward(
         ctx,
         input: torch.Tensor,

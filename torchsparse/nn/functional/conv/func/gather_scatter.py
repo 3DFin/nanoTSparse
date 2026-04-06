@@ -15,7 +15,7 @@ __all__ = ["GatherScatterConvolutionFuntion"]
 
 class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
     @staticmethod
-    # @custom_fwd(cast_inputs=torch.half)
+    @torch.amp.custom_fwd(device_type="cuda", cast_inputs=torch.half)
     def forward(
         ctx,
         input: torch.Tensor,

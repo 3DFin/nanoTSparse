@@ -40,20 +40,18 @@ def build_kmap_implicit_GEMM_hashmap(
 
     kernel_volume = torch.prod(kernel_size)
 
+    to_insert = False
     if coords.device.type == "cpu":
         hashmap = torchsparse.backend.CPUHashTable(_coords.shape[0])
         to_insert = True;
         # for CPU we do not use cache and force a new insertion
         # CPU is meant to be use only in inference scenario
     else:
-        to_insert = False
-        num_coords = _coords.shape[0]
         if kmap["hashmap_keys"] is None:
             kmap["hashmap_keys"] = torch.zeros(
                 2 * _coords.shape[0], dtype=torch.int64, device=coords.device
             )
             to_insert = True
-        print(f"Hashmap to insert: {to_insert} /  Memory used: {  (8 * 2 * num_coords + 4 * 2 * num_coords) / (1000 * 1000)}")
         if kmap["hashmap_vals"] is None:
             kmap["hashmap_vals"] = torch.zeros(
                 2 * _coords.shape[0], dtype=torch.int32, device=coords.device

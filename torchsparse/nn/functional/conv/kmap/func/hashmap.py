@@ -40,30 +40,32 @@ def build_kmap_implicit_GEMM_hashmap(
 
     kernel_volume = torch.prod(kernel_size)
 
-    to_insert = False
-    if kmap["hashmap_keys"] is None:
-        kmap["hashmap_keys"] = torch.zeros(
-            2 * _coords.shape[0], dtype=torch.int64, device=coords.device
-        )
-        to_insert = True
-    if kmap["hashmap_vals"] is None:
-        kmap["hashmap_vals"] = torch.zeros(
-            2 * _coords.shape[0], dtype=torch.int32, device=coords.device
-        )
-
     if coords.device.type == "cpu":
-        hashmap = torchsparse.backend.CPUHashTable()
+        hashmap = torchsparse.backend.CPUHashTable(_coords.shape[0])
         to_insert = True;
         # for CPU we do not use cache and force a new insertion
-        # insertion is costless
+        # CPU is meant to be use only in inference scenario
     else:
+        to_insert = False
+        num_coords = _coords.shape[0]
+        if kmap["hashmap_keys"] is None:
+            kmap["hashmap_keys"] = torch.zeros(
+                2 * _coords.shape[0], dtype=torch.int64, device=coords.device
+            )
+            to_insert = True
+        print(f"Hashmap to insert: {to_insert} /  Memory used: {  (8 * 2 * num_coords + 4 * 2 * num_coords) / (1000 * 1000)}")
+        if kmap["hashmap_vals"] is None:
+            kmap["hashmap_vals"] = torch.zeros(
+                2 * _coords.shape[0], dtype=torch.int32, device=coords.device
+            )
+
         hashmap = torchsparse.backend.GPUHashTable(
             kmap["hashmap_keys"], kmap["hashmap_vals"]
         )
 
     if to_insert:
         if not generative:
-            hashmap.insert_coords(_coords[:, [1, 2, 3, 0]].cpu().contiguous())
+            hashmap.insert_coords(_coords[:, [1, 2, 3, 0]].contiguous())
         else:
             _insert_coords = _coords.clone()
             _insert_coords[:, 1:] *= stride

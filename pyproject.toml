@@ -1,3 +1,4 @@
 [build-system]
 requires = ["setuptools", "ninja", "torch"]
+requires-python = ">= 3.9"
 build-backend = "setuptools.build_meta"

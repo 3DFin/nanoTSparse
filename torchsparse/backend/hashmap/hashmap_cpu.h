@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <tsl/robin_map.h>
+
 #include <torch/extension.h>
 
 template <typename coord_type, typename index_type> class HashTableCPU {
@@ -39,7 +41,7 @@ private:
     }
   };
 
-  std::unordered_map<VoxelKey, index_type, VoxelKeyHash> hashmap;
+  tsl::robin_map<VoxelKey, index_type, VoxelKeyHash> hashmap;
 
 public:
   HashTableCPU() = default;

@@ -15,7 +15,7 @@ with open('torchsparse/version.py') as f:
 
 print("torchsparse version:", __version__)
 
-build_ext = BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=True)
+build_ext = BuildExtension.with_options(use_ninja=True)
 
 if (torch.cuda.is_available() and CUDA_HOME is not None) or (
     os.getenv("FORCE_CUDA", "0") == "1"
@@ -41,6 +41,12 @@ header_files = [file for file in glob.glob(os.path.join(base_dir, "**", "*")) if
 
 # set all dir as include dir
 include_dirs = [d for d in glob.glob(os.path.join(base_dir, "*")) if os.path.isdir(d)]
+
+if device == "cpu":
+    # Robin map integration
+    # TODO also include licence as data_file
+    include_dirs += ["third_party/robin-map/include/"]
+    header_files += ["third_party/robin-map/include/tsl/robin_map.h"]
 
 extension_type = CUDAExtension if device == "cuda" else CppExtension
 
@@ -79,7 +85,9 @@ setup(
     packages=find_packages(),
     ext_modules=[
         extension_type(
-            "torchsparse.backend", sources, extra_compile_args=extra_compile_args
+            "torchsparse.backend",
+            sources,
+            extra_compile_args=extra_compile_args,
         )
     ],
     url="https://github.com/mit-han-lab/torchsparse",

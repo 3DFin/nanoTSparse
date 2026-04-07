@@ -1,5 +1,4 @@
 #include "hashmap_cpu.h"
-#include <iostream>
 
 std::vector<at::Tensor> build_mask_from_kmap_native(int n_points, int n_out_points,
                                              at::Tensor _kmap,

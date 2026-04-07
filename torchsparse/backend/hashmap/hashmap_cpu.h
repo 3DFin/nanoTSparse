@@ -3,10 +3,12 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
-#include <unordered_map>
 #include <vector>
 
 #include <tsl/robin_map.h>
+
+#include <taskflow/algorithm/for_each.hpp>
+#include <taskflow/taskflow.hpp>
 
 #include <torch/extension.h>
 
@@ -102,30 +104,35 @@ public:
     const auto offsets = compute_kernel_offsets(
         kernel_sizes_ptr[0], kernel_sizes_ptr[1], kernel_sizes_ptr[2]);
 
-#pragma omp parallel for
-    for (size_t id = 0; id < coords.size(0); ++id) {
-      const auto *in_coords = &key_raw_ptr[id * 4];
-      for (size_t k = 0; k < kernel_volume; ++k) {
-        const auto &k_offsets = offsets[k];
-        coord_type out_coords[4];
-        out_coords[3] = in_coords[3]; // batch is the same
-        for (size_t dim = 0; dim < 3; ++dim) {
-          out_coords[dim] = in_coords[dim] * strides_raw[dim] + k_offsets[dim];
-        }
-        const VoxelKey key(&out_coords[0]);
-        auto maybe_id = hashmap.find(key);
-        if (maybe_id != hashmap.end())
-          results_raw[id * kernel_volume + k] =
-              static_cast<int>(maybe_id->second);
-      }
-    }
+    tf::Executor executor;
+    tf::Taskflow taskflow;
+    taskflow.for_each_index(
+        size_t(0), size_t(coords.size(0)), size_t(1), [&](size_t id) {
+          const auto *in_coords = &key_raw_ptr[id * 4];
+          for (size_t k = 0; k < kernel_volume; ++k) {
+            const auto &k_offsets = offsets[k];
+            coord_type out_coords[4];
+            out_coords[3] = in_coords[3]; // batch is the same
+            for (size_t dim = 0; dim < 3; ++dim) {
+              out_coords[dim] =
+                  in_coords[dim] * strides_raw[dim] + k_offsets[dim];
+            }
+            const VoxelKey key(&out_coords[0]);
+            auto maybe_id = hashmap.find(key);
+            if (maybe_id != hashmap.end())
+              results_raw[id * kernel_volume + k] =
+                  static_cast<int>(maybe_id->second);
+          }
+        });
+    executor.run(taskflow).get();
     return results;
   }
 };
+
+using CPUHashMap = HashTableCPU<int, int>;
+
 
 std::vector<at::Tensor> build_mask_from_kmap_native(int n_points,
                                                     int n_out_points,
                                                     at::Tensor _kmap,
                                                     at::Tensor _kmap_sizes);
-
-using CPUHashMap = HashTableCPU<int, int>;

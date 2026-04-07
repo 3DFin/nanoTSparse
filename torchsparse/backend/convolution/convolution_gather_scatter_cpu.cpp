@@ -21,7 +21,7 @@ void scatter_cpu(int n_in, int c, const float *in_feat, float *out_feat,
 }
 
 void gather_cpu(int n_k, int c, const float *in_feat, float *out_feat,
-                const int *kmap, bool transpose, tf::Executor & executor) {
+                const int *kmap, bool transpose, tf::Executor &executor) {
   tf::Taskflow taskflow;
   taskflow.for_each_index(0, n_k, 1, [&](int i) {
     assert(in_pos >= 0);
@@ -82,7 +82,7 @@ void conv_forward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor out_feat,
                           neighbor_offset.data_ptr<int>() + kernel_volume);
   }
 
-  auto options =
+  const auto options =
       torch::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
 
   auto in_buffer = torch::zeros({_buffer_size, c_in}, options);
@@ -135,79 +135,76 @@ void conv_forward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor out_feat,
 void conv_backward_gather_scatter_cpu(
     at::Tensor in_feat, at::Tensor grad_in_feat, at::Tensor grad_out_feat,
     at::Tensor kernel, at::Tensor grad_kernel, at::Tensor neighbor_map,
-    at::Tensor neighbor_offset, const bool transpose) {}
-
-
-/*
-void conv_backward_gather_scatter_cpu(
-    at::Tensor in_feat, at::Tensor grad_in_feat, at::Tensor grad_out_feat,
-    at::Tensor kernel, at::Tensor grad_kernel, at::Tensor neighbor_map,
     at::Tensor neighbor_offset, const bool transpose) {
+
   grad_in_feat.resize_as_(in_feat);
   grad_in_feat.zero_();
   grad_kernel.resize_as_(kernel);
   grad_kernel.zero_();
 
   int kernel_volume = kernel.size(0);
-  bool flag = false;
-  int in_buffer_size;
-  in_buffer_size =
-      *std::max_element(neighbor_offset.data_ptr<int>(),
-                        neighbor_offset.data_ptr<int>() + kernel_volume);
+  int c_in = kernel.size(1);
+  int c_out = kernel.size(2);
 
-  auto options =
+  bool is_submanifold = false;
+
+  const auto *neighbor_offset_ptr = neighbor_offset.data_ptr<int>();
+
+  int _buffer_size = *std::max_element(neighbor_offset_ptr,
+                                       neighbor_offset_ptr + kernel_volume);
+
+  const auto options =
       torch::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
-  auto in_buffer = torch::zeros({in_buffer_size, in_feat.size(1)}, options);
-  auto in_grad_buffer =
-      torch::zeros({in_buffer_size, in_feat.size(1)}, options);
-  auto out_grad_buffer =
-      torch::zeros({in_buffer_size, kernel.size(2)}, options);
+  auto in_buffer = torch::zeros({_buffer_size, c_in}, options);
+  auto in_grad_buffer = torch::zeros({_buffer_size, c_in}, options);
+  auto out_grad_buffer = torch::zeros({_buffer_size, c_out}, options);
+
+  tf::Executor executor;
 
   int cur_offset = 0;
-  for (int i = 0; i < kernel_volume; i++) {
-    auto kernel_grad_buffer = grad_kernel[i];
-    if (flag && (i == kernel_volume / 2)) {
-      cur_offset += 2 * neighbor_offset.data_ptr<int>()[i];
+  for (int k = 0; k < kernel_volume; k++) {
+    auto kernel_grad_buffer = grad_kernel[k];
+    if (is_submanifold && (k == kernel_volume / 2)) {
+      cur_offset += 2 * neighbor_offset_ptr[k];
       continue;
     }
 
-    if (neighbor_offset.data_ptr<int>()[i] == 0) {
+    if (neighbor_offset.data_ptr<int>()[k] == 0) {
       continue;
     }
 
-    auto out_grad_buffer_activated = torch::from_blob(
-        out_grad_buffer.data_ptr<float>(),
-        {neighbor_offset.data_ptr<int>()[i], kernel.size(2)}, options);
-    auto in_grad_buffer_activated = torch::from_blob(
-        in_grad_buffer.data_ptr<float>(),
-        {neighbor_offset.data_ptr<int>()[i], in_feat.size(1)}, options);
+    auto out_grad_buffer_activated =
+        torch::from_blob(out_grad_buffer.data_ptr<float>(),
+                         {neighbor_offset_ptr[k], c_out}, options);
+    auto in_grad_buffer_activated =
+        torch::from_blob(in_grad_buffer.data_ptr<float>(),
+                         {neighbor_offset_ptr[k], c_in}, options);
     auto in_buffer_activated = torch::from_blob(
-        in_buffer.data_ptr<float>(),
-        {neighbor_offset.data_ptr<int>()[i], in_feat.size(1)}, options);
+        in_buffer.data_ptr<float>(), {neighbor_offset_ptr[k], c_in}, options);
 
     // gather
-    gather_cpu(out_grad_buffer_activated.size(0), kernel.size(2),
+    gather_cpu(out_grad_buffer_activated.size(0), c_out,
                grad_out_feat.data_ptr<float>(),
                out_grad_buffer_activated.data_ptr<float>(),
-               neighbor_map.data_ptr<int>() + cur_offset, !transpose);
+               neighbor_map.data_ptr<int>() + cur_offset, !transpose, executor);
 
-    gather_cpu(in_buffer_activated.size(0), kernel.size(1),
-               in_feat.data_ptr<float>(), in_buffer_activated.data_ptr<float>(),
-               neighbor_map.data_ptr<int>() + cur_offset, transpose);
+    gather_cpu(in_buffer_activated.size(0), c_in, in_feat.data_ptr<float>(),
+               in_buffer_activated.data_ptr<float>(),
+               neighbor_map.data_ptr<int>() + cur_offset, transpose, executor);
 
     // matmul
     torch::mm_out(in_grad_buffer_activated, out_grad_buffer_activated,
-                  torch::transpose(kernel[i], 0, 1));
+                  torch::transpose(kernel[k], 0, 1));
     torch::mm_out(kernel_grad_buffer,
                   torch::transpose(in_buffer_activated, 0, 1),
                   out_grad_buffer_activated);
 
     // scatter
-    scatter_cpu(neighbor_offset.data_ptr<int>()[i], kernel.size(1),
+    scatter_cpu(neighbor_offset_ptr[k], c_in,
                 in_grad_buffer_activated.data_ptr<float>(),
                 grad_in_feat.data_ptr<float>(),
                 neighbor_map.data_ptr<int>() + cur_offset, !transpose);
 
-    cur_offset += 2 * neighbor_offset.data_ptr<int>()[i];
+    cur_offset += 2 * neighbor_offset_ptr[k];
   }
-  } */
+}

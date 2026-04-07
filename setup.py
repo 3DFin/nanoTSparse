@@ -10,7 +10,7 @@ from torch.utils.cpp_extension import (
     CUDAExtension,
 )
 
-with open('torchsparse/version.py') as f:
+with open("torchsparse/version.py") as f:
     __version__ = f.read().split("'")[1]
 
 print("torchsparse version:", __version__)
@@ -37,7 +37,9 @@ for fpath in glob.glob(os.path.join(base_dir, "**", "*")):
         sources.append(fpath)
 
 # collect header files to include them in sdist
-header_files = [file for file in glob.glob(os.path.join(base_dir, "**", "*")) if file.endswith("h")]
+header_files = [
+    file for file in glob.glob(os.path.join(base_dir, "**", "*")) if file.endswith("h")
+]
 
 # set all dir as include dir
 include_dirs = [d for d in glob.glob(os.path.join(base_dir, "*")) if os.path.isdir(d)]
@@ -46,17 +48,24 @@ include_dirs = [d for d in glob.glob(os.path.join(base_dir, "*")) if os.path.isd
 # TODO also include licence as data_file
 robin_map_base_dir = "third_party/robin-map/include/"
 include_dirs += ["third_party/robin-map/include/"]
-header_files += [file for file in glob.glob(os.path.join(robin_map_base_dir, "**", "*")) if file.endswith("h")]
+header_files += [
+    file
+    for file in glob.glob(os.path.join(robin_map_base_dir, "**", "*"))
+    if file.endswith("h")
+]
 
 # Taskflow integration
 taskflow_base_dir = "third_party/taskflow"
 include_dirs += [taskflow_base_dir]
-header_files += [file for file in glob.glob(os.path.join(taskflow_base_dir, "taskflow", "**", "*")) if file.endswith("hpp")]
+header_files += [
+    file
+    for file in glob.glob(os.path.join(taskflow_base_dir, "taskflow", "**", "*"))
+    if file.endswith("hpp")
+]
 header_files += [os.path.join(taskflow_base_dir, "taskflow", "taskflow.hpp")]
 
-print(header_files)
-
 extension_type = CUDAExtension if device == "cuda" else CppExtension
+
 
 # https://en.wikipedia.org/wiki/CUDA
 def get_cuda_arch_list():
@@ -73,6 +82,7 @@ def get_cuda_arch_list():
 
     return ";".join(arch_list)
 
+
 if "TORCH_CUDA_ARCH_LIST" not in os.environ:
     cuda_archs_list = get_cuda_arch_list()
     if cuda_archs_list is not None:
@@ -83,7 +93,7 @@ if "TORCH_CUDA_ARCH_LIST" not in os.environ:
         print("Using default CUDA architecture list for build")
 
 extra_compile_args = {
-    "cxx": ["-O3", "-fopenmp", "-lgomp"],
+    "cxx": ["-O3"],
     "nvcc": ["-O3"],
 }
 
@@ -102,11 +112,6 @@ setup(
     include_package_data=True,
     include_dirs=include_dirs,
     data_files=header_files,
-    install_requires=[
-        "numpy",
-        "tqdm",
-        "torch",
-        "torchvision"
-    ],
+    install_requires=["numpy", "tqdm", "torch", "torchvision"],
     cmdclass={"build_ext": build_ext},
 )

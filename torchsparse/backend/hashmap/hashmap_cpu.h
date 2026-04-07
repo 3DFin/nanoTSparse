@@ -131,8 +131,7 @@ public:
 
 using CPUHashMap = HashTableCPU<int, int>;
 
-
-std::vector<at::Tensor> build_mask_from_kmap_native(int n_points,
-                                                    int n_out_points,
-                                                    at::Tensor _kmap,
-                                                    at::Tensor _kmap_sizes);
+std::vector<at::Tensor>
+build_mask_from_kmap_native(int n_points, int n_out_points,
+                            const at::Tensor kmap,
+                            const at::Tensor kmap_sizes);

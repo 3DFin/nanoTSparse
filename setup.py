@@ -42,11 +42,19 @@ header_files = [file for file in glob.glob(os.path.join(base_dir, "**", "*")) if
 # set all dir as include dir
 include_dirs = [d for d in glob.glob(os.path.join(base_dir, "*")) if os.path.isdir(d)]
 
-if device == "cpu":
-    # Robin map integration
-    # TODO also include licence as data_file
-    include_dirs += ["third_party/robin-map/include/"]
-    header_files += ["third_party/robin-map/include/tsl/robin_map.h"]
+# Robin map integration
+# TODO also include licence as data_file
+robin_map_base_dir = "third_party/robin-map/include/"
+include_dirs += ["third_party/robin-map/include/"]
+header_files += [file for file in glob.glob(os.path.join(robin_map_base_dir, "**", "*")) if file.endswith("h")]
+
+# Taskflow integration
+taskflow_base_dir = "third_party/taskflow"
+include_dirs += [taskflow_base_dir]
+header_files += [file for file in glob.glob(os.path.join(taskflow_base_dir, "taskflow", "**", "*")) if file.endswith("hpp")]
+header_files += [os.path.join(taskflow_base_dir, "taskflow", "taskflow.hpp")]
+
+print(header_files)
 
 extension_type = CUDAExtension if device == "cuda" else CppExtension
 

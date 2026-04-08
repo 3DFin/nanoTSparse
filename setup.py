@@ -66,7 +66,6 @@ header_files += [os.path.join(taskflow_base_dir, "taskflow", "taskflow.hpp")]
 
 extension_type = CUDAExtension if device == "cuda" else CppExtension
 
-
 # https://en.wikipedia.org/wiki/CUDA
 def get_cuda_arch_list():
     if not torch.cuda.is_available():

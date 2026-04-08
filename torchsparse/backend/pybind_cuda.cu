@@ -9,8 +9,6 @@
 #include "convolution/convolution_backward_wgrad_implicit_gemm_cuda.h"
 #include "convolution/convolution_backward_wgrad_implicit_gemm_sorted_cuda.h"
 #include "voxelize/voxelize_cuda.h"
-#include "others/count_cpu.h"
-#include "others/count_cuda.h"
 #include "others/downsample_cuda.h"
 #include "others/exclusive_scan_cuda.h"
 #include "others/reduce_bitmask_cuda.h"
@@ -27,13 +25,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         .def("lookup_vals", &GPUHashMap::lookup_vals)
         .def("insert_coords", &GPUHashMap::insert_coords)
         .def("lookup_coords", &GPUHashMap::lookup_coords);
-  py::class_<GPUHashMap32>(m, "GPUHashTable32")
-        .def(py::init<const int>())
-        .def(py::init<torch::Tensor, torch::Tensor>())
-        .def("insert_vals", &GPUHashMap32::insert_vals)
-        .def("lookup_vals", &GPUHashMap32::lookup_vals)
-        .def("insert_coords", &GPUHashMap32::insert_coords)
-        .def("lookup_coords", &GPUHashMap32::lookup_coords);
   m.def("conv_forward_gather_scatter_cpu", &conv_forward_gather_scatter_cpu);
   m.def("conv_forward_gather_scatter_cuda", &conv_forward_gather_scatter_cuda);
   m.def("conv_forward_fetch_on_demand_cuda", &conv_forward_fetch_on_demand_cuda);
@@ -57,6 +48,4 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("build_kernel_map_downsample_hashmap_int32", &build_kernel_map_downsample_hashmap_int32);
   m.def("build_mask_from_kmap", &build_mask_from_kmap);
   m.def("downsample_cuda", &downsample_cuda);
-  m.def("count_cpu", &count_cpu);
-  m.def("count_cuda", &count_cuda);
 }

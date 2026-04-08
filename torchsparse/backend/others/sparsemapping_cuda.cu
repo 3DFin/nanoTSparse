@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <c10/cuda/CUDAGuard.h>
 
-#include <cstdio>
 #include <vector>
 
 #define NDim 4
@@ -252,53 +251,6 @@ __global__ void get_masks_from_kmap_kernel(int n_points, int n_points_out,
   }
 }
 
-std::vector<at::Tensor> build_kernel_map_subm_hashmap_int32(
-    GPUHashMap32 &table, at::Tensor _in_coords, at::Tensor _coords_min,
-    at::Tensor _coords_max, at::Tensor _kernel_sizes, at::Tensor _stride,
-    at::Tensor _padding, bool to_insert) {
-  c10::cuda::CUDAGuard guard(_in_coords.device());
-  int n_points = _in_coords.size(0);
-  int kernel_volume = (int)(torch::prod(_kernel_sizes).item<int>());
-  int *in_coords = _in_coords.data_ptr<int>();
-  int *coords_min = _coords_min.data_ptr<int>();
-  int *coords_max = _coords_max.data_ptr<int>();
-  int *kernel_sizes = _kernel_sizes.data_ptr<int>();
-  int *stride = _stride.data_ptr<int>();
-  auto options = torch::TensorOptions()
-                     .dtype(at::ScalarType::Int)
-                     .device(_in_coords.device());
-  // auto options_long =
-  // torch::TensorOptions().dtype(at::ScalarType::Long).device(_in_coords.device());
-  at::Tensor _out_coords = torch::empty({_in_coords.size(0)}, options);
-  int32_t *out_coords = _out_coords.data_ptr<int>();
-  int divisor = table.get_divisor();
-  int n_points_pad = (n_points + divisor - 1) / divisor * divisor;
-  at::Tensor _out_in_map =
-      torch::full({n_points_pad, kernel_volume}, -1, options);
-  int *out_in_map = _out_in_map.data_ptr<int>();
-  // stage1: insert to hashmap
-  if (to_insert)
-    subm_hashmap_kmap_stage1<GPUHashMap32::device_view, int32_t>
-        <<<(int)ceil((double)n_points / 256), 256>>>(
-            table.get_device_view(), n_points, kernel_volume, in_coords,
-            coords_min, coords_max, out_coords);
-  // stage2: query
-  if (kernel_volume % 2 != 0) {
-    subm_hashmap_kmap_stage2_odd_kernel<GPUHashMap32::device_view, int32_t>
-        <<<(int)ceil((double)n_points * (kernel_volume / 2) / 256), 256>>>(
-            table.get_device_view(), n_points, kernel_volume, in_coords,
-            coords_min, coords_max, kernel_sizes,
-            out_in_map); // only support odd kernel shapes
-  } else {
-    subm_hashmap_kmap_stage2_even_kernel<GPUHashMap32::device_view, int32_t>
-        <<<(int)ceil((double)n_points * (kernel_volume) / 256), 256>>>(
-            table.get_device_view(), n_points, kernel_volume, in_coords,
-            coords_min, coords_max, kernel_sizes,
-            out_in_map); // only support even kernel shapes
-  }
-
-  return {_out_in_map};
-}
 
 std::vector<at::Tensor>
 build_kernel_map_subm_hashmap(GPUHashMap &table, at::Tensor _in_coords,
@@ -349,92 +301,6 @@ build_kernel_map_subm_hashmap(GPUHashMap &table, at::Tensor _in_coords,
             out_in_map); // only support even kernel shapes
   }
   return {_out_in_map};
-}
-
-std::vector<at::Tensor> build_kernel_map_downsample_hashmap_int32(
-    GPUHashMap32 &table, at::Tensor _in_coords, at::Tensor _coords_min,
-    at::Tensor _coords_max, at::Tensor _kernel_sizes, at::Tensor _stride,
-    at::Tensor _padding, bool to_insert) {
-  c10::cuda::CUDAGuard guard(_in_coords.device());
-  int n_points = _in_coords.size(0);
-  int kernel_volume = (int)(torch::prod(_kernel_sizes).item<int>());
-  int *in_coords = _in_coords.data_ptr<int>();
-  int *coords_min = _coords_min.data_ptr<int>();
-  int *coords_max = _coords_max.data_ptr<int>();
-  int *kernel_sizes = _kernel_sizes.data_ptr<int>();
-  int *stride = _stride.data_ptr<int>();
-  int *padding = _padding.data_ptr<int>();
-  auto options = torch::TensorOptions()
-                     .dtype(at::ScalarType::Int)
-                     .device(_in_coords.device());
-  auto options_long = torch::TensorOptions()
-                          .dtype(at::ScalarType::Int)
-                          .device(_in_coords.device());
-
-  at::Tensor _out_kmap = torch::full({n_points, kernel_volume}, -1, options);
-
-  at::Tensor _n_out_points = torch::zeros({1}, options);
-  at::Tensor _transformed_out_coords =
-      torch::empty({kernel_volume * n_points}, options);
-  // transformed coordinates is long
-  int32_t *out_kmap = _out_kmap.data_ptr<int>();
-  int *n_out_points = _n_out_points.data_ptr<int>();
-  int32_t *transformed_out_coords = _transformed_out_coords.data_ptr<int>();
-  /*
-  // If we do specialized downsample for 3D coords (stage 1), we do it (using
-  divided coords_min/max) as follows:
-  */
-  if (kernel_volume % 2 == 1) {
-    downsample_grid_kmap_stage1_specialized_fast<int32_t, true>
-        <<<(int)ceil((double)(n_points * kernel_volume) / 256), 256>>>(
-            n_points, kernel_volume, in_coords, kernel_sizes, stride, padding,
-            coords_min, coords_max, n_out_points, transformed_out_coords,
-            out_kmap);
-  } else {
-    downsample_grid_kmap_stage1_specialized_fast<int32_t, false>
-        <<<(int)ceil((double)(n_points * kernel_volume) / 256), 256>>>(
-            n_points, kernel_volume, in_coords, kernel_sizes, stride, padding,
-            coords_min, coords_max, n_out_points, transformed_out_coords,
-            out_kmap);
-  }
-  // stage2: get unique coordinates and insert them to the grid.
-  int n_out_points_with_duplicate = _n_out_points.item<int>();
-  at::Tensor _out_coords = std::get<0>(torch::_unique(torch::from_blob(
-      transformed_out_coords, {n_out_points_with_duplicate}, options)));
-  int32_t *out_coords = _out_coords.data_ptr<int>();
-  // stage 2.1: insert to the hashmap and transform the out coords to N x 4
-  // format.
-  int n_out_points_scalar = _out_coords.size(0);
-  // Check the _capacity of hashtable
-  int capacity = table.get_capacity();
-  if (capacity < n_out_points_scalar)
-    throw std::invalid_argument(
-        "The capacity of hashtable is not sufficient. Please enlarge reserved "
-        "space for hashtable:\n # Python \nimport "
-        "torchsparse.backends\ntorchsparse.backends.hash_rsv_ratio=#Value");
-
-  at::Tensor final_out_coords =
-      torch::zeros({n_out_points_scalar, NDim}, options);
-  inverse_transform_coords_and_insert_kernel<<<
-      (int)ceil((double)n_out_points_scalar / 256), 256>>>(
-      table.get_device_view(), n_out_points_scalar, out_coords, coords_min,
-      coords_max, final_out_coords.data_ptr<int>());
-
-  // table.insert_vals(_out_coords);
-
-  // stage3: replace the (64b) coordinate ravel hashes with the output idx
-  int divisor = table.get_divisor();
-  at::Tensor _out_in_map = torch::full(
-      {(n_out_points_scalar + divisor - 1) / divisor * divisor, kernel_volume},
-      -1, options);
-  int *out_in_map = _out_in_map.data_ptr<int>();
-
-  downsample_hashmap_kmap_stage3<<<
-      (int)ceil((double)(n_points * kernel_volume) / 256), 256>>>(
-      table.get_device_view(), n_points, n_out_points_scalar, kernel_volume,
-      out_kmap, out_in_map);
-
-  return {_out_in_map, final_out_coords};
 }
 
 std::vector<at::Tensor> build_kernel_map_downsample_hashmap(

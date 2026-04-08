@@ -1,5 +1,4 @@
 from typing import Dict, Tuple, Optional
-import numpy as np
 import torch
 
 import torchsparse.backend

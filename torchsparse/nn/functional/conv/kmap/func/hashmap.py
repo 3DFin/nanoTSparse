@@ -45,7 +45,7 @@ def build_kmap_implicit_GEMM_hashmap(
         hashmap = torchsparse.backend.CPUHashTable(_coords.shape[0])
         to_insert = True;
         # for CPU we do not use cache and force a new insertion
-        # CPU is meant to be use only in inference scenario
+        # CPU is meant to be use only in inference scenarii
     else:
         if kmap["hashmap_keys"] is None:
             kmap["hashmap_keys"] = torch.zeros(
@@ -63,7 +63,7 @@ def build_kmap_implicit_GEMM_hashmap(
 
     if to_insert:
         if not generative:
-            hashmap.insert_coords(_coords[:, [1, 2, 3, 0]].contiguous())
+            hashmap.insert_coords(_coords[:, [1, 2, 3, 0]])
         else:
             _insert_coords = _coords.clone()
             _insert_coords[:, 1:] *= stride
@@ -72,7 +72,7 @@ def build_kmap_implicit_GEMM_hashmap(
     if not generative:
         results = (
             hashmap.lookup_coords(
-                coords[:, [1, 2, 3, 0]].contiguous(), kernel_size.contiguous(), stride.contiguous(), kernel_volume
+                coords[:, [1, 2, 3, 0]], kernel_size.contiguous(), stride.contiguous(), kernel_volume
             )
             - 1
         )

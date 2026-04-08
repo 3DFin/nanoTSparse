@@ -51,14 +51,6 @@ def conv3d(
     elif dataflow == F.Dataflow.GatherScatter:
         ConvolutionFunction = GatherScatterConvolutionFuntion
         config.ifsort = False
-    elif dataflow == F.Dataflow.FetchOnDemand:
-        ConvolutionFunction = FetchOnDemandConvolutionFuntion
-        config.ifsort = False
-    elif (
-        dataflow == F.Dataflow.CodedCSR
-    ):  # Placeholder for PCEngine integration. Mode name can be modified.
-        config.ifsort = False
-        assert 0, "CodedCSR has not been integrated."
     else:
         raise ValueError("unsupported dataflow: {}".format(dataflow))
 

@@ -3,7 +3,7 @@
 
 #include "convolution/convolution_gather_scatter_cpu.h"
 #include "convolution/convolution_gather_scatter_cuda.h"
-#include "convolution/convolution_forward_fetch_on_demand_cuda.h"
+
 #include "convolution/convolution_forward_implicit_gemm_cuda.h"
 #include "convolution/convolution_forward_implicit_gemm_sorted_cuda.h"
 #include "convolution/convolution_backward_wgrad_implicit_gemm_cuda.h"
@@ -26,6 +26,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         .def("insert_coords", &GPUHashMap::insert_coords)
         .def("lookup_coords", &GPUHashMap::lookup_coords);
 
+  // TODO: add CPUHashmap
+
   // Gather Scatter Sum
   m.def("conv_forward_gather_scatter_cpu", &conv_forward_gather_scatter_cpu);
   m.def("conv_backward_gather_scatter_cpu", &conv_backward_gather_scatter_cpu);
@@ -37,11 +39,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("conv_forward_implicit_gemm_sorted_cuda", &conv_forward_implicit_gemm_sorted_cuda, py::arg("_in_feats"), py::arg("_kernel"), py::arg("_out_in_map"), py::arg("_reduced_mask"), py::arg("_reorder_loc"), py::arg("num_out_feats"), py::arg("num_out_channels"), py::arg("allow_tf32") = false, py::arg("allow_fp16") = true);
   m.def("conv_backward_wgrad_implicit_gemm_cuda", &conv_backward_wgrad_implicit_gemm_cuda, py::arg("_in_feats"), py::arg("_kernel"), py::arg("_out_in_map"), py::arg("split_k_iters"), py::arg("allow_tf32") = false, py::arg("allow_fp16") = true);
   m.def("conv_backward_wgrad_implicit_gemm_sorted_cuda", &conv_backward_wgrad_implicit_gemm_sorted_cuda, py::arg("_in_feats"), py::arg("_kernel"), py::arg("_out_in_map"), py::arg("_reduced_mask"), py::arg("_reorder_loc"), py::arg("split_k_iters"), py::arg("allow_tf32") = false, py::arg("allow_fp16") = true);
-
-  // Fetch on Demand
-  m.def("conv_forward_fetch_on_demand_cuda", &conv_forward_fetch_on_demand_cuda);
-  m.def("conv_forward_fetch_on_demand_no_fusion_cuda", &conv_forward_fetch_on_demand_no_fusion_cuda);
-
 
   m.def("convert_transposed_out_in_map", &convert_transposed_out_in_map);
   m.def("derive_bitmask_from_out_in_map", &derive_bitmask_from_out_in_map);

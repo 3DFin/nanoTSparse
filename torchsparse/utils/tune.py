@@ -158,22 +158,6 @@ def dataflow_selector(
                 fwd_duration, bwd_duration
             )
 
-        # Dataflow 2: Fetch-On-Demand
-        if F.Dataflow.FetchOnDemand in dataflow_range:
-            dummy_config.dataflow, dummy_config.ifsort, dummy_config.split_mask_num = (
-                F.Dataflow.FetchOnDemand,
-                False,
-                1,
-            )
-            set_group_config(model, names, dummy_config)
-            inputs = clear_tensor_cache(inputs)
-            fwd_duration, bwd_duration = torchsparse_tune_timer(
-                model, inputs, tune_with_bwd
-            )
-            dataflow_all[group_idx][(dummy_config.dataflow)].stable_add(
-                fwd_duration, bwd_duration
-            )
-
         # Dataflow 3: Gather-Scatter (Deprecated by default)
         if F.Dataflow.GatherScatter in dataflow_range:
             dummy_config.dataflow, dummy_config.ifsort, dummy_config.split_mask_num = (
@@ -311,28 +295,6 @@ def profile_model(
                                 dummy_config.FOD_fusion,
                             )
                         ].stable_add(0.0, bwd_duration)
-
-        if F.Dataflow.FetchOnDemand in local_dataflow_range:
-            # Fetch-on-Demand. Tune whether to fuse.
-            dummy_config.dataflow = F.Dataflow.FetchOnDemand
-            for FOD_fusion in [True, False]:
-                dummy_config.FOD_fusion = FOD_fusion
-                set_group_config(model, names, dummy_config)
-                inputs = clear_tensor_cache(inputs)
-                fwd_duration, bwd_duration = torchsparse_tune_timer(
-                    model, inputs, tune_with_bwd
-                )
-                configs_all[group_idx][
-                    (
-                        dummy_config.epsilon,
-                        dummy_config.mm_thresh,
-                        dummy_config.split_mask_num,
-                        dummy_config.split_mask_num_bwd,
-                        dummy_config.dataflow,
-                        dummy_config.ifsort,
-                        dummy_config.FOD_fusion,
-                    )
-                ].stable_add(fwd_duration, bwd_duration)
 
         if F.Dataflow.GatherScatter in local_dataflow_range:
             # Gather-Scatter. Tune eps & mm_thresh

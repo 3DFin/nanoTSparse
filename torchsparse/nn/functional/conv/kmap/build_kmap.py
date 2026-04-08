@@ -51,11 +51,6 @@ def build_kernel_map(
             ("hashmap_keys", hashmap_keys),
             ("hashmap_vals", hashmap_vals),
             ("spatial_range", spatial_range),
-            # [Fetch-on-Demand]: (quantified) neighbor addresses
-            ("nbaddrs", None),
-            ("qnbaddrs", None),
-            # [Fetch-on-Demand]: quantified mapsize
-            ("qmapsize", None),
         ]
     )
 
@@ -110,19 +105,6 @@ def build_kernel_map(
                 subm=subm,
             )
 
-        elif dataflow == Dataflow.FetchOnDemand:
-            kmap = build_kmap_Fetch_on_Demand_hashmap_on_the_fly(
-                kmap,
-                input_node_num,
-                _coords,
-                kernel_size,
-                stride,
-                padding=padding,
-                spatial_range=new_spatial_range,
-                cta_M=cta_M,
-                subm=subm,
-            )
-
         else:
             raise ValueError(
                 "[Build kernel map] unsupported dataflow: {}".format(dataflow)
@@ -162,20 +144,6 @@ def build_kernel_map(
                 generative=generative,
             )
 
-        elif dataflow == Dataflow.FetchOnDemand:
-            kmap = build_kmap_Fetch_on_Demand_hashmap(
-                kmap,
-                input_node_num,
-                _coords,
-                kernel_size,
-                stride,
-                padding=padding,
-                spatial_range=new_spatial_range,
-                cta_M=cta_M,
-                subm=subm,
-                downsample_mode=downsample_mode,
-                generative=generative,
-            )
 
         else:
             raise ValueError(

@@ -7,8 +7,6 @@ from .conv_mode import ConvMode, get_kmap_mode, get_downsample_mode
 class Dataflow(Enum):
     ImplicitGEMM = 0
     GatherScatter = 1
-    FetchOnDemand = 2
-    CodedCSR = 3
 
 
 _global_conv_config = None

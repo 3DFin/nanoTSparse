@@ -1,6 +1,7 @@
+#include "reorder_map_cuda.h"
+
 #include <torch/extension.h>
 #include <c10/cuda/CUDAGuard.h>
-#include "reorder_map_cuda.h"
 
 #define cta_M 128
 #define thd_num 128 // 1 thd per row
@@ -8,7 +9,7 @@
 
 __global__ void __launch_bounds__(thd_num) reorder_out_in_map_kernel(
     int* __restrict__ out_in_map,
-    int* __restrict__ reorder_loc, 
+    int* __restrict__ reorder_loc,
     int M, // node num
     int kernel_volume,
     int split_mask_len,
@@ -44,6 +45,6 @@ at::Tensor reorder_out_in_map_cuda(
 
     reorder_out_in_map_kernel<<<(M + cta_M - 1) / cta_M * kernel_volume, cta_M>>>(
         out_in_map, reorder_loc, M, kernel_volume, split_mask_len, reorder_out_in_map);
-    
+
     return _reorder_out_in_map;
-} 
+}

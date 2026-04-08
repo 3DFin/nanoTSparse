@@ -8,7 +8,9 @@
 #include "convolution/convolution_forward_implicit_gemm_sorted_cuda.h"
 #include "convolution/convolution_backward_wgrad_implicit_gemm_cuda.h"
 #include "convolution/convolution_backward_wgrad_implicit_gemm_sorted_cuda.h"
+
 #include "voxelize/voxelize_cuda.h"
+
 #include "others/downsample_cuda.h"
 #include "others/exclusive_scan_cuda.h"
 #include "others/reduce_bitmask_cuda.h"

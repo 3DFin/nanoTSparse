@@ -11,12 +11,14 @@ Please consider citing the following paper when using the code:
 
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
-#include <cublas_v2.h>
+
+#include <torch/extension.h>
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <driver_types.h>
-#include <torch/extension.h>
 #include <mma.h>
+
 #if __CUDA_ARCH__ >= 700
 #include <cuda/pipeline>
 #endif

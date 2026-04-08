@@ -1,6 +1,7 @@
+#include "reduce_bitmask_cuda.h"
+
 #include <torch/extension.h>
 #include <c10/cuda/CUDAGuard.h>
-#include "reduce_bitmask_cuda.h"
 
 
 // 1 block -- 4 warps -- 128 threads
@@ -11,14 +12,14 @@
 #define thd_per_blk 128
 #define output_per_blk 32 // thd_per_blk / 4  -> (4 threads for 1 reduced element in int32)
 
-extern "C" __global__ 
+extern "C" __global__
 void __launch_bounds__(thd_per_blk) reduce_mask_cuda_int32(
-                                         int* __restrict__ bitmask, 
+                                         int* __restrict__ bitmask,
                                          int output_node_num,
                                          int reduced_row_num,
                                          int reduce_tile,
                                          int* __restrict__ reduced_bitmask) {
-  
+
   int split_mask_iter = blockIdx.y;
   int thread_size = reduce_tile / 4;
   int blockIdx_x = (int)blockIdx.x;
@@ -39,7 +40,7 @@ void __launch_bounds__(thd_per_blk) reduce_mask_cuda_int32(
   #pragma unroll
   for (int i = 0; i < load_len; i++) {
     int load_offset = i + thread_offset;
-    bitmask_local = bitmask_local | bitmask_blk[load_offset]; 
+    bitmask_local = bitmask_local | bitmask_blk[load_offset];
   }
   bitmask_shared[threadIdx_x] = bitmask_local;
   __syncthreads();
@@ -76,14 +77,11 @@ torch::Tensor reduce_bitmask_cuda(
     auto bitmask_int = _bitmask_int.data_ptr<int>();
     auto reduced_bitmask_int = _reduced_bitmask_int.data_ptr<int>();
 
-    dim3 num_blocks(((reduced_row_num - 1) / output_per_blk + 1), split_mask_num); 
+    dim3 num_blocks(((reduced_row_num - 1) / output_per_blk + 1), split_mask_num);
     dim3 num_threads(thd_per_blk);
 
     reduce_mask_cuda_int32<<<num_blocks, num_threads>>>(
         bitmask_int, output_node_num, reduced_row_num, M_tile, reduced_bitmask_int);
-    
+
     return _reduced_bitmask_int;
-} 
-
-
-
+}

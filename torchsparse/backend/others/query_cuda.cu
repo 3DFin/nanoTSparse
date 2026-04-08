@@ -1,11 +1,10 @@
+#include "../hashmap/hashmap_cuda.h"
+
 #include <torch/torch.h>
 
 #include <c10/cuda/CUDAGuard.h>
 #include <cmath>
-#include <iostream>
-#include <vector>
 
-#include "../hashmap/hashmap_cuda.h"
 
 __global__ void convert_out_in_map_kernel(const int* out_in_map, int* out_in_map_t, int n, int kernel_volume){
   int idx = blockIdx.x * blockDim.x + threadIdx.x;

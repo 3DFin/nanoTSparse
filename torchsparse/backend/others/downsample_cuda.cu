@@ -64,7 +64,7 @@ __host__ __device__ int get_output_coords(int kernel_volume, int *in_coords,
                                           int *kernel_sizes, int *stride,
                                           int *coords_min,
                                           int *coords_max,
-                                          int *padding, 
+                                          int *padding,
                                           int *out_coords) {
   int point_counter = 0;
   int upper[NDim - 1], lower[NDim - 1], counter[NDim - 1], cur;
@@ -164,7 +164,7 @@ at::Tensor downsample_cuda(at::Tensor _in_coords, at::Tensor _coords_max,
   at::Tensor _n_out_points = torch::zeros({1}, torch::TensorOptions()
                                        .dtype(at::ScalarType::Int)
                                        .device(_in_coords.device()));
-  
+
   int* n_out_points = _n_out_points.data_ptr<int>();
 
   get_output_coords_kernel<<<int(ceil((double)N / 256)), 256>>>(

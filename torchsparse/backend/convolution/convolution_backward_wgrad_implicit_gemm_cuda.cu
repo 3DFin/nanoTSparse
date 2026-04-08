@@ -1,9 +1,11 @@
-#include <torch/extension.h>
-#include <c10/cuda/CUDAGuard.h>
 #include "convolution_backward_wgrad_implicit_gemm_cuda.h"
 #include "../utils/memory.h"
+
+#include <torch/extension.h>
+#include <c10/cuda/CUDAGuard.h>
+
 #include <cuda_fp16.h>
-#include <stdexcept>
+
 
 // Pack two half values.
 static inline __device__ __host__ unsigned

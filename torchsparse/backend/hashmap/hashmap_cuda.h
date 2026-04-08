@@ -2,9 +2,7 @@
 
 #include <cmath>
 #include <cstdint>
-#include <cstdio>
 #include <cstdlib>
-#include <vector>
 #include <utility>
 
 #include <cuda_runtime.h>

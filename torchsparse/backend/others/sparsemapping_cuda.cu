@@ -1,11 +1,14 @@
+#include "../hashmap/hashmap_cuda.h"
+
 #include <torch/extension.h>
 #include <torch/torch.h>
 
-#include "../hashmap/hashmap_cuda.h"
 #include <algorithm>
 #include <c10/cuda/CUDAGuard.h>
+
 #include <cstdio>
 #include <vector>
+
 #define NDim 4
 #define MAX_KVOL 27
 

@@ -3,9 +3,10 @@
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/taskflow.hpp>
 
+#include <torch/extension.h>
+
 #include <algorithm>
 #include <cassert>
-#include <torch/extension.h>
 
 void scatter_cpu(int n_in, int c, const float *in_feat, float *out_feat,
                  const int *kmap, bool transpose) {

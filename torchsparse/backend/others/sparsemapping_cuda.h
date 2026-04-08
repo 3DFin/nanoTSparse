@@ -1,7 +1,7 @@
 #pragma once
+#include "../hashmap/hashmap_cuda.h"
 
 #include <torch/torch.h>
-#include "../hashmap/hashmap_cuda.h"
 
 std::vector<at::Tensor> build_mask_from_kmap(int n_points, int n_out_points,
                                              at::Tensor _kmap,

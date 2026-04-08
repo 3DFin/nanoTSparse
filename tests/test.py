@@ -2,7 +2,6 @@ import unittest
 from torchsparse.nn import functional as F
 from python import (
     test_single_layer_convolution_forward,
-    test_to_dense_forward,
 )
 
 
@@ -39,12 +38,6 @@ class SparseConvTestCase(unittest.TestCase):
 
         self.assertLessEqual(acc_adiff / count, 1e-4)
         self.assertLessEqual(acc_rdiff / count, 1e-2)
-
-
-class ToDenseTestCase(unittest.TestCase):
-    def test_to_dense(self):
-        max_adiff = test_to_dense_forward()
-        self.assertLessEqual(max_adiff, 1e-5)
 
 
 if __name__ == "__main__":

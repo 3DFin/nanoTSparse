@@ -144,7 +144,6 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_f16f16f32
     }
 
     __syncthreads();
-    __syncthreads();
     for (int ax0_0 = 0; ax0_0 < 4; ++ax0_0)
     {
 
@@ -1536,6 +1535,7 @@ at::Tensor conv_forward_implicit_gemm_cuda(
 {
   c10::cuda::CUDAGuard guard(_in_feats.device());
   bool is_tf = allow_tf32;
+
   int num_in_feats = _in_feats.size(0);
   int num_in_channels = _in_feats.size(1);
   int kernel_volume = _out_in_map.size(1);

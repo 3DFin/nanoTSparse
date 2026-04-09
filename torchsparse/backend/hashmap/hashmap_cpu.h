@@ -1,5 +1,7 @@
 #pragma once
 
+#include <torch/all.h>
+
 #include <array>
 #include <cassert>
 #include <cstddef>
@@ -10,7 +12,6 @@
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/taskflow.hpp>
 
-#include <torch/extension.h>
 
 template <typename coord_type, typename index_type> class HashTableCPU {
 private:

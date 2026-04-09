@@ -1,6 +1,5 @@
 #include "reduce_bitmask_cuda.h"
 
-#include <torch/extension.h>
 #include <c10/cuda/CUDAGuard.h>
 
 

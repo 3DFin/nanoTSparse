@@ -3,7 +3,6 @@
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/taskflow.hpp>
 
-#include <torch/extension.h>
 
 #include <algorithm>
 #include <cassert>

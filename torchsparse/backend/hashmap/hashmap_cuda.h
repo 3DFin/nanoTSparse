@@ -1,5 +1,9 @@
 #pragma once
 
+#include <ATen/Operators.h>
+#include <torch/all.h>
+#include <torch/library.h>
+
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -7,7 +11,6 @@
 
 #include <cuda_runtime.h>
 
-#include <torch/extension.h>
 
 /** Reserved value for indicating "empty". */
 #define EMPTY_CELL (0)
@@ -84,7 +87,7 @@ class GPUHashTable {
     cudaMalloc((void **)&table_vals, _capacity * sizeof(val_type));
     cudaMemset(table_vals, 0, sizeof(val_type) * _capacity);
   };
-  GPUHashTable(torch::Tensor table_keys, torch::Tensor table_vals)
+  GPUHashTable(at::Tensor table_keys, at::Tensor table_vals)
       : _capacity(table_keys.size(0)), free_pointers(false), table_keys(table_keys.data_ptr<key_type>()),
       table_vals(table_vals.data_ptr<val_type>()), _divisor(128){};
   ~GPUHashTable() {
@@ -95,10 +98,10 @@ class GPUHashTable {
   };
   void insert_many(const key_type *keys, const int n);
   void lookup_many(const key_type *keys, val_type *results, const int n);
-  void insert_vals(torch::Tensor keys);
-  torch::Tensor lookup_vals(torch::Tensor keys);
-  void insert_coords(torch::Tensor coords);
-  torch::Tensor lookup_coords(at::Tensor coords, at::Tensor kernel_sizes, at::Tensor tensor_strides, int kernel_volume);
+  void insert_vals(at::Tensor keys);
+  at::Tensor lookup_vals(at::Tensor keys);
+  void insert_coords(at::Tensor coords);
+  at::Tensor lookup_coords(at::Tensor coords, at::Tensor kernel_sizes, at::Tensor tensor_strides, int kernel_volume);
   int get_divisor(){return _divisor;}
   int get_capacity(){return _capacity;}
   class device_view{

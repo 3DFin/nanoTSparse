@@ -1,6 +1,8 @@
 #pragma once
 
-#include <torch/torch.h>
+#include <ATen/Operators.h>
+#include <torch/all.h>
+#include <torch/library.h>
 
 void conv_forward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor out_feat,
                              at::Tensor kernel, at::Tensor neighbor_map,

@@ -1,4 +1,3 @@
-#include <torch/extension.h>
 #include <torch/serialize/tensor.h>
 
 #include "convolution/convolution_gather_scatter_cpu.h"
@@ -34,6 +33,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("conv_forward_gather_scatter_cuda", &conv_forward_gather_scatter_cuda);
   m.def("conv_backward_gather_scatter_cuda", &conv_backward_gather_scatter_cuda);
 
+  // for Gather Scatter
+  m.def("build_mask_from_kmap", &build_mask_from_kmap);
+  // TODO: add CPUHash
+
   // ImplicitGEMM
   m.def("conv_forward_implicit_gemm_cuda", &conv_forward_implicit_gemm_cuda, py::arg("_in_feats"), py::arg("_kernel"), py::arg("_out_in_map"), py::arg("num_out_feats"),py::arg("num_out_channels"), py::arg("allow_tf32") = false, py::arg("allow_fp16") = true);
   m.def("conv_forward_implicit_gemm_sorted_cuda", &conv_forward_implicit_gemm_sorted_cuda, py::arg("_in_feats"), py::arg("_kernel"), py::arg("_out_in_map"), py::arg("_reduced_mask"), py::arg("_reorder_loc"), py::arg("num_out_feats"), py::arg("num_out_channels"), py::arg("allow_tf32") = false, py::arg("allow_fp16") = true);
@@ -49,7 +52,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("build_kernel_map_subm_hashmap", &build_kernel_map_subm_hashmap);
   m.def("build_kernel_map_downsample_hashmap", &build_kernel_map_downsample_hashmap);
 
-  m.def("build_mask_from_kmap", &build_mask_from_kmap);
   m.def("exclusive_scan_quantified_wrapper", &exclusive_scan_quantified_wrapper);
   m.def("downsample_cuda", &downsample_cuda); // used in implicit GEMM
 }

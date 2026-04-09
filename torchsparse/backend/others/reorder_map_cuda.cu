@@ -1,6 +1,5 @@
 #include "reorder_map_cuda.h"
 
-#include <torch/extension.h>
 #include <c10/cuda/CUDAGuard.h>
 
 #define cta_M 128

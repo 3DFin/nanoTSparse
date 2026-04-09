@@ -1,4 +1,6 @@
-#include <torch/extension.h>
+#include <ATen/Operators.h>
+#include <torch/all.h>
+#include <torch/library.h>
 
 at::Tensor conv_backward_wgrad_implicit_gemm_sorted_cuda(
                        torch::Tensor _in_feats, torch::Tensor _kernel,

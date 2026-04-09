@@ -1,15 +1,14 @@
 #include <torch/torch.h>
-#include <torch/extension.h>
 
 #include <c10/cuda/CUDAGuard.h>
 #include "exclusive_scan_cuda.h"
 
 // to derive quantified address of activated features
 __global__ void exclusive_scan_for_kernel_quantified(
-                const int kv, 
-                const int *input, 
-                const int q, 
-                // const int mid_kernel, 
+                const int kv,
+                const int *input,
+                const int q,
+                // const int mid_kernel,
                 int *output,
                 int *qoutput
                 // bool precompute_mid
@@ -19,8 +18,8 @@ __global__ void exclusive_scan_for_kernel_quantified(
   if (id >= kv){return;}
   int acc = 0;
   int qacc = 0;
-#pragma unroll 
-  for (int i = 0; i < id; i++){ 
+#pragma unroll
+  for (int i = 0; i < id; i++){
     // if (precompute_mid && i == mid_kernel){continue;}
     acc += input[i];
     qacc += (input[i] + q - 1) / q * q;

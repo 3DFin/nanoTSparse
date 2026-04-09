@@ -1,6 +1,5 @@
 #include "../hashmap/hashmap_cuda.h"
 
-#include <torch/extension.h>
 #include <torch/torch.h>
 
 #include <algorithm>

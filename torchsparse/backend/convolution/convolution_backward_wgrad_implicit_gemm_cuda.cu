@@ -1,7 +1,6 @@
 #include "convolution_backward_wgrad_implicit_gemm_cuda.h"
 #include "../utils/memory.h"
 
-#include <torch/extension.h>
 #include <c10/cuda/CUDAGuard.h>
 
 #include <cuda_fp16.h>

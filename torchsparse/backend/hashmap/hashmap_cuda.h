@@ -301,7 +301,7 @@ void GPUHashTable<key_type, val_type>::lookup_many_coords(
 template <typename key_type, typename val_type>
 at::Tensor GPUHashTable<key_type, val_type>::lookup_vals(at::Tensor keys){
   auto options =
-      torch::TensorOptions().dtype(at::ScalarType::Int).device(keys.device());
+      at::TensorOptions().dtype(at::ScalarType::Int).device(keys.device());
   at::Tensor results = torch::zeros({(keys.size(0) + _divisor - 1) / _divisor * _divisor}, options);
   lookup_many(keys.data_ptr<key_type>(), results.data_ptr<val_type>(), keys.size(0));
   return results;
@@ -311,7 +311,7 @@ template <typename key_type, typename val_type>
 at::Tensor GPUHashTable<key_type, val_type>::lookup_coords(at::Tensor coords, at::Tensor kernel_sizes, at::Tensor strides, int kernel_volume){
   auto options =
       torch::TensorOptions().dtype(at::ScalarType::Int).device(coords.device());
-  at::Tensor results = torch::zeros({(coords.size(0) + _divisor - 1) / _divisor * _divisor, kernel_volume}, options);
+  at::Tensor results = at::zeros({(coords.size(0) + _divisor - 1) / _divisor * _divisor, kernel_volume}, options);
   lookup_many_coords(coords.data_ptr<int>(), results.data_ptr<val_type>(),
   kernel_sizes.data_ptr<int>(), strides.data_ptr<int>(), coords.size(0), kernel_volume);
   return results;

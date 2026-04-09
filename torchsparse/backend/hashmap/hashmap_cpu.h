@@ -91,7 +91,7 @@ public:
 
   at::Tensor lookup_coords(at::Tensor coords, at::Tensor kernel_sizes,
                            at::Tensor strides, int kernel_volume) {
-    const auto options = torch::TensorOptions()
+    const auto options = at::TensorOptions()
                              .dtype(at::ScalarType::Int)
                              .device(coords.device());
     auto results = torch::zeros({coords.size(0), kernel_volume}, options);

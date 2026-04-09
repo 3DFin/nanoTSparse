@@ -24,8 +24,8 @@ __global__ void __launch_bounds__(thd_num) reorder_out_in_map_kernel(
 }
 
 at::Tensor reorder_out_in_map_cuda(
-    torch::Tensor _out_in_map,
-    torch::Tensor _reorder_loc
+    at::Tensor _out_in_map,
+    at::Tensor _reorder_loc
 ){
     c10::cuda::CUDAGuard guard(_out_in_map.device());
     int M = _out_in_map.size(0);
@@ -34,7 +34,7 @@ at::Tensor reorder_out_in_map_cuda(
     int split_mask_len = (kernel_volume + split_mask_num - 1) / split_mask_num;
 
     auto options =
-      torch::TensorOptions().dtype(_out_in_map.dtype()).device(_out_in_map.device());
+      at::TensorOptions().dtype(_out_in_map.dtype()).device(_out_in_map.device());
     at::Tensor _reorder_out_in_map = torch::empty({M, kernel_volume}, options);
 
 

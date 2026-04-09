@@ -83,9 +83,9 @@ void conv_forward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor out_feat,
   }
 
   const auto options =
-      torch::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
+      at::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
 
-  auto in_buffer = torch::zeros({_buffer_size, c_in}, options);
+  auto in_buffer = at::zeros({_buffer_size, c_in}, options);
   auto out_buffer = torch::zeros({_buffer_size, c_out}, options);
 
   auto *in_buffer_ptr = in_buffer.data_ptr<float>();
@@ -155,8 +155,8 @@ void conv_backward_gather_scatter_cpu(
 
   const auto options =
       torch::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
-  auto in_buffer = torch::zeros({_buffer_size, c_in}, options);
-  auto in_grad_buffer = torch::zeros({_buffer_size, c_in}, options);
+  auto in_buffer = at::zeros({_buffer_size, c_in}, options);
+  auto in_grad_buffer = at::zeros({_buffer_size, c_in}, options);
   auto out_grad_buffer = torch::zeros({_buffer_size, c_out}, options);
 
   tf::Executor executor;

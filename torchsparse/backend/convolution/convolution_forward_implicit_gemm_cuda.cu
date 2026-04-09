@@ -1526,9 +1526,9 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f32f32f3
 }
 
 at::Tensor conv_forward_implicit_gemm_cuda(
-    torch::Tensor _in_feats,
-    torch::Tensor _kernel,
-    torch::Tensor _out_in_map,
+    at::Tensor _in_feats,
+    at::Tensor _kernel,
+    at::Tensor _out_in_map,
     int num_out_feats, int num_out_channels,
     bool allow_tf32, bool allow_fp16)
 {
@@ -1540,7 +1540,7 @@ at::Tensor conv_forward_implicit_gemm_cuda(
   int kernel_volume = _out_in_map.size(1);
 
   auto options =
-      torch::TensorOptions().dtype(_in_feats.dtype()).device(_in_feats.device());
+      at::TensorOptions().dtype(_in_feats.dtype()).device(_in_feats.device());
   at::Tensor _out_feats = torch::empty({num_out_feats, num_out_channels}, options);
 
   auto out_in_map = _out_in_map.data_ptr<int>();

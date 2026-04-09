@@ -157,10 +157,10 @@ at::Tensor downsample_cuda(at::Tensor _in_coords, at::Tensor _coords_max,
   int *stride = _stride.data_ptr<int>();
   int *padding = _padding.data_ptr<int>();
 
-  at::Tensor _out_coords_transformed = torch::zeros({kernel_volume * N}, torch::TensorOptions()
+  at::Tensor _out_coords_transformed = at::zeros({kernel_volume * N}, at::TensorOptions()
                                             .dtype(at::ScalarType::Long)
                                             .device(_in_coords.device()));
-  at::Tensor _n_out_points = torch::zeros({1}, torch::TensorOptions()
+  at::Tensor _n_out_points = at::zeros({1}, at::TensorOptions()
                                        .dtype(at::ScalarType::Int)
                                        .device(_in_coords.device()));
 
@@ -177,7 +177,7 @@ at::Tensor downsample_cuda(at::Tensor _in_coords, at::Tensor _coords_max,
       at::slice(_out_coords_transformed, 0, 0, n_out_points_scalar)));
 
   int num_out_points = _out_coords_transformed.size(0);
-  at::Tensor _out_coords = torch::zeros({num_out_points, NDim}, torch::TensorOptions()
+  at::Tensor _out_coords = at::zeros({num_out_points, NDim}, at::TensorOptions()
                                                .dtype(at::ScalarType::Int)
                                                .device(_in_coords.device()));
   int* out_coords = _out_coords.data_ptr<int>();

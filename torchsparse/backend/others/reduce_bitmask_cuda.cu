@@ -58,8 +58,8 @@ void __launch_bounds__(thd_per_blk) reduce_mask_cuda_int32(
 }
 
 
-torch::Tensor reduce_bitmask_cuda(
-    torch::Tensor _bitmask_int,
+at::Tensor reduce_bitmask_cuda(
+    at::Tensor _bitmask_int,
     int M_tile
 ){
     c10::cuda::CUDAGuard guard(_bitmask_int.device());
@@ -70,8 +70,8 @@ torch::Tensor reduce_bitmask_cuda(
     int split_mask_num = _bitmask_int.size(0);
     int output_node_num = _bitmask_int.size(1);
     int reduced_row_num = (output_node_num - 1) / M_tile + 1;
-    auto options = torch::TensorOptions().dtype(torch::kInt32).device(_bitmask_int.device());
-    torch::Tensor _reduced_bitmask_int = torch::zeros({split_mask_num, reduced_row_num}, options);
+    auto options = at::TensorOptions().dtype(torch::kInt32).device(_bitmask_int.device());
+    at::Tensor _reduced_bitmask_int = torch::zeros({split_mask_num, reduced_row_num}, options);
 
     auto bitmask_int = _bitmask_int.data_ptr<int>();
     auto reduced_bitmask_int = _reduced_bitmask_int.data_ptr<int>();

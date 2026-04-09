@@ -19,7 +19,7 @@
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   py::class_<GPUHashMap>(m, "GPUHashTable")
         .def(py::init<const int>())
-        .def(py::init<torch::Tensor, torch::Tensor>())
+        .def(py::init<at::Tensor, at::Tensor>())
         .def("insert_vals", &GPUHashMap::insert_vals)
         .def("lookup_vals", &GPUHashMap::lookup_vals)
         .def("insert_coords", &GPUHashMap::insert_coords)

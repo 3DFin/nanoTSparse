@@ -1753,9 +1753,9 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode1_f32f32f3
 
 
 at::Tensor conv_forward_implicit_gemm_sorted_cuda(
-    torch::Tensor _in_feats, torch::Tensor _kernel,
-    torch::Tensor _out_in_map, torch::Tensor _reduced_mask,
-    torch::Tensor _reorder_loc,
+    at::Tensor _in_feats, at::Tensor _kernel,
+    at::Tensor _out_in_map, at::Tensor _reduced_mask,
+    at::Tensor _reorder_loc,
     int num_out_feats, int num_out_channels,
     bool allow_tf32, bool allow_fp16)
 {
@@ -1771,7 +1771,7 @@ at::Tensor conv_forward_implicit_gemm_sorted_cuda(
   int reorder_loc_len = _reorder_loc.size(1);
 
   auto options =
-      torch::TensorOptions().dtype(_in_feats.dtype()).device(_in_feats.device());
+      at::TensorOptions().dtype(_in_feats.dtype()).device(_in_feats.device());
   at::Tensor _out_feats;
   if (split_mask_num != 1)
     _out_feats = torch::empty({split_mask_num, num_out_feats, num_out_channels}, options);

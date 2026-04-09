@@ -7,7 +7,7 @@ build_mask_from_kmap_native(int n_points, int n_out_points,
   int kernel_volume = kmap_sizes.size(0);
   const auto options =
       torch::TensorOptions().dtype(at::ScalarType::Int).device(kmap.device());
-  at::Tensor input_mask = torch::full({kernel_volume * n_points}, -1, options);
+  at::Tensor input_mask = at::full({kernel_volume * n_points}, -1, options);
   at::Tensor output_mask =
       torch::full({kernel_volume * n_out_points}, -1, options);
   at::Tensor cum_kmap_sizes =

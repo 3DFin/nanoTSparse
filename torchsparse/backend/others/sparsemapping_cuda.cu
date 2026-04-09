@@ -272,7 +272,7 @@ build_kernel_map_subm_hashmap(GPUHashMap &table, at::Tensor _in_coords,
                           .device(_in_coords.device());
   // auto options_long =
   // torch::TensorOptions().dtype(at::ScalarType::Long).device(_in_coords.device());
-  at::Tensor _out_coords = torch::empty({_in_coords.size(0)}, options_long);
+  at::Tensor _out_coords = at::empty({_in_coords.size(0)}, options_long);
   int64_t *out_coords = _out_coords.data_ptr<int64_t>();
   int divisor = table.get_divisor();
   int n_points_pad = (n_points + divisor - 1) / divisor * divisor;
@@ -315,10 +315,10 @@ std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
   int *kernel_sizes = _kernel_sizes.data_ptr<int>();
   int *stride = _stride.data_ptr<int>();
   int *padding = _padding.data_ptr<int>();
-  auto options = torch::TensorOptions()
+  auto options = at::TensorOptions()
                      .dtype(at::ScalarType::Int)
                      .device(_in_coords.device());
-  auto options_long = torch::TensorOptions()
+  auto options_long = at::TensorOptions()
                           .dtype(at::ScalarType::Long)
                           .device(_in_coords.device());
 
@@ -394,7 +394,7 @@ std::vector<at::Tensor> build_mask_from_kmap(int n_points, int n_out_points,
   c10::cuda::CUDAGuard guard(_kmap.device());
   int kernel_volume = _kmap_sizes.size(0);
   auto options =
-      torch::TensorOptions().dtype(at::ScalarType::Int).device(_kmap.device());
+      at::TensorOptions().dtype(at::ScalarType::Int).device(_kmap.device());
   at::Tensor _kmap_sizes_cpu = _kmap_sizes.to(torch::kCPU);
   at::Tensor _cum_kmap_sizes =
       torch::cumsum(_kmap_sizes, 0).to(at::ScalarType::Int);

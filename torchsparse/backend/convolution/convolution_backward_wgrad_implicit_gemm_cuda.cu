@@ -1614,8 +1614,8 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f32f32f3
 
 
 at::Tensor conv_backward_wgrad_implicit_gemm_cuda(
-    torch::Tensor _in_feats, torch::Tensor _kernel,
-    torch::Tensor _out_in_map, const int split_k_iters,
+    at::Tensor _in_feats, at::Tensor _kernel,
+    at::Tensor _out_in_map, const int split_k_iters,
     bool allow_tf32, bool allow_fp16)
 {
   c10::cuda::CUDAGuard guard(_in_feats.device());
@@ -1624,7 +1624,7 @@ at::Tensor conv_backward_wgrad_implicit_gemm_cuda(
   int num_in_channels = _in_feats.size(1);
   int kernel_volume = _out_in_map.size(1);
   auto options =
-      torch::TensorOptions().dtype(_in_feats.dtype()).device(_in_feats.device());
+      at::TensorOptions().dtype(_in_feats.dtype()).device(_in_feats.device());
   at::Tensor _out_feats = torch::empty({split_k_iters, num_in_channels * kernel_volume, _kernel.size(1)}, options);
   int num_out_feats = _out_feats.size(1);
   int num_out_channels = _out_feats.size(2);

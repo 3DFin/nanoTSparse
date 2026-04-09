@@ -422,9 +422,9 @@ at::Tensor conv_forward_gather_scatter_cuda_latest(
   at::Tensor cum_buffer_sizes = torch::zeros_like(neighbor_offset);
 
   auto options =
-      torch::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
+      at::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
   bool is_half = in_feat.scalar_type() == at::ScalarType::Half;
-  at::Tensor out_feat = torch::zeros({output_size, _kernel.size(-1)}, options);
+  at::Tensor out_feat = at::zeros({output_size, _kernel.size(-1)}, options);
 
   // pad num channels to an even number
   at::Tensor kernel = _kernel.clone();
@@ -687,7 +687,7 @@ at::Tensor conv_forward_gather_scatter_cuda_fallback(
   bool is_half = in_feat.scalar_type() == at::ScalarType::Half;
   auto options =
       torch::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
-  at::Tensor out_feat = torch::zeros({output_size, kernel.size(-1)}, options);
+  at::Tensor out_feat = at::zeros({output_size, kernel.size(-1)}, options);
 
   // need to avoid misaligned memory access
   bool padded = false;
@@ -834,7 +834,7 @@ void conv_backward_gather_scatter_cuda(at::Tensor in_feat, at::Tensor grad_in_fe
                         neighbor_offset.data_ptr<int>() + kernel_volume);
   auto options =
       torch::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
-  auto in_buffer = torch::zeros({in_buffer_size, in_feat.size(1)}, options);
+  auto in_buffer = at::zeros({in_buffer_size, in_feat.size(1)}, options);
   auto in_grad_buffer =
       torch::zeros({in_buffer_size, in_feat.size(1)}, options);
   auto out_grad_buffer =

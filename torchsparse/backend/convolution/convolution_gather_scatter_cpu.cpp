@@ -8,16 +8,18 @@
 #include <cassert>
 
 void scatter_cpu(int n_in, int c, const float *in_feat, float *out_feat,
-                 const int *kmap, bool transpose) {
-  // TODO: group + sort + scan = partition
-  for (int i = 0; i < n_in; i++) {
+                 const int *kmap, bool transpose, tf::Executor &executor) {
+
+tf::Taskflow taskflow;
+taskflow.for_each_index(0, n_in, 1, [&](int i) {
     assert(out_pos >= 0);
     int out_pos = kmap[2 * i + 1 - transpose] * c;
     int in_pos = i * c;
     for (int j = 0; j < c; j++) {
       out_feat[out_pos + j] += in_feat[in_pos + j];
     }
-  }
+  });
+    executor.run(taskflow).get();
 }
 
 void gather_cpu(int n_k, int c, const float *in_feat, float *out_feat,
@@ -53,7 +55,7 @@ void conv_forward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor out_feat,
 
   tf::Executor executor;
 
-  // buffer size, the largest number of neighbor for a given kernel offset
+  // buffer size, the largest number of neighbors for a given kernel offset
   int _buffer_size = 0;
   bool is_submanifold = false;
 
@@ -125,8 +127,7 @@ void conv_forward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor out_feat,
     // scatter_add
     scatter_cpu(neighbor_offset_ptr[k], c_out,
                 out_buffer_activated.data_ptr<float>(), out_feat_ptr,
-                neighbor_map.data_ptr<int>() + cur_offset, transpose);
-    // executor.run(tf_scatter).wait();
+                neighbor_map.data_ptr<int>() + cur_offset, transpose, executor);
 
     cur_offset += 2 * num_neighbors;
   }
@@ -203,7 +204,7 @@ void conv_backward_gather_scatter_cpu(
     scatter_cpu(neighbor_offset_ptr[k], c_in,
                 in_grad_buffer_activated.data_ptr<float>(),
                 grad_in_feat.data_ptr<float>(),
-                neighbor_map.data_ptr<int>() + cur_offset, !transpose);
+                neighbor_map.data_ptr<int>() + cur_offset, !transpose, executor);
 
     cur_offset += 2 * neighbor_offset_ptr[k];
   }

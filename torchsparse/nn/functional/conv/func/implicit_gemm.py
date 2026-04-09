@@ -61,9 +61,6 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
                 )
 
         if input.device.type == "cuda":
-            if torch.float16 in [input.dtype, weight.dtype]:
-                input = input.to(torch.float16)
-                weight = weight.to(torch.float16)
 
             # input, weight, out_in_map, out_feats
             num_out_feats = sizes[1] if not transposed else sizes[0]
@@ -93,31 +90,21 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
                 )
         else:
             raise NotImplementedError
-        ctx.for_backwards = (
-            input,
-            weight,
-            out_in_map_bwd,
-            reorder_out_in_map_bwd,
-            reduced_sorted_mask_bwd_wgrad,
-            reduced_sorted_mask_bwd_dgrad,
-            reorder_loc_bwd,
-            transposed,
-        )
-        return output.to(weight.dtype)
+
+        # Save tensor for autograd and :
+        ctx.save_for_backward(input, weight)
+        ctx.out_in_map_bwd = out_in_map_bwd
+        ctx.reorder_out_in_map_bwd = reorder_out_in_map_bwd
+        ctx.reduced_sorted_mask_bwd_wgrad = reduced_sorted_mask_bwd_wgrad
+        ctx.reduced_sorted_mask_bwd_dgrad = reduced_sorted_mask_bwd_dgrad
+        ctx.reorder_loc_bwd = reorder_loc_bwd
+        ctx.transposed = transposed
+        return output
 
     @staticmethod
-    # @custom_bwd
+    @torch.amp.custom_bwd(device_type="cuda")
     def backward(ctx, grad_output: torch.Tensor):
-        (
-            input,
-            weight,
-            out_in_map_bwd,
-            reorder_out_in_map_bwd,
-            reduced_sorted_mask_bwd_wgrad,
-            reduced_sorted_mask_bwd_dgrad,
-            reorder_loc_bwd,
-            transposed,
-        ) = ctx.for_backwards
+        input, weight = ctx.saved_tensors
 
         grad_output = grad_output.contiguous()
 
@@ -132,9 +119,9 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
                 grad_input = torchsparse.backend.conv_forward_implicit_gemm_sorted_cuda(
                     grad_output,
                     weight.transpose(2, 1).contiguous(),
-                    reorder_out_in_map_bwd,
-                    reduced_sorted_mask_bwd_dgrad,
-                    reorder_loc_bwd,
+                    ctx.reorder_out_in_map_bwd,
+                    ctx.reduced_sorted_mask_bwd_dgrad,
+                    ctx.reorder_loc_bwd,
                     input.size(0),
                     input.size(1),
                     torchsparse.backends.allow_tf32,
@@ -147,9 +134,9 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
                         torchsparse.backend.conv_backward_wgrad_implicit_gemm_sorted_cuda(
                             grad_output,
                             input,
-                            reorder_out_in_map_bwd,
-                            reduced_sorted_mask_bwd_wgrad,
-                            reorder_loc_bwd,
+                            ctx.reorder_out_in_map_bwd,
+                            ctx.reduced_sorted_mask_bwd_wgrad,
+                            ctx.reorder_loc_bwd,
                             32,
                             torchsparse.backends.allow_tf32,
                             torchsparse.backends.allow_fp16,
@@ -165,7 +152,7 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
                 grad_input = torchsparse.backend.conv_forward_implicit_gemm_cuda(
                     grad_output,
                     weight.transpose(2, 1).contiguous(),
-                    out_in_map_bwd,
+                    ctx.out_in_map_bwd,
                     input.size(0),
                     input.size(1),
                     torchsparse.backends.allow_tf32,
@@ -178,7 +165,7 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
                         torchsparse.backend.conv_backward_wgrad_implicit_gemm_cuda(
                             grad_output,
                             input,
-                            out_in_map_bwd,
+                            ctx.out_in_map_bwd,
                             32,
                             torchsparse.backends.allow_tf32,
                             torchsparse.backends.allow_fp16,

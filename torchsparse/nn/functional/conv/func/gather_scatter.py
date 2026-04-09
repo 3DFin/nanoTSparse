@@ -61,10 +61,6 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
                 )
 
         if input.device.type == "cuda":
-            if torch.float16 in [input.dtype, weight.dtype]:
-                input = input.to(torch.float16)
-                weight = weight.to(torch.float16)
-
             output = torchsparse.backend.conv_forward_gather_scatter_cuda(
                 input,
                 weight,
@@ -98,16 +94,20 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
                 cur_feat = input[in_map]
                 cur_feat = torch.mm(cur_feat, weight[kernel_idx])
                 output[out_map] += cur_feat
-        ctx.for_backwards = (input, weight, nbmaps, nbsizes, transposed)
-        return output.to(weight.dtype)
+
+        ctx.save_for_backward(input, weight)
+
+        ctx.nbmaps = nbmaps
+        ctx.nbsizes = nbsizes
+        ctx.transposed = transposed
+
+        return output
 
     @staticmethod
-    # @custom_bwd
+    @torch.amp.custom_bwd(device_type="cuda")
     def backward(ctx, grad_output: torch.Tensor):
-        input, weight, nbmaps, nbsizes, transposed = ctx.for_backwards
 
-        if grad_output.dtype != weight.dtype:
-            grad_output = grad_output.to(weight.dtype)
+        input, weight = ctx.saved_tensors
 
         grad_input = torch.zeros_like(input)
         grad_weight = torch.zeros_like(weight)
@@ -119,9 +119,9 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
                 grad_output.contiguous(),
                 weight,
                 grad_weight,
-                nbmaps,
-                nbsizes.cpu(),
-                transposed,
+                ctx.nbmaps,
+                ctx.nbsizes.cpu(),
+                ctx.transposed,
             )
         elif grad_output.device.type == "cpu":
             torchsparse.backend.conv_backward_gather_scatter_cpu(
@@ -130,9 +130,9 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
                 grad_output.contiguous(),
                 weight,
                 grad_weight,
-                nbmaps,
-                nbsizes.cpu(),
-                transposed,
+                ctx.nbmaps,
+                ctx.nbsizes.cpu(),
+                ctx.transposed,
             )
         else:
             raise NotImplementedError

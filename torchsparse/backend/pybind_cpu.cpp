@@ -1,3 +1,5 @@
+
+#include <torch/extension.h>
 #include <torch/serialize/tensor.h>
 
 #include "convolution/convolution_gather_scatter_cpu.h"

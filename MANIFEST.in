@@ -1,0 +1,6 @@
+recursive-include torchsparse/backend *.cpp *.cu *.h *.cuh
+recursive-include third_party/robin-map/include *.h
+recursive-include third_party/taskflow/taskflow *.hpp
+include third_party/robin-map/LICENSE
+include third_party/taskflow/LICENSE
+global-exclude *.pyc __pycache__

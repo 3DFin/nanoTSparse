@@ -1,7 +1,8 @@
+#include "exclusive_scan_cuda.h"
+
 #include <torch/torch.h>
 
 #include <c10/cuda/CUDAGuard.h>
-#include "exclusive_scan_cuda.h"
 
 // to derive quantified address of activated features
 __global__ void exclusive_scan_for_kernel_quantified(
@@ -29,8 +30,8 @@ __global__ void exclusive_scan_for_kernel_quantified(
 }
 
 at::Tensor exclusive_scan_quantified_wrapper(
-    const int k_vol, at::Tensor neighbor_offset,
-    at::Tensor neighbor_address, at::Tensor q_neighbor_address){
+    const int k_vol, const at::Tensor& neighbor_offset,
+    const at::Tensor& neighbor_address, const at::Tensor& q_neighbor_address){
   c10::cuda::CUDAGuard guard(neighbor_offset.device());
   int *knnz_ptr = neighbor_offset.data_ptr<int>();
   int *kpos_ptr = neighbor_address.data_ptr<int>();

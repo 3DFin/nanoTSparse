@@ -2,6 +2,7 @@
 
 #include <torch/torch.h>
 
-at::Tensor downsample_cuda(at::Tensor _in_coords, at::Tensor _coords_max,
-                           at::Tensor _coords_min, at::Tensor _kernel_sizes,
-                           at::Tensor _stride, at::Tensor _padding);
+at::Tensor
+downsample_cuda(const at::Tensor &_in_coords, const at::Tensor &_coords_max,
+                const at::Tensor &_coords_min, const at::Tensor &_kernel_sizes,
+                const at::Tensor &_stride, const at::Tensor &_padding);

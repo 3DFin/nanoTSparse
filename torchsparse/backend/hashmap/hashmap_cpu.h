@@ -12,7 +12,6 @@
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/taskflow.hpp>
 
-
 template <typename coord_type, typename index_type> class HashTableCPU {
 private:
   struct VoxelKey {
@@ -50,7 +49,7 @@ public:
   HashTableCPU() = default;
   HashTableCPU(size_t size) { hashmap.reserve(size); }
 
-  HashTableCPU(at::Tensor table_keys, at::Tensor table_vals) {
+  HashTableCPU(const at::Tensor &table_keys, const at::Tensor &table_vals) {
     assert(table_keys.is_same_size(table_vals));
     hashmap.reserve(table_keys.size(0));
     auto *key_ptr = table_keys.data_ptr<coord_type>();
@@ -63,7 +62,7 @@ public:
 
   ~HashTableCPU() = default;
 
-  void insert_coords(at::Tensor coords) {
+  void insert_coords(const at::Tensor &coords) {
     const auto *key_raw_ptr = coords.data_ptr<coord_type>();
     for (size_t id = 0; id < coords.size(0); ++id) {
       hashmap.emplace(&key_raw_ptr[id * 4], id + 1);
@@ -89,11 +88,11 @@ public:
     return result;
   }
 
-  at::Tensor lookup_coords(at::Tensor coords, at::Tensor kernel_sizes,
-                           at::Tensor strides, int kernel_volume) {
-    const auto options = at::TensorOptions()
-                             .dtype(at::ScalarType::Int)
-                             .device(coords.device());
+  at::Tensor lookup_coords(const at::Tensor &coords,
+                           const at::Tensor &kernel_sizes,
+                           const at::Tensor &strides, int kernel_volume) {
+    const auto options =
+        at::TensorOptions().dtype(at::ScalarType::Int).device(coords.device());
     auto results = torch::zeros({coords.size(0), kernel_volume}, options);
 
     auto *results_raw = results.data_ptr<int>();
@@ -134,5 +133,4 @@ using CPUHashMap = HashTableCPU<int, int>;
 
 std::vector<at::Tensor>
 build_mask_from_kmap_native(int n_points, int n_out_points,
-                            const at::Tensor kmap,
-                            const at::Tensor kmap_sizes);
+                            const at::Tensor& kmap, const at::Tensor& kmap_sizes);

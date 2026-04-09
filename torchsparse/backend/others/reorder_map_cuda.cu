@@ -24,8 +24,8 @@ __global__ void __launch_bounds__(thd_num) reorder_out_in_map_kernel(
 }
 
 at::Tensor reorder_out_in_map_cuda(
-    at::Tensor _out_in_map,
-    at::Tensor _reorder_loc
+    const at::Tensor& _out_in_map,
+    const at::Tensor& _reorder_loc
 ){
     c10::cuda::CUDAGuard guard(_out_in_map.device());
     int M = _out_in_map.size(0);
@@ -35,7 +35,7 @@ at::Tensor reorder_out_in_map_cuda(
 
     auto options =
       at::TensorOptions().dtype(_out_in_map.dtype()).device(_out_in_map.device());
-    at::Tensor _reorder_out_in_map = torch::empty({M, kernel_volume}, options);
+    at::Tensor _reorder_out_in_map = at::empty({M, kernel_volume}, options);
 
 
     auto out_in_map = _out_in_map.data_ptr<int>();

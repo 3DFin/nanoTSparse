@@ -30,7 +30,7 @@ __global__ void derive_bit_mask_from_out_in_map_kernel(int* out_in_map, int* bit
   bitmask[split_mask_iter * n + idx] = cur_bitmask;
 }
 
-void convert_transposed_out_in_map(const at::Tensor out_in_map,
+void convert_transposed_out_in_map(const at::Tensor& out_in_map,
                             at::Tensor out_in_map_t) {
   c10::cuda::CUDAGuard guard(out_in_map.device());
   convert_out_in_map_kernel<<<(out_in_map.size(0) * out_in_map.size(1) + 255) / 256, 256>>>(
@@ -40,9 +40,9 @@ void convert_transposed_out_in_map(const at::Tensor out_in_map,
 
 
 
-at::Tensor derive_bitmask_from_out_in_map(const at::Tensor out_in_map, const int split_mask_num, int valid_n) {
+at::Tensor derive_bitmask_from_out_in_map(const at::Tensor& out_in_map, const int split_mask_num, int valid_n) {
   c10::cuda::CUDAGuard guard(out_in_map.device());
-  at::Tensor bitmask = torch::full(
+  at::Tensor bitmask = at::full(
       {split_mask_num, out_in_map.size(0)}, -1, at::device(out_in_map.device()).dtype(at::ScalarType::Int));
   derive_bit_mask_from_out_in_map_kernel<<<(split_mask_num * out_in_map.size(0) + 255) / 256, 256>>>(
     out_in_map.data_ptr<int>(), bitmask.data_ptr<int>(), valid_n, out_in_map.size(0), out_in_map.size(1), split_mask_num);

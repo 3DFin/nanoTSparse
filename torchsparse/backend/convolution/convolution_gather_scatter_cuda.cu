@@ -274,8 +274,8 @@ __global__ void scatter_all_kernel_pad_sep_with_mask_float(
 //                         reordering should be done in piror steps for
 //                         grouping to function properly
 at::Tensor conv_forward_gather_scatter_cuda(
-    at::Tensor in_feat, at::Tensor kernel, at::Tensor neighbor_map,
-    at::Tensor neighbor_offset, at::Tensor input_mask, at::Tensor output_mask,
+    at::Tensor& in_feat, at::Tensor& kernel, const at::Tensor& neighbor_map,
+    const at::Tensor& neighbor_offset, const at::Tensor& input_mask, const at::Tensor& output_mask,
     const int output_size, const float epsilon, const int mm_thresh,
     const int conv_mode, const bool transpose, at::Tensor global_buffer) {
   c10::cuda::CUDAGuard guard(in_feat.device());
@@ -405,8 +405,8 @@ void group_strategy_generation(
 }
 
 at::Tensor conv_forward_gather_scatter_cuda_latest(
-    at::Tensor in_feat, at::Tensor _kernel, at::Tensor neighbor_map,
-    at::Tensor neighbor_offset, at::Tensor input_mask, at::Tensor output_mask,
+    at::Tensor& in_feat, const at::Tensor& _kernel, const at::Tensor& neighbor_map,
+    const at::Tensor& neighbor_offset, const at::Tensor& input_mask, const at::Tensor& output_mask,
     const int output_size, const float epsilon, const int mm_thresh,
     const int conv_mode, const bool transpose, at::Tensor global_buffer) {
   c10::cuda::CUDAGuard guard(in_feat.device());
@@ -677,8 +677,8 @@ at::Tensor conv_forward_gather_scatter_cuda_latest(
 }
 
 at::Tensor conv_forward_gather_scatter_cuda_fallback(
-    at::Tensor in_feat, at::Tensor kernel, at::Tensor neighbor_map,
-    const int output_size, const int conv_mode, at::Tensor neighbor_offset,
+    at::Tensor& in_feat, at::Tensor& kernel, const at::Tensor& neighbor_map,
+    const int output_size, const int conv_mode, const at::Tensor& neighbor_offset,
     const bool transpose) {
   c10::cuda::CUDAGuard guard(in_feat.device());
   if (in_feat.size(1) != kernel.size(1)) {
@@ -811,6 +811,7 @@ at::Tensor conv_forward_gather_scatter_cuda_fallback(
   }
   return out_feat;
 }
+
 void conv_backward_gather_scatter_cuda(at::Tensor in_feat, at::Tensor grad_in_feat,
                                at::Tensor grad_out_feat, at::Tensor kernel,
                                at::Tensor grad_kernel, at::Tensor neighbor_map,

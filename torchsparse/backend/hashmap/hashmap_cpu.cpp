@@ -2,8 +2,8 @@
 
 std::vector<at::Tensor>
 build_mask_from_kmap_native(int n_points, int n_out_points,
-                            const at::Tensor kmap,
-                            const at::Tensor kmap_sizes) {
+                            const at::Tensor& kmap,
+                            const at::Tensor& kmap_sizes) {
   int kernel_volume = kmap_sizes.size(0);
   const auto options =
       torch::TensorOptions().dtype(at::ScalarType::Int).device(kmap.device());

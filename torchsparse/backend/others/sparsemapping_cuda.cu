@@ -252,10 +252,10 @@ __global__ void get_masks_from_kmap_kernel(int n_points, int n_points_out,
 
 
 std::vector<at::Tensor>
-build_kernel_map_subm_hashmap(GPUHashMap &table, at::Tensor _in_coords,
-                              at::Tensor _coords_min, at::Tensor _coords_max,
-                              at::Tensor _kernel_sizes, at::Tensor _stride,
-                              at::Tensor _padding, bool to_insert) {
+build_kernel_map_subm_hashmap(GPUHashMap &table, const at::Tensor& _in_coords,
+                              const at::Tensor& _coords_min, const at::Tensor& _coords_max,
+                              const at::Tensor& _kernel_sizes, const at::Tensor& _stride,
+                              const at::Tensor& _padding, bool to_insert) {
   c10::cuda::CUDAGuard guard(_in_coords.device());
   int n_points = _in_coords.size(0);
   int kernel_volume = (int)(torch::prod(_kernel_sizes).item<int>());
@@ -303,9 +303,9 @@ build_kernel_map_subm_hashmap(GPUHashMap &table, at::Tensor _in_coords,
 }
 
 std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
-    GPUHashMap &table, at::Tensor _in_coords, at::Tensor _coords_min,
-    at::Tensor _coords_max, at::Tensor _kernel_sizes, at::Tensor _stride,
-    at::Tensor _padding, bool to_insert) {
+    GPUHashMap &table, const at::Tensor& _in_coords, const at::Tensor& _coords_min,
+    const at::Tensor& _coords_max, const at::Tensor& _kernel_sizes, const at::Tensor& _stride,
+    const at::Tensor& _padding, bool to_insert) {
   c10::cuda::CUDAGuard guard(_in_coords.device());
   int n_points = _in_coords.size(0);
   int kernel_volume = (int)(torch::prod(_kernel_sizes).item<int>());
@@ -367,7 +367,7 @@ std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
         "torchsparse.backends\ntorchsparse.backends.hash_rsv_ratio=#Value");
 
   at::Tensor final_out_coords =
-      torch::zeros({n_out_points_scalar, NDim}, options);
+      at::zeros({n_out_points_scalar, NDim}, options);
   inverse_transform_coords_and_insert_kernel<<<
       (int)ceil((double)n_out_points_scalar / 256), 256>>>(
       table.get_device_view(), n_out_points_scalar, out_coords, coords_min,
@@ -389,8 +389,8 @@ std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
 }
 
 std::vector<at::Tensor> build_mask_from_kmap(int n_points, int n_out_points,
-                                             at::Tensor _kmap,
-                                             at::Tensor _kmap_sizes) {
+                                             const at::Tensor& _kmap,
+                                             const at::Tensor& _kmap_sizes) {
   c10::cuda::CUDAGuard guard(_kmap.device());
   int kernel_volume = _kmap_sizes.size(0);
   auto options =

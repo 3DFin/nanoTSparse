@@ -11,7 +11,7 @@
 #define thd_per_blk 128
 #define output_per_blk 32 // thd_per_blk / 4  -> (4 threads for 1 reduced element in int32)
 
-extern "C" __global__
+__global__
 void __launch_bounds__(thd_per_blk) reduce_mask_cuda_int32(
                                          int* __restrict__ bitmask,
                                          int output_node_num,
@@ -59,7 +59,7 @@ void __launch_bounds__(thd_per_blk) reduce_mask_cuda_int32(
 
 
 at::Tensor reduce_bitmask_cuda(
-    at::Tensor _bitmask_int,
+    const at::Tensor& _bitmask_int,
     int M_tile
 ){
     c10::cuda::CUDAGuard guard(_bitmask_int.device());
@@ -70,8 +70,9 @@ at::Tensor reduce_bitmask_cuda(
     int split_mask_num = _bitmask_int.size(0);
     int output_node_num = _bitmask_int.size(1);
     int reduced_row_num = (output_node_num - 1) / M_tile + 1;
+
     auto options = at::TensorOptions().dtype(torch::kInt32).device(_bitmask_int.device());
-    at::Tensor _reduced_bitmask_int = torch::zeros({split_mask_num, reduced_row_num}, options);
+    at::Tensor _reduced_bitmask_int = at::zeros({split_mask_num, reduced_row_num}, options);
 
     auto bitmask_int = _bitmask_int.data_ptr<int>();
     auto reduced_bitmask_int = _reduced_bitmask_int.data_ptr<int>();

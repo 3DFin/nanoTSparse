@@ -1,3 +1,5 @@
+#include "downsample_cuda.h"
+
 #include <torch/torch.h>
 
 #include <c10/cuda/CUDAGuard.h>
@@ -5,9 +7,7 @@
 #include <cstdio>
 #include <vector>
 
-#include "downsample_cuda.h"
 #define NDim 4
-#define Tuple std::vector<int>
 
 // take care of long.
 // what about the batch index
@@ -144,9 +144,9 @@ __global__ void inverse_transform_coords_kernel(int n_points,
 Idea: launch get_output_coords_kernel then inverse_transform_coords_kernel
 */
 
-at::Tensor downsample_cuda(at::Tensor _in_coords, at::Tensor _coords_max,
-                           at::Tensor _coords_min, at::Tensor _kernel_sizes,
-                           at::Tensor _stride, at::Tensor _padding) {
+at::Tensor downsample_cuda(const at::Tensor& _in_coords, const at::Tensor& _coords_max,
+                           const at::Tensor& _coords_min, const at::Tensor& _kernel_sizes,
+                           const at::Tensor& _stride, const at::Tensor& _padding) {
   c10::cuda::CUDAGuard guard(_in_coords.device());
   int N = _in_coords.size(0);
   int kernel_volume = (int)(torch::prod(_kernel_sizes).item<int>());

@@ -87,7 +87,7 @@ class GPUHashTable {
     cudaMalloc((void **)&table_vals, _capacity * sizeof(val_type));
     cudaMemset(table_vals, 0, sizeof(val_type) * _capacity);
   };
-  GPUHashTable(at::Tensor table_keys, at::Tensor table_vals)
+  GPUHashTable(const at::Tensor& table_keys, const at::Tensor& table_vals)
       : _capacity(table_keys.size(0)), free_pointers(false), table_keys(table_keys.data_ptr<key_type>()),
       table_vals(table_vals.data_ptr<val_type>()), _divisor(128){};
   ~GPUHashTable() {
@@ -98,10 +98,10 @@ class GPUHashTable {
   };
   void insert_many(const key_type *keys, const int n);
   void lookup_many(const key_type *keys, val_type *results, const int n);
-  void insert_vals(at::Tensor keys);
-  at::Tensor lookup_vals(at::Tensor keys);
-  void insert_coords(at::Tensor coords);
-  at::Tensor lookup_coords(at::Tensor coords, at::Tensor kernel_sizes, at::Tensor tensor_strides, int kernel_volume);
+  void insert_vals(const at::Tensor& keys);
+  at::Tensor lookup_vals(const at::Tensor& keys);
+  void insert_coords(const at::Tensor& coords);
+  at::Tensor lookup_coords(const at::Tensor& coords, const at::Tensor& kernel_sizes, const at::Tensor& tensor_strides, int kernel_volume);
   int get_divisor(){return _divisor;}
   int get_capacity(){return _capacity;}
   class device_view{
@@ -268,13 +268,13 @@ void GPUHashTable<key_type, val_type>::insert_many_coords(int *coords, const int
 }
 
 template <typename key_type, typename val_type>
-void GPUHashTable<key_type, val_type>::insert_vals(at::Tensor keys){
+void GPUHashTable<key_type, val_type>::insert_vals(const at::Tensor& keys){
   insert_many(keys.data_ptr<key_type>(), keys.size(0));
 }
 
 
 template <typename key_type, typename val_type>
-void GPUHashTable<key_type, val_type>::insert_coords(at::Tensor coords){
+void GPUHashTable<key_type, val_type>::insert_coords(const at::Tensor& coords){
   insert_many_coords(coords.data_ptr<int>(), coords.size(0));
 }
 
@@ -299,7 +299,7 @@ void GPUHashTable<key_type, val_type>::lookup_many_coords(
 }
 
 template <typename key_type, typename val_type>
-at::Tensor GPUHashTable<key_type, val_type>::lookup_vals(at::Tensor keys){
+at::Tensor GPUHashTable<key_type, val_type>::lookup_vals(const at::Tensor& keys){
   auto options =
       at::TensorOptions().dtype(at::ScalarType::Int).device(keys.device());
   at::Tensor results = torch::zeros({(keys.size(0) + _divisor - 1) / _divisor * _divisor}, options);
@@ -308,7 +308,7 @@ at::Tensor GPUHashTable<key_type, val_type>::lookup_vals(at::Tensor keys){
 }
 
 template <typename key_type, typename val_type>
-at::Tensor GPUHashTable<key_type, val_type>::lookup_coords(at::Tensor coords, at::Tensor kernel_sizes, at::Tensor strides, int kernel_volume){
+at::Tensor GPUHashTable<key_type, val_type>::lookup_coords(const at::Tensor& coords, const at::Tensor& kernel_sizes, const at::Tensor& strides, int kernel_volume){
   auto options =
       torch::TensorOptions().dtype(at::ScalarType::Int).device(coords.device());
   at::Tensor results = at::zeros({(coords.size(0) + _divisor - 1) / _divisor * _divisor, kernel_volume}, options);

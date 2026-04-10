@@ -9,7 +9,6 @@
 #include "convolution/convolution_backward_wgrad_implicit_gemm_sorted_cuda.h"
 
 #include "others/downsample_cuda.h"
-#include "others/exclusive_scan_cuda.h"
 #include "others/reduce_bitmask_cuda.h"
 #include "others/reorder_map_cuda.h"
 #include "others/sparsemapping_cuda.h"
@@ -52,6 +51,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("build_kernel_map_subm_hashmap", &build_kernel_map_subm_hashmap);
   m.def("build_kernel_map_downsample_hashmap", &build_kernel_map_downsample_hashmap);
 
-  m.def("exclusive_scan_quantified_wrapper", &exclusive_scan_quantified_wrapper);
   m.def("downsample_cuda", &downsample_cuda); // used in implicit GEMM
 }

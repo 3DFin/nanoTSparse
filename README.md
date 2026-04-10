@@ -6,7 +6,23 @@
    height="300" 
 >
 
-TorchSparse is a high-performance neural network library for point cloud processing.
+miniTorchSparse is a versatile and portable library for Sparse Convolutions
+It's a trimmed, reviewed and improved version of TorchSparse++, a high-performance neural network library for point cloud processing.
+
+# Changed:
+
+- Trimmed FOD kernel and auxilliary functions for compilation speed and maintainance purposes
+- Re-enable CPU Workflow. Create a CPUHASHMAP, improve parallelization (avoid threads oversubscriptions in Gather/Scatter kernels) 
+- Review and improved the build system
+
+# TODO:
+
+- WIP: create ABI compatible build (first for Python, then maybe for Torch) to ease distribution.
+- Fix the weird behavior of sorting mask in backward for small kernels.
+Backward pass **always** use sorted mask for small kernels (with a hardcoded threshold kernel_volume < 32) but
+Sort is **always** perfomed in training, it consumes time and memory, and it's not even not used in some case (for higher kenel volume than 32S)
+
+
 
 ### [website](http://torchsparse.mit.edu/) | [paper (MICRO 2023)](https://www.dropbox.com/scl/fi/obdku0kqxjlkvuom2opk4/paper.pdf?rlkey=0zmy8eq9fzllgkx54zsvwsecf&dl=0) | [paper (MLSys 2022)](https://arxiv.org/abs/2204.10319) | [presentation](https://www.youtube.com/watch?v=IIh4EwmcLUs) | [documents](http://torchsparse-docs.github.io/) | [pypi server](http://pypi.hanlab.ai/simple/torchsparse)
 

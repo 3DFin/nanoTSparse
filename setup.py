@@ -26,6 +26,9 @@ else:
     device = "cpu"
     pybind_fn = f"pybind_{device}.cpp"
 
+device = "cpu"
+pybind_fn = "nanots_module_cpp.cpp"
+
 base_dir = os.path.join("torchsparse", "backend")
 
 sources = [os.path.join(base_dir, pybind_fn)]
@@ -84,9 +87,10 @@ setup(
     packages=find_packages(),
     ext_modules=[
         extension_type(
-            "torchsparse.backend",
+            "torchsparse._nanots",
             sources,
             extra_compile_args=extra_compile_args,
+            py_limited_api=True
         )
     ],
     url="https://github.com/mit-han-lab/torchsparse",
@@ -94,4 +98,5 @@ setup(
     include_package_data=True,
     install_requires=["numpy", "tqdm", "torch", "torchvision"],
     cmdclass={"build_ext": build_ext},
+    options={"bdist_wheel": {"py_limited_api": "cp39"}}
 )

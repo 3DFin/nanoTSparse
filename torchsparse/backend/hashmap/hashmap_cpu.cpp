@@ -1,12 +1,13 @@
 #include "hashmap_cpu.h"
+#include <cstdint>
 
 std::vector<at::Tensor>
-build_mask_from_kmap_native(int n_points, int n_out_points,
-                            const at::Tensor& kmap,
-                            const at::Tensor& kmap_sizes) {
+build_mask_from_kmap_native(int64_t n_points, int64_t n_out_points,
+                            const at::Tensor &neighbor_maps,
+                            const at::Tensor &kmap_sizes) {
   int kernel_volume = kmap_sizes.size(0);
   const auto options =
-      torch::TensorOptions().dtype(at::ScalarType::Int).device(kmap.device());
+      torch::TensorOptions().dtype(at::ScalarType::Int).device(neighbor_maps.device());
   at::Tensor input_mask = at::full({kernel_volume * n_points}, -1, options);
   at::Tensor output_mask =
       torch::full({kernel_volume * n_out_points}, -1, options);
@@ -15,7 +16,7 @@ build_mask_from_kmap_native(int n_points, int n_out_points,
 
   auto *kmap_sizes_ptr = kmap_sizes.data_ptr<int>();
   auto *cum_kmap_sizes_ptr = cum_kmap_sizes.data_ptr<int>();
-  auto *kmap_ptr = kmap.data_ptr<int>();
+  auto *kmap_ptr = neighbor_maps.data_ptr<int>();
 
   auto *input_mask_ptr = input_mask.data_ptr<int>();
   auto *output_mask_ptr = output_mask.data_ptr<int>();

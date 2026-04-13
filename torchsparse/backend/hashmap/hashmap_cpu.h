@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <torch/all.h>
 
 #include <array>
@@ -132,5 +133,5 @@ public:
 using CPUHashMap = HashTableCPU<int, int>;
 
 std::vector<at::Tensor>
-build_mask_from_kmap_native(int n_points, int n_out_points,
-                            const at::Tensor& kmap, const at::Tensor& kmap_sizes);
+build_mask_from_kmap_native(int64_t n_points, int64_t n_out_points,
+                            const at::Tensor& neighbor_maps, const at::Tensor& kmap_sizes);

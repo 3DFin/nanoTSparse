@@ -4,11 +4,13 @@
 #include <torch/all.h>
 #include <torch/library.h>
 
-void conv_forward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor out_feat,
-                             at::Tensor kernel, at::Tensor neighbor_map,
-                             at::Tensor neighbor_offset, const bool transpose);
+at::Tensor conv_forward_gather_scatter_cpu(const at::Tensor &in_feats,
+                                           const at::Tensor &kernel,
+                                           const at::Tensor &neighbor_maps,
+                                           const at::Tensor &neighbor_offsets,
+                                           int64_t output_size, bool transpose);
 
-void conv_backward_gather_scatter_cpu(at::Tensor in_feat, at::Tensor grad_in_feat,
-                              at::Tensor grad_out_feat, at::Tensor kernel,
-                              at::Tensor grad_kernel, at::Tensor neighbor_map,
-                              at::Tensor neighbor_offset, const bool transpose);
+std::vector<at::Tensor> conv_backward_gather_scatter_cpu(
+    const at::Tensor &in_feats, const at::Tensor &grad_out_feats,
+    const at::Tensor &kernel, const at::Tensor &neighbor_maps,
+    const at::Tensor &neighbor_offsets, bool transpose);

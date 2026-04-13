@@ -1,4 +1,6 @@
-import torchsparse.backends as backends
+from . import _nanots
+
+from . import backends
 
 from .operators import *
 from .tensor import *

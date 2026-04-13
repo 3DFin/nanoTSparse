@@ -76,8 +76,8 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
                 buffer,
             )
         elif input.device.type == "cpu":
-            torchsparse.backend.conv_forward_gather_scatter_cpu(
-                input, output, weight, nbmaps, nbsizes.cpu(), transposed
+            output = torch.ops.nanots.conv_forward_gather_scatter_cpu(
+                input, weight, nbmaps, nbsizes, sizes[1] if not transposed else sizes[0], transposed
             )
         else:
             # use the native pytorch XLA APIs for the TPU.
@@ -124,7 +124,7 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
                 ctx.transposed,
             )
         elif grad_output.device.type == "cpu":
-            torchsparse.backend.conv_backward_gather_scatter_cpu(
+            torch.ops.nanots.onv_backward_gather_scatter_cpu(
                 input,
                 grad_input,
                 grad_output.contiguous(),

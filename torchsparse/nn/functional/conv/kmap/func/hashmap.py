@@ -42,7 +42,7 @@ def build_kmap_implicit_GEMM_hashmap(
 
     to_insert = False
     if coords.device.type == "cpu":
-        hashmap = torchsparse.backend.CPUHashTable(_coords.shape[0])
+        hashmap = torch.classes.nanots.CPUHashTable(_coords.shape[0])
         to_insert = True;
         # for CPU we do not use cache and force a new insertion
         # CPU is meant to be use only in inference scenarii
@@ -145,7 +145,7 @@ def build_kmap_Gather_Scatter_hashmap(
     nbmaps[:, 0] = results.view(-1)[nbmaps[:, 0] * results.size(1) + nbmaps[:, 1]]
     # important for build masks
     nbmaps = nbmaps.contiguous()
-    input_mask, output_mask = torchsparse.backend.build_mask_from_kmap(
+    input_mask, output_mask = torch.ops.nanots.build_mask_from_kmap(
         _coords.shape[0],
         kmap["coords"].shape[0],
         nbmaps.int(),

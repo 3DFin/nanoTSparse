@@ -1,10 +1,10 @@
-#include "../hashmap/hashmap_cuda.h"
+#include "sparsemapping_cuda.h"
 
-#include <torch/torch.h>
 
 #include <algorithm>
 #include <c10/cuda/CUDAGuard.h>
 
+#include <cstdint>
 #include <vector>
 
 #define NDim 4
@@ -388,7 +388,7 @@ std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
   return {_out_in_map, final_out_coords};
 }
 
-std::vector<at::Tensor> build_mask_from_kmap(int n_points, int n_out_points,
+std::vector<at::Tensor> build_mask_from_kmap(int64_t n_points, int64_t n_out_points,
                                              const at::Tensor& _kmap,
                                              const at::Tensor& _kmap_sizes) {
   c10::cuda::CUDAGuard guard(_kmap.device());

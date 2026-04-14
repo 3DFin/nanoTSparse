@@ -21,23 +21,22 @@ if (torch.cuda.is_available() and CUDA_HOME is not None) or (
     os.getenv("FORCE_CUDA", "0") == "1"
 ):
     device = "cuda"
-    pybind_fn = f"pybind_{device}.cu"
+    module_code = f"nanots_module_cuda.cu"
 else:
     device = "cpu"
-    pybind_fn = f"pybind_{device}.cpp"
+    module_code = f"nanots_module_cpp.cpp"
 
-device = "cpu"
-pybind_fn = "nanots_module_cpp.cpp"
 
 base_dir = os.path.join("torchsparse", "backend")
 
-sources = [os.path.join(base_dir, pybind_fn)]
+sources = [os.path.join(base_dir, module_code)]
 
 for fpath in glob.glob(os.path.join(base_dir, "**", "*")):
     if (fpath.endswith("_cpu.cpp") and device in ["cpu", "cuda"]) or (
         fpath.endswith("_cuda.cu") and device == "cuda"
     ):
         sources.append(fpath)
+
 
 # set all dir as include dir
 include_dirs = [d for d in glob.glob(os.path.join(base_dir, "*")) if os.path.isdir(d)]

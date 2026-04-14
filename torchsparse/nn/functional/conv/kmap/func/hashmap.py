@@ -47,19 +47,8 @@ def build_kmap_implicit_GEMM_hashmap(
         # for CPU we do not use cache and force a new insertion
         # CPU is meant to be use only in inference scenarii
     else:
-        if kmap["hashmap_keys"] is None:
-            kmap["hashmap_keys"] = torch.zeros(
-                2 * _coords.shape[0], dtype=torch.int64, device=coords.device
-            )
-            to_insert = True
-        if kmap["hashmap_vals"] is None:
-            kmap["hashmap_vals"] = torch.zeros(
-                2 * _coords.shape[0], dtype=torch.int32, device=coords.device
-            )
-
-        hashmap = torchsparse.backend.GPUHashTable(
-            kmap["hashmap_keys"], kmap["hashmap_vals"]
-        )
+        hashmap = torch.classes.nanots.GPUHashTable(_coords.shape[0] * 2)
+        to_insert = True
 
     if to_insert:
         if not generative:
@@ -153,6 +142,7 @@ def build_kmap_Gather_Scatter_hashmap(
         return kmap
 
     # compute mask for GPU implementation
+    # it's only available when using conv_mode > 0
     input_mask, output_mask = torch.ops.nanots.build_mask_from_kmap(
         _coords.shape[0],
         kmap["coords"].shape[0],

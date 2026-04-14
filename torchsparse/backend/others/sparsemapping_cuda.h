@@ -1,9 +1,13 @@
 #pragma once
+
 #include "../hashmap/hashmap_cuda.h"
 
-#include <torch/torch.h>
+#include <ATen/Operators.h>
+#include <cstdint>
+#include <torch/all.h>
+#include <torch/library.h>
 
-std::vector<at::Tensor> build_mask_from_kmap(int n_points, int n_out_points,
+std::vector<at::Tensor> build_mask_from_kmap(int64_t n_points, int64_t n_out_points,
                                              const at::Tensor &_kmap,
                                              const at::Tensor &_kmap_sizes);
 

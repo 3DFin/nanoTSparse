@@ -16,20 +16,21 @@ PyObject *PyInit__nanots(void) {
 namespace torchsparse {
 
 struct CPUHashTableHolder : torch::CustomClassHolder {
-  CPUHashMap map;
+  CPUHashMap map_instance;
 
-  explicit CPUHashTableHolder(int64_t size) : map(static_cast<size_t>(size)) {}
+  explicit CPUHashTableHolder(int64_t size) : map_instance(static_cast<size_t>(size)) {}
 
-  void insert_coords(at::Tensor coords) { map.insert_coords(coords); }
+  void insert_coords(at::Tensor coords) { map_instance.insert_coords(coords); }
 
   at::Tensor lookup_coords(at::Tensor coords, at::Tensor kernel_sizes,
                            at::Tensor strides, int64_t kernel_volume) {
-    return map.lookup_coords(coords, kernel_sizes, strides,
+    return map_instance.lookup_coords(coords, kernel_sizes, strides,
                              static_cast<int>(kernel_volume));
   }
 };
 
 TORCH_LIBRARY(nanots, m) {
+
   m.class_<CPUHashTableHolder>("CPUHashTable")
       .def(torch::init<int64_t>()) // can't have overloaded init != pybind
       .def("insert_coords", &CPUHashTableHolder::insert_coords)

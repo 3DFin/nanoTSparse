@@ -1,5 +1,6 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
+#include <cstdint>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <driver_types.h>
@@ -276,10 +277,10 @@ __global__ void scatter_all_kernel_pad_sep_with_mask_float(
 at::Tensor conv_forward_gather_scatter_cuda(
     at::Tensor& in_feat, at::Tensor& kernel, const at::Tensor& neighbor_map,
     const at::Tensor& neighbor_offset, const at::Tensor& input_mask, const at::Tensor& output_mask,
-    const int output_size, const float epsilon, const int mm_thresh,
-    const int conv_mode, const bool transpose, at::Tensor global_buffer) {
+    const int64_t output_size, const double epsilon, const int64_t mm_thresh,
+    const int8_t conv_mode, const bool transpose, at::Tensor global_buffer) {
   c10::cuda::CUDAGuard guard(in_feat.device());
-  int buffer_size = (int)torch::sum(neighbor_offset).item<int>();
+  int buffer_size = torch::sum(neighbor_offset).item<int>();
   // be careful about the fallback setting
 
   // [!!!] NOTE: be careful, current buffer_size calculation is wrong, it does
@@ -678,7 +679,7 @@ at::Tensor conv_forward_gather_scatter_cuda_latest(
 
 at::Tensor conv_forward_gather_scatter_cuda_fallback(
     at::Tensor& in_feat, at::Tensor& kernel, const at::Tensor& neighbor_map,
-    const int output_size, const int conv_mode, const at::Tensor& neighbor_offset,
+    const int64_t output_size, const int8_t conv_mode, const at::Tensor& neighbor_offset,
     const bool transpose) {
   c10::cuda::CUDAGuard guard(in_feat.device());
   if (in_feat.size(1) != kernel.size(1)) {
@@ -812,38 +813,40 @@ at::Tensor conv_forward_gather_scatter_cuda_fallback(
   return out_feat;
 }
 
-void conv_backward_gather_scatter_cuda(at::Tensor in_feat, at::Tensor grad_in_feat,
-                               at::Tensor grad_out_feat, at::Tensor kernel,
-                               at::Tensor grad_kernel, at::Tensor neighbor_map,
-                               at::Tensor neighbor_offset,
-                               const bool transpose) {
-  c10::cuda::CUDAGuard guard(in_feat.device());
-  grad_in_feat.resize_as_(in_feat);
-  grad_in_feat.zero_();
-  grad_kernel.resize_as_(kernel);
-  grad_kernel.zero_();
-  bool is_half = in_feat.scalar_type() == at::ScalarType::Half;
-  int n_in_feats = in_feat.size(0);
-  int n_in_channels = in_feat.size(1);
-  int n_out_feats = grad_out_feat.size(0);
+std::vector<at::Tensor> conv_backward_gather_scatter_cuda(
+    const at::Tensor &in_feats, const at::Tensor &grad_out_feats,
+    const at::Tensor &kernel, const at::Tensor &neighbor_maps,
+    const at::Tensor &neighbor_offsets, bool transpose)
+{
+  c10::cuda::CUDAGuard guard(in_feats.device());
+
+  auto grad_in_feats = torch::zeros_like(in_feats);
+  auto grad_kernel = torch::zeros_like(kernel);
+
+  bool is_half = in_feats.scalar_type() == at::ScalarType::Half;
+  int n_in_feats = in_feats.size(0);
+  int n_in_channels = in_feats.size(1);
+  int n_out_feats = grad_out_feats.size(0);
   int n_out_channels = kernel.size(-1);
   int kernel_volume = kernel.size(0);
   bool flag = false;
-  int in_buffer_size;
-  in_buffer_size =
-      *std::max_element(neighbor_offset.data_ptr<int>(),
-                        neighbor_offset.data_ptr<int>() + kernel_volume);
+
+  int in_buffer_size =
+      *std::max_element(neighbor_offsets.data_ptr<int>(),
+                        neighbor_offsets.data_ptr<int>() + kernel_volume);
   auto options =
-      torch::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
-  auto in_buffer = at::zeros({in_buffer_size, in_feat.size(1)}, options);
+      torch::TensorOptions().dtype(in_feats.dtype()).device(in_feats.device());
+
+  auto in_buffer = at::zeros({in_buffer_size, in_feats.size(1)}, options);
   auto in_grad_buffer =
-      torch::zeros({in_buffer_size, in_feat.size(1)}, options);
+      torch::zeros({in_buffer_size, in_feats.size(1)}, options);
   auto out_grad_buffer =
       torch::zeros({in_buffer_size, kernel.size(2)}, options);
+
   int cur_offset = 0;
   for (int i = 0; i < kernel_volume; i++) {
     auto kernel_grad_buffer = grad_kernel[i];
-    int n_active_feats = neighbor_offset.data_ptr<int>()[i];
+    int n_active_feats = neighbor_offsets.data_ptr<int>()[i];
     if (flag && (i == kernel_volume / 2)) {
       cur_offset += 2 * n_active_feats;
       continue;
@@ -851,49 +854,52 @@ void conv_backward_gather_scatter_cuda(at::Tensor in_feat, at::Tensor grad_in_fe
     if (n_active_feats == 0) {
       continue;
     }
+
     // Can't figure out a cleaner way to do this
     at::Tensor out_grad_buffer_activated;
     at::Tensor in_grad_buffer_activated;
     at::Tensor in_buffer_activated;
+
     if (is_half) {
       out_grad_buffer_activated =
           torch::from_blob(out_grad_buffer.data_ptr<at::Half>(),
                            {n_active_feats, kernel.size(2)}, options);
       in_grad_buffer_activated =
           torch::from_blob(in_grad_buffer.data_ptr<at::Half>(),
-                           {n_active_feats, in_feat.size(1)}, options);
+                           {n_active_feats, in_feats.size(1)}, options);
       in_buffer_activated =
           torch::from_blob(in_buffer.data_ptr<at::Half>(),
-                           {n_active_feats, in_feat.size(1)}, options);
+                           {n_active_feats, in_feats.size(1)}, options);
     } else {
       out_grad_buffer_activated =
           torch::from_blob(out_grad_buffer.data_ptr<float>(),
                            {n_active_feats, kernel.size(2)}, options);
       in_grad_buffer_activated =
           torch::from_blob(in_grad_buffer.data_ptr<float>(),
-                           {n_active_feats, in_feat.size(1)}, options);
+                           {n_active_feats, in_feats.size(1)}, options);
       in_buffer_activated =
           torch::from_blob(in_buffer.data_ptr<float>(),
-                           {n_active_feats, in_feat.size(1)}, options);
+                           {n_active_feats, in_feats.size(1)}, options);
     }
+
     // gather
     AT_DISPATCH_FLOATING_TYPES_AND_HALF(
-        in_feat.scalar_type(), "conv_forward_gather_scatter_cuda", ([&] {
+        in_feats.scalar_type(), "conv_forward_gather_scatter_cuda", ([&] {
           gather_kernel<scalar_t>
               <<<ceil((double)(n_active_feats * n_out_channels) / 256), 256>>>(
                   n_active_feats, n_out_feats, n_out_channels,
-                  grad_out_feat.data_ptr<scalar_t>(),
+                  grad_out_feats.data_ptr<scalar_t>(),
                   out_grad_buffer_activated.data_ptr<scalar_t>(),
-                  neighbor_map.data_ptr<int>() + cur_offset, !transpose);
+                  neighbor_maps.data_ptr<int>() + cur_offset, !transpose);
         }));
     AT_DISPATCH_FLOATING_TYPES_AND_HALF(
-        in_feat.scalar_type(), "conv_forward_gather_scatter_cuda", ([&] {
+        in_feats.scalar_type(), "conv_forward_gather_scatter_cuda", ([&] {
           gather_kernel<scalar_t>
               <<<ceil((double)(n_active_feats * n_in_channels) / 256), 256>>>(
                   n_active_feats, n_in_feats, n_in_channels,
-                  in_feat.data_ptr<scalar_t>(),
+                  in_feats.data_ptr<scalar_t>(),
                   in_buffer_activated.data_ptr<scalar_t>(),
-                  neighbor_map.data_ptr<int>() + cur_offset, transpose);
+                  neighbor_maps.data_ptr<int>() + cur_offset, transpose);
         }));
     // gemm
     torch::mm_out(in_grad_buffer_activated, out_grad_buffer_activated,
@@ -901,16 +907,18 @@ void conv_backward_gather_scatter_cuda(at::Tensor in_feat, at::Tensor grad_in_fe
     torch::mm_out(kernel_grad_buffer,
                   torch::transpose(in_buffer_activated, 0, 1),
                   out_grad_buffer_activated);
+
     // scatter
     AT_DISPATCH_FLOATING_TYPES_AND_HALF(
-        in_feat.scalar_type(), "conv_forward_gather_scatter_cuda", ([&] {
+        in_feats.scalar_type(), "conv_forward_gather_scatter_cuda", ([&] {
           scatter_kernel<scalar_t>
               <<<ceil((double)(n_active_feats * n_in_channels) / 256), 256>>>(
                   n_active_feats, n_in_feats, n_in_channels,
                   in_grad_buffer_activated.data_ptr<scalar_t>(),
-                  grad_in_feat.data_ptr<scalar_t>(),
-                  neighbor_map.data_ptr<int>() + cur_offset, !transpose);
+                  grad_in_feats.data_ptr<scalar_t>(),
+                  neighbor_maps.data_ptr<int>() + cur_offset, !transpose);
         }));
     cur_offset += 2 * n_active_feats;
   }
+  return { grad_in_feats, grad_kernel };
 }

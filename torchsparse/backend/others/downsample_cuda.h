@@ -1,6 +1,8 @@
 #pragma once
 
-#include <torch/torch.h>
+#include <ATen/Operators.h>
+#include <torch/all.h>
+#include <torch/library.h>
 
 at::Tensor
 downsample_cuda(const at::Tensor &_in_coords, const at::Tensor &_coords_max,

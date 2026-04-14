@@ -61,20 +61,25 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
                 )
 
         if input.device.type == "cuda":
-            output = torchsparse.backend.conv_forward_gather_scatter_cuda(
-                input,
-                weight,
-                nbmaps,
-                nbsizes.cpu(),
-                input_mask,
-                output_mask,
-                sizes[1] if not transposed else sizes[0],
-                epsilon,
-                int(mm_thresh),
-                conv_mode,
-                transposed,
-                buffer,
+            output = torch.ops.nanots.conv_forward_gather_scatter_cuda(
+                input, weight, nbmaps,  sizes[1] if not transposed else sizes[0], conv_mode, nbsizes, transposed
             )
+
+            # output = torchsparse.backend.conv_forward_gather_scatter_cuda(
+            #     input,
+            #     weight,
+            #     nbmaps,
+            #     nbsizes.cpu(),
+            #     input_mask,
+            #     output_mask,
+            #     sizes[1] if not transposed else sizes[0],
+            #     epsilon,
+            #     int(mm_thresh),
+            #     conv_mode,
+            #     transposed,
+            #     buffer,
+            # )
+
         elif input.device.type == "cpu":
             output = torch.ops.nanots.conv_forward_gather_scatter_cpu(
                 input, weight, nbmaps, nbsizes, sizes[1] if not transposed else sizes[0], transposed
@@ -113,7 +118,7 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
         grad_weight = torch.zeros_like(weight)
 
         if grad_output.device.type == "cuda":
-            torchsparse.backend.conv_backward_gather_scatter_cuda(
+            torch.ops.nanots.conv_backward_gather_scatter_cuda(
                 input,
                 grad_input,
                 grad_output.contiguous(),

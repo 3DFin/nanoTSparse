@@ -2,6 +2,7 @@
 #include "../utils/memory.h"
 
 #include <c10/cuda/CUDAGuard.h>
+#include <cstdint>
 #include <cuda_fp16.h>
 
 
@@ -1756,7 +1757,7 @@ at::Tensor conv_forward_implicit_gemm_sorted_cuda(
     const at::Tensor& _in_feats, const at::Tensor& _kernel,
     const at::Tensor& _out_in_map, const at::Tensor& _reduced_mask,
     const at::Tensor& _reorder_loc,
-    int num_out_feats, int num_out_channels,
+    int64_t num_out_feats, int64_t num_out_channels,
     bool allow_tf32, bool allow_fp16)
 {
   c10::cuda::CUDAGuard guard(_in_feats.device());

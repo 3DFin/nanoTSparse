@@ -22,6 +22,7 @@ def build_kmap_implicit_GEMM_hashmap_on_the_fly(
     kmap["coords"] = _coords
     kmap["spatial_range"] = spatial_range
     # coords = _coords[:, [3, 0, 1, 2]]
+
     coords = _coords.contiguous()
     if spatial_range is not None:
         coords_max_tuple = tuple(x - 1 for x in spatial_range)
@@ -44,10 +45,12 @@ def build_kmap_implicit_GEMM_hashmap_on_the_fly(
         coords_min = make_tensor((0, 0, 0, 0), dtype=torch.int, device=coords.device)
 
     if subm:
-        func = torchsparse.backend.build_kernel_map_subm_hashmap
+        hash_func = torch.ops.nanots.build_kernel_map_subm_hashmap
     else:
-        func = torchsparse.backend.build_kernel_map_downsample_hashmap
-    to_insert = False
+        hash_func = torch.ops.nanots.build_kernel_map_downsample_hashmap
+
+    #TODO cache the hasmap
+    to_insert = True
 
     assert (
         torchsparse.backends.hash_rsv_ratio >= 2
@@ -55,20 +58,10 @@ def build_kmap_implicit_GEMM_hashmap_on_the_fly(
     hashmap_capacity = max(
         512, int(torchsparse.backends.hash_rsv_ratio * _coords.shape[0])
     )
-    if kmap["hashmap_keys"] is None:
-        kmap["hashmap_keys"] = torch.zeros(
-            hashmap_capacity, dtype=torch.int64, device=coords.device
-        )
-        to_insert = True
-    if kmap["hashmap_vals"] is None:
-        kmap["hashmap_vals"] = torch.zeros(
-            hashmap_capacity, dtype=torch.int32, device=coords.device
-        )
-    hashtable = torchsparse.backend.GPUHashTable(
-        kmap["hashmap_keys"], kmap["hashmap_vals"]
-    )
 
-    out = func(
+    hashtable = torch.classes.nanots.GPUHashTable(hashmap_capacity)
+
+    out = hash_func(
         hashtable,
         coords,
         coords_min,
@@ -89,15 +82,15 @@ def build_kmap_implicit_GEMM_hashmap_on_the_fly(
     kmap["sizes"] = (input_node_num, coords.shape[0])
 
     if ifsort:
-        bitmask = torchsparse.backend.derive_bitmask_from_out_in_map(
+        bitmask = torch.ops.nanots.derive_bitmask_from_out_in_map(
             out_in_map, split_mask_num, kmap["sizes"][1]
         )
         sorted_mask, reorder_loc = torch.sort(bitmask, descending=True)
         reorder_loc = reorder_loc.to(torch.int32)
-        reorder_out_in_map = torchsparse.backend.reorder_out_in_map_cuda(
+        reorder_out_in_map = torch.ops.nanots.reorder_out_in_map_cuda(
             out_in_map, reorder_loc
         )
-        reduced_sorted_mask = torchsparse.backend.reduce_bitmask_cuda(
+        reduced_sorted_mask = torch.ops.nanots.reduce_bitmask_cuda(
             sorted_mask, cta_M
         )
         kmap["reorder_out_in_map"] = reorder_out_in_map
@@ -140,7 +133,10 @@ def build_kmap_Gather_Scatter_hashmap_on_the_fly(
     nbmaps[:, 0] = results.view(-1)[nbmaps[:, 0] * results.size(1) + nbmaps[:, 1]]
     # important for build masks
     nbmaps = nbmaps.contiguous()
-    input_mask, output_mask = torchsparse.backend.build_mask_from_kmap(
+
+    # compute mask for GPU implementation
+    # it's only available when using conv_mode > 0
+    input_mask, output_mask = torch.ops.nanots.build_mask_from_kmap(
         _coords.shape[0],
         kmap["coords"].shape[0],
         nbmaps.int(),

@@ -40,6 +40,7 @@ def build_kmap_implicit_GEMM_hashmap(
 
     kernel_volume = torch.prod(kernel_size)
 
+    # TODO: check for cash and and use RSV constant
     to_insert = False
     if coords.device.type == "cpu":
         hashmap = torch.classes.nanots.CPUHashTable(_coords.shape[0])
@@ -81,15 +82,15 @@ def build_kmap_implicit_GEMM_hashmap(
     kmap["sizes"] = (input_node_num, coords.shape[0])
 
     if ifsort:
-        bitmask = torchsparse.backend.derive_bitmask_from_out_in_map(
+        bitmask = torch.ops.nanots.derive_bitmask_from_out_in_map(
             results, split_mask_num, kmap["sizes"][1]
         )
         sorted_mask, reorder_loc = torch.sort(bitmask, descending=True)
         reorder_loc = reorder_loc.to(torch.int32)
-        reorder_out_in_map = torchsparse.backend.reorder_out_in_map_cuda(
+        reorder_out_in_map = torch.ops.nanots.reorder_out_in_map_cuda(
             results, reorder_loc
         )
-        reduced_sorted_mask = torchsparse.backend.reduce_bitmask_cuda(
+        reduced_sorted_mask = torch.ops.nanots.reduce_bitmask_cuda(
             sorted_mask, cta_M
         )
         kmap["reorder_out_in_map"] = reorder_out_in_map

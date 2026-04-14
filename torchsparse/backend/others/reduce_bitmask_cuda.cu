@@ -1,6 +1,7 @@
 #include "reduce_bitmask_cuda.h"
 
 #include <c10/cuda/CUDAGuard.h>
+#include <cstdint>
 
 
 // 1 block -- 4 warps -- 128 threads
@@ -60,7 +61,7 @@ void __launch_bounds__(thd_per_blk) reduce_mask_cuda_int32(
 
 at::Tensor reduce_bitmask_cuda(
     const at::Tensor& _bitmask_int,
-    int M_tile
+    int64_t M_tile
 ){
     c10::cuda::CUDAGuard guard(_bitmask_int.device());
     if (M_tile % 4 != 0)

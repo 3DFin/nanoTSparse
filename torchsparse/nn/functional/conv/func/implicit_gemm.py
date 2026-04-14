@@ -67,7 +67,7 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
             num_out_channels = weight.shape[-1]
 
             if not ifsort:
-                output = torchsparse.backend.conv_forward_implicit_gemm_cuda(
+                output = torch.ops.nanots.conv_forward_implicit_gemm_cuda(
                     input,
                     weight,
                     out_in_map,
@@ -77,7 +77,7 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
                     torchsparse.backends.allow_fp16,
                 )
             else:
-                output = torchsparse.backend.conv_forward_implicit_gemm_sorted_cuda(
+                output = torch.ops.nanots.conv_forward_implicit_gemm_sorted_cuda(
                     input,
                     weight,
                     reorder_out_in_map,
@@ -116,7 +116,7 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
         if grad_output.device.type == "cuda":
             if kernel_volume < 32:  # sort mode
                 # dgrad
-                grad_input = torchsparse.backend.conv_forward_implicit_gemm_sorted_cuda(
+                grad_input = torch.ops.nanots.conv_forward_implicit_gemm_sorted_cuda(
                     grad_output,
                     weight.transpose(2, 1).contiguous(),
                     ctx.reorder_out_in_map_bwd,
@@ -149,7 +149,7 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
 
             else:  # unsort mode
                 # dgrad
-                grad_input = torchsparse.backend.conv_forward_implicit_gemm_cuda(
+                grad_input = torch.ops.nanots.conv_forward_implicit_gemm_cuda(
                     grad_output,
                     weight.transpose(2, 1).contiguous(),
                     ctx.out_in_map_bwd,

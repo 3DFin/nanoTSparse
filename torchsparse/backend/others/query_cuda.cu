@@ -1,6 +1,7 @@
 #include "../hashmap/hashmap_cuda.h"
 
 #include <c10/cuda/CUDAGuard.h>
+#include <cstdint>
 
 
 __global__ void convert_out_in_map_kernel(const int* out_in_map, int* out_in_map_t, int n, int kernel_volume){
@@ -34,7 +35,7 @@ void convert_transposed_out_in_map(const at::Tensor& out_in_map,
     out_in_map.data_ptr<int>(), out_in_map_t.data_ptr<int>(), out_in_map.size(0), out_in_map.size(1));
 }
 
-at::Tensor derive_bitmask_from_out_in_map(const at::Tensor& out_in_map, const int split_mask_num, int valid_n) {
+at::Tensor derive_bitmask_from_out_in_map(const at::Tensor& out_in_map, int64_t split_mask_num, int64_t valid_n) {
   c10::cuda::CUDAGuard guard(out_in_map.device());
   at::Tensor bitmask = at::full(
       {split_mask_num, out_in_map.size(0)}, -1, at::device(out_in_map.device()).dtype(at::ScalarType::Int));

@@ -161,18 +161,18 @@ def build_kernel_map(
             out_in_map_bwd = F.convert_transposed_out_in_map(
                 kmap["out_in_map"], make_divisible(kmap["sizes"][0], cta_M)
             )
-            bitmask_bwd = torchsparse.backend.derive_bitmask_from_out_in_map(
+            bitmask_bwd = torch.ops.nanots.derive_bitmask_from_out_in_map(
                 out_in_map_bwd, split_mask_num_bwd, kmap["sizes"][0]
             )
             sorted_mask_bwd, reorder_loc_bwd = torch.sort(bitmask_bwd, descending=True)
             reorder_loc_bwd = reorder_loc_bwd.to(torch.int32)
-            reorder_out_in_map_bwd = torchsparse.backend.reorder_out_in_map_cuda(
+            reorder_out_in_map_bwd = torch.ops.nanots.reorder_out_in_map_cuda(
                 out_in_map_bwd, reorder_loc_bwd
             )
-            reduced_sorted_mask_bwd_wgrad = torchsparse.backend.reduce_bitmask_cuda(
+            reduced_sorted_mask_bwd_wgrad = torch.ops.nanots.reduce_bitmask_cuda(
                 sorted_mask_bwd, cta_M_wgrad
             )
-            reduced_sorted_mask_bwd_dgrad = torchsparse.backend.reduce_bitmask_cuda(
+            reduced_sorted_mask_bwd_dgrad = torch.ops.nanots.reduce_bitmask_cuda(
                 sorted_mask_bwd, cta_M
             )
         else:
@@ -208,10 +208,10 @@ def transpose_kernel_map(
             reorder_out_in_map_bwd = kmap["reorder_out_in_map"]
             reorder_loc_bwd = kmap["reorder_loc"]
             sorted_mask_bwd = kmap["sorted_mask"]
-            reduced_sorted_mask_bwd_wgrad = torchsparse.backend.reduce_bitmask_cuda(
+            reduced_sorted_mask_bwd_wgrad = torch.ops.nanots.reduce_bitmask_cuda(
                 sorted_mask_bwd, cta_M_wgrad
             )
-            reduced_sorted_mask_bwd_dgrad = torchsparse.backend.reduce_bitmask_cuda(
+            reduced_sorted_mask_bwd_dgrad = torch.ops.nanots.reduce_bitmask_cuda(
                 sorted_mask_bwd, cta_M
             )
             kmap["out_in_map_bwd_t"] = out_in_map_bwd
@@ -226,15 +226,15 @@ def transpose_kernel_map(
             kmap["reduced_sorted_mask_bwd_dgrad_t"] = None
             kmap["reorder_loc_bwd_t"] = None
 
-        bitmask = torchsparse.backend.derive_bitmask_from_out_in_map(
+        bitmask = torch.ops.nanots.derive_bitmask_from_out_in_map(
             out_in_map, split_mask_num, kmap["sizes"][0]
         )
         sorted_mask, reorder_loc = torch.sort(bitmask, descending=True)
         reorder_loc = reorder_loc.to(torch.int32)
-        reorder_out_in_map = torchsparse.backend.reorder_out_in_map_cuda(
+        reorder_out_in_map = torch.ops.nanots.reorder_out_in_map_cuda(
             out_in_map, reorder_loc
         )
-        reduced_sorted_mask = torchsparse.backend.reduce_bitmask_cuda(
+        reduced_sorted_mask = torch.ops.nanots.reduce_bitmask_cuda(
             sorted_mask, cta_M
         )
         kmap["reorder_out_in_map_t"] = reorder_out_in_map
@@ -243,18 +243,18 @@ def transpose_kernel_map(
     else:
         if training:
             out_in_map_bwd = kmap["out_in_map"]
-            bitmask_bwd = torchsparse.backend.derive_bitmask_from_out_in_map(
+            bitmask_bwd = torch.ops.nanots.derive_bitmask_from_out_in_map(
                 out_in_map_bwd, split_mask_num_bwd, kmap["sizes"][1]
             )
             sorted_mask_bwd, reorder_loc_bwd = torch.sort(bitmask_bwd, descending=True)
             reorder_loc_bwd = reorder_loc_bwd.to(torch.int32)
-            reorder_out_in_map_bwd = torchsparse.backend.reorder_out_in_map_cuda(
+            reorder_out_in_map_bwd = torch.ops.nanots.reorder_out_in_map_cuda(
                 out_in_map_bwd, reorder_loc_bwd
             )
-            reduced_sorted_mask_bwd_wgrad = torchsparse.backend.reduce_bitmask_cuda(
+            reduced_sorted_mask_bwd_wgrad = torch.ops.nanots.reduce_bitmask_cuda(
                 sorted_mask_bwd, cta_M_wgrad
             )
-            reduced_sorted_mask_bwd_dgrad = torchsparse.backend.reduce_bitmask_cuda(
+            reduced_sorted_mask_bwd_dgrad = torch.ops.nanots.reduce_bitmask_cuda(
                 sorted_mask_bwd, cta_M
             )
             kmap["out_in_map_bwd_t"] = out_in_map_bwd

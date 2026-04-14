@@ -1748,7 +1748,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode1_f32f32f3
 at::Tensor conv_backward_wgrad_implicit_gemm_sorted_cuda(
     const at::Tensor& _in_feats, const at::Tensor& _kernel,
     const at::Tensor& _out_in_map, const at::Tensor& _reduced_mask,
-    const at::Tensor& _reorder_loc, const int split_k_iters,
+    const at::Tensor& _reorder_loc, int64_t split_k_iters,
     bool allow_tf32, bool allow_fp16)
 {
   c10::cuda::CUDAGuard guard(_in_feats.device());

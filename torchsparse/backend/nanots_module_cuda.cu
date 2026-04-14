@@ -2,15 +2,18 @@
 #include <torch/library.h>
 
 // CUDA
+#include "convolution/convolution_backward_wgrad_implicit_gemm_cuda.h"
+#include "convolution/convolution_backward_wgrad_implicit_gemm_sorted_cuda.h"
 #include "convolution/convolution_forward_implicit_gemm_cuda.h"
 #include "convolution/convolution_forward_implicit_gemm_sorted_cuda.h"
+
 #include "convolution/convolution_gather_scatter_cuda.h"
 
 #include "hashmap/hashmap_cuda.h"
 #include "others/query_cuda.h"
+#include "others/reduce_bitmask_cuda.h"
 #include "others/reorder_map_cuda.h"
 #include "others/sparsemapping_cuda.h"
-#include "others/reduce_bitmask_cuda.h"
 
 // CPU
 #include "convolution/convolution_gather_scatter_cpu.h"
@@ -118,10 +121,20 @@ TORCH_LIBRARY(nanots, m) {
         "int num_out_feats, int num_out_channels, "
         "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
 
+  m.def("conv_backward_wgrad_implicit_gemm_cuda("
+        "Tensor _in_feats, Tensor _kernel, "
+        "Tensor _out_in_map, int split_k_iters, "
+        "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
+
   m.def("conv_forward_implicit_gemm_sorted_cuda("
         "Tensor _in_feats, Tensor _kernel, Tensor _out_in_map, "
         "Tensor _reduced_mask, Tensor _reorder_loc, "
         "int num_out_feats, int num_out_channels, "
+        "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
+
+  m.def("conv_backward_wgrad_implicit_gemm_sorted_cuda("
+        "Tensor _in_feats, Tensor _kernel, Tensor _out_in_map, "
+        "Tensor _reduced_mask, Tensor _reorder_loc, int split_k_iters, "
         "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
 
   m.def("build_mask_from_kmap("
@@ -159,8 +172,12 @@ TORCH_LIBRARY_IMPL(nanots, CUDA, m) {
   m.impl("conv_backward_gather_scatter_cuda",
          &conv_backward_gather_scatter_cuda);
   m.impl("conv_forward_implicit_gemm_cuda", &conv_forward_implicit_gemm_cuda);
+  m.impl("conv_backward_wgrad_implicit_gemm_cuda",
+         &conv_backward_wgrad_implicit_gemm_cuda);
   m.impl("conv_forward_implicit_gemm_sorted_cuda",
          &conv_forward_implicit_gemm_sorted_cuda);
+  m.impl("conv_backward_wgrad_implicit_gemm_sorted_cuda",
+         &conv_backward_wgrad_implicit_gemm_sorted_cuda);
 
   m.impl("build_mask_from_kmap", &build_mask_from_kmap);
   m.impl("build_kernel_map_subm_hashmap", &build_kernel_map_subm_impl);

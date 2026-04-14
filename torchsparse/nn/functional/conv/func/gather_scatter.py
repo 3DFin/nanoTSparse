@@ -65,7 +65,7 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
                 input, weight, nbmaps,  sizes[1] if not transposed else sizes[0], conv_mode, nbsizes, transposed
             )
 
-            # output = torchsparse.backend.conv_forward_gather_scatter_cuda(
+            # output = torch.ops.nanots.conv_forward_gather_scatter_cuda(
             #     input,
             #     weight,
             #     nbmaps,

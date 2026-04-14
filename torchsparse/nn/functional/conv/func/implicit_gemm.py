@@ -131,7 +131,7 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
                 # wgrad
                 grad_weight = (
                     (
-                        torchsparse.backend.conv_backward_wgrad_implicit_gemm_sorted_cuda(
+                        torch.ops.nanots.conv_backward_wgrad_implicit_gemm_sorted_cuda(
                             grad_output,
                             input,
                             ctx.reorder_out_in_map_bwd,
@@ -162,7 +162,7 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
                 # wgrad
                 grad_weight = (
                     (
-                        torchsparse.backend.conv_backward_wgrad_implicit_gemm_cuda(
+                        torch.ops.nanots.conv_backward_wgrad_implicit_gemm_cuda(
                             grad_output,
                             input,
                             ctx.out_in_map_bwd,

@@ -2,7 +2,11 @@
 #include <torch/all.h>
 #include <torch/library.h>
 
-at::Tensor conv_backward_wgrad_implicit_gemm_cuda(
-                       const at::Tensor& _in_feats, const at::Tensor& _kernel,
-                       const at::Tensor& _out_in_map, const int split_k_iters,
-                       bool allow_tf32, bool allow_fp16);
+#include <cstdint>
+
+at::Tensor conv_backward_wgrad_implicit_gemm_cuda(const at::Tensor &_in_feats,
+                                                  const at::Tensor &_kernel,
+                                                  const at::Tensor &_out_in_map,
+                                                  int64_t split_k_iters,
+                                                  bool allow_tf32,
+                                                  bool allow_fp16);

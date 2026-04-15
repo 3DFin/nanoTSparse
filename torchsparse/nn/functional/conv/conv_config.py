@@ -20,7 +20,6 @@ _default_conv_config = AttributeDict(
         ("split_mask_num_bwd", 3),
         ("epsilon", 0.0),
         ("mm_thresh", 0),
-        ("FOD_fusion", True),
     ]
 )
 
@@ -51,9 +50,6 @@ def keys_check(conv_config):
     if "mm_thresh" not in conv_config:
         flag = True
         conv_config["mm_thresh"] = _default_conv_config["mm_thresh"]
-    if "FOD_fusion" not in conv_config:
-        flag = True
-        conv_config["FOD_fusion"] = _default_conv_config["FOD_fusion"]
     if flag == True:
         print(
             "Warning: Missing fields for ConvConfig. Use default configs for these fields."

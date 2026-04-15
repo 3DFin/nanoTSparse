@@ -2,7 +2,7 @@ from typing import Any, Dict, Tuple, Union, Optional, List
 
 import torch
 
-from torchsparse.utils import make_ntuple, to_dense
+from torchsparse.utils import make_ntuple
 from torchsparse.utils.tensor_cache import (
     TensorCache,
     TensorCacheMode,
@@ -99,10 +99,6 @@ class SparseTensor:
         self.feats = self.feats.to(device, non_blocking=non_blocking)
         return self
 
-    def dense(self):
-        assert self.spatial_range is not None
-        return to_dense(self.feats, self.coords, self.spatial_range)
-
     def __add__(self, other):
         output = SparseTensor(
             coords=self.coords,
@@ -112,7 +108,7 @@ class SparseTensor:
         )
         output._caches = self._caches
         return output
-    
+
 class PointTensor:
     def __init__(self, feats, coords, idx_query=None, weights=None):
         self.F = feats
@@ -143,4 +139,3 @@ class PointTensor:
                              self.weights)
         tensor.additional_features = self.additional_features
         return tensor
-

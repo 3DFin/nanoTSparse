@@ -10,6 +10,8 @@
 #include "convolution/convolution_gather_scatter_cuda.h"
 
 #include "hashmap/hashmap_cuda.h"
+
+#include "others/downsample_cuda.h"
 #include "others/query_cuda.h"
 #include "others/reduce_bitmask_cuda.h"
 #include "others/reorder_map_cuda.h"
@@ -158,6 +160,10 @@ TORCH_LIBRARY(nanots, m) {
   m.def("reorder_out_in_map_cuda("
         "Tensor out_in_map, Tensor reorder_loc) -> Tensor");
   m.def("reduce_bitmask_cuda(Tensor bitmask, int M_tile) -> Tensor");
+  m.def("convert_transposed_out_in_map(Tensor out_in_map, int size) -> Tensor");
+  m.def("downsample_cuda("
+        "Tensor in_coords, Tensor coords_max, Tensor coords_min, "
+        "Tensor kernel_sizes, Tensor stride, Tensor padding) -> Tensor");
 }
 
 TORCH_LIBRARY_IMPL(nanots, CPU, m) {
@@ -186,6 +192,9 @@ TORCH_LIBRARY_IMPL(nanots, CUDA, m) {
   m.impl("derive_bitmask_from_out_in_map", &derive_bitmask_from_out_in_map);
   m.impl("reorder_out_in_map_cuda", &reorder_out_in_map_cuda);
   m.impl("reduce_bitmask_cuda", &reduce_bitmask_cuda);
+  m.impl("convert_transposed_out_in_map", &convert_transposed_out_in_map);
+
+  m.impl("downsample_cuda", &downsample_cuda);
 }
 
 } // namespace torchsparse

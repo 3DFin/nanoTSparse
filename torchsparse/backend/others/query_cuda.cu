@@ -28,11 +28,17 @@ __global__ void derive_bit_mask_from_out_in_map_kernel(int* out_in_map, int* bit
   bitmask[split_mask_iter * n + idx] = cur_bitmask;
 }
 
-void convert_transposed_out_in_map(const at::Tensor& out_in_map,
-                            at::Tensor out_in_map_t) {
+at::Tensor convert_transposed_out_in_map(const at::Tensor& out_in_map, int64_t size) {
   c10::cuda::CUDAGuard guard(out_in_map.device());
+  at::Tensor out_in_map_t = torch::full(
+      {size, out_in_map.sizes()[1]},
+      -1,
+      out_in_map.options()
+  );
+
   convert_out_in_map_kernel<<<(out_in_map.size(0) * out_in_map.size(1) + 255) / 256, 256>>>(
     out_in_map.data_ptr<int>(), out_in_map_t.data_ptr<int>(), out_in_map.size(0), out_in_map.size(1));
+  return out_in_map_t;
 }
 
 at::Tensor derive_bitmask_from_out_in_map(const at::Tensor& out_in_map, int64_t split_mask_num, int64_t valid_n) {

@@ -66,7 +66,7 @@ def spdownsample(
                     (0, 0, 0, 0), dtype=torch.int, device=_coords.device
                 )
 
-            out_coords = torchsparse.backend.downsample_cuda(
+            out_coords = torch.ops.nanots.downsample_cuda(
                 _coords,
                 coords_max,
                 coords_min,

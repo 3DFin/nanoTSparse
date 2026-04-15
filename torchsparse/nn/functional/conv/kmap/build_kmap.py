@@ -158,8 +158,9 @@ def build_kernel_map(
 
     if dataflow == Dataflow.ImplicitGEMM:
         if training:
-            out_in_map_bwd = F.convert_transposed_out_in_map(
-                kmap["out_in_map"], make_divisible(kmap["sizes"][0], cta_M)
+            out_in_map_bwd = torch.ops.nanots.convert_transposed_out_in_map(
+                kmap["out_in_map"],
+                make_divisible(kmap["sizes"][0], cta_M)
             )
             bitmask_bwd = torch.ops.nanots.derive_bitmask_from_out_in_map(
                 out_in_map_bwd, split_mask_num_bwd, kmap["sizes"][0]
@@ -198,8 +199,9 @@ def transpose_kernel_map(
 ) -> Dict:
     from torchsparse.nn import functional as F
 
-    out_in_map = F.convert_transposed_out_in_map(
-        kmap["out_in_map"], make_divisible(kmap["sizes"][0], cta_M)
+    out_in_map = torch.ops.nanots.convert_transposed_out_in_map(
+        kmap["out_in_map"],
+        make_divisible(kmap["sizes"][0], cta_M)
     )
 
     if ifsort:

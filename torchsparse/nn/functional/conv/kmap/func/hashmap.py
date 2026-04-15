@@ -1,3 +1,4 @@
+from sympy.physics.units import km
 from typing import Dict, Tuple, Union, Optional
 import torch
 
@@ -40,16 +41,15 @@ def build_kmap_implicit_GEMM_hashmap(
 
     kernel_volume = torch.prod(kernel_size)
 
-    # TODO: check for cash and and use RSV constant
     to_insert = False
-    if coords.device.type == "cpu":
-        hashmap = torch.classes.nanots.CPUHashTable(_coords.shape[0])
-        to_insert = True;
-        # for CPU we do not use cache and force a new insertion
-        # CPU is meant to be use only in inference scenarii
-    else:
-        hashmap = torch.classes.nanots.GPUHashTable(_coords.shape[0] * 2)
+    hashmap = kmap["hashmap"]
+    if hashmap is None:
+        if coords.device.type == "cpu":
+            hashmap = torch.classes.nanots.CPUHashTable(_coords.shape[0])
+        else:
+            hashmap = torch.classes.nanots.GPUHashTable(_coords.shape[0] * torchsparse.backends.hash_rsv_ratio)
         to_insert = True
+
 
     if to_insert:
         if not generative:
@@ -80,6 +80,7 @@ def build_kmap_implicit_GEMM_hashmap(
     kmap["out_in_map"] = results
     kmap["coords"] = coords
     kmap["sizes"] = (input_node_num, coords.shape[0])
+    kmap["hashmap"] = hashmap
 
     if ifsort:
         bitmask = torch.ops.nanots.derive_bitmask_from_out_in_map(

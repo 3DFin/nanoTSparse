@@ -22,9 +22,8 @@ def build_kernel_map(
     kernel_size: Union[int, Tuple[int, ...]] = 2,
     stride: Union[int, Tuple[int, ...]] = 2,
     padding: Union[int, Tuple[int, ...]] = 0,
-    hashmap_keys: torch.Tensor = None,
-    hashmap_vals: torch.Tensor = None,
-    spatial_range: int = None,
+    hashmap: Union[torch.classes.nanots.GPUHashTable, torch.classes.nanots.CPUHashTable] = None,
+    spatial_range: Union[int, Tuple[int, ...]] = 0,
     mode="hashmap",
     dataflow=Dataflow.ImplicitGEMM,
     downsample_mode="spconv",
@@ -48,8 +47,7 @@ def build_kernel_map(
             ("nbsizes", None),
             ("input_mask", None),
             ("output_mask", None),
-            ("hashmap_keys", hashmap_keys),
-            ("hashmap_vals", hashmap_vals),
+            ("hashmap",  hashmap),
             ("spatial_range", spatial_range),
         ]
     )

@@ -49,20 +49,19 @@ def build_kmap_implicit_GEMM_hashmap_on_the_fly(
     else:
         hash_func = torch.ops.nanots.build_kernel_map_downsample_hashmap
 
-    #TODO cache the hasmap
-    to_insert = True
 
     assert (
         torchsparse.backends.hash_rsv_ratio >= 2
     ), f"hash_rsv_ratio should be no less than 2, now {torchsparse.backends.hash_rsv_ratio}."
-    hashmap_capacity = max(
-        512, int(torchsparse.backends.hash_rsv_ratio * _coords.shape[0])
-    )
 
-    hashtable = torch.classes.nanots.GPUHashTable(hashmap_capacity)
+    to_insert = False
+    hashmap = kmap["hashmap"]
+    if hashmap is None:
+        hashmap = torch.classes.nanots.GPUHashTable(_coords.shape[0] * torchsparse.backends.hash_rsv_ratio)
+        to_insert = True
 
     out = hash_func(
-        hashtable,
+        hashmap,
         coords,
         coords_min,
         coords_max,
@@ -75,6 +74,8 @@ def build_kmap_implicit_GEMM_hashmap_on_the_fly(
     # update kernel_map
     out_in_map = out[0]
     kmap["out_in_map"] = out_in_map
+    kmap["hashmap"] = hashmap
+    
     if len(out) != 1:
         coords = out[1]
         # coords = coords[:, [1, 2, 3, 0]]

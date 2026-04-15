@@ -73,10 +73,6 @@ def conv3d(
             hashmap = input._caches.hashmaps.get(
                 tuple(input.stride[k] * stride[k] for k in range(3))
             )
-        if hashmap is None:
-            hashmap_keys, hashmap_vals = None, None
-        else:
-            hashmap_keys, hashmap_vals = hashmap
 
         spatial_range = input.spatial_range
 
@@ -87,8 +83,7 @@ def conv3d(
                 kernel_size,
                 stride,
                 padding,
-                hashmap_keys,
-                hashmap_vals,
+                hashmap,
                 spatial_range,
                 kmap_mode,
                 dataflow,
@@ -99,7 +94,7 @@ def conv3d(
                 split_mask_num_bwd=config.split_mask_num_bwd,
             )
 
-            hashmap = [kmap["hashmap_keys"], kmap["hashmap_vals"]]
+            hashmap = kmap["hashmap"]
 
             input._caches.kmaps[(input.stride, kernel_size, stride, dilation)] = kmap
             input._caches.hashmaps[input.stride] = hashmap
@@ -152,7 +147,7 @@ def conv3d(
                 spatial_range=input._caches.cmaps[tensor_stride][1],
             )
         else:
-            hashmap_keys, hashmap_vals = None, None
+            hashmap = None
 
             spatial_range = input.spatial_range
             kmap = F.build_kernel_map(
@@ -161,8 +156,7 @@ def conv3d(
                 kernel_size,
                 stride,
                 padding,
-                hashmap_keys,
-                hashmap_vals,
+                hashmap,
                 spatial_range,
                 kmap_mode,
                 dataflow,
@@ -191,7 +185,6 @@ def conv3d(
                 stride=tensor_stride,
                 spatial_range=input._caches.cmaps[tensor_stride][1],
             )
-            hashmap = [kmap["hashmap_keys"], kmap["hashmap_vals"]]
             input._caches.kmaps = dict()  # new_kmap
             input._caches.hashmaps = dict()
 

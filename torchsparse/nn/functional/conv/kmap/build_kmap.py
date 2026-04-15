@@ -22,7 +22,7 @@ def build_kernel_map(
     kernel_size: Union[int, Tuple[int, ...]] = 2,
     stride: Union[int, Tuple[int, ...]] = 2,
     padding: Union[int, Tuple[int, ...]] = 0,
-    hashmap: Union[torch.classes.nanots.GPUHashTable, torch.classes.nanots.CPUHashTable] = None,
+    hashmap: Union["torch.classes.nanots.GPUHashTable", torch.classes.nanots.CPUHashTable] = None,
     spatial_range: Union[int, Tuple[int, ...]] = 0,
     mode="hashmap",
     dataflow=Dataflow.ImplicitGEMM,

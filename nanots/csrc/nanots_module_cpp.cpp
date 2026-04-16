@@ -18,14 +18,15 @@ namespace nanots {
 struct CPUHashTableHolder : torch::CustomClassHolder {
   CPUHashMap map_instance;
 
-  explicit CPUHashTableHolder(int64_t size) : map_instance(static_cast<size_t>(size)) {}
+  explicit CPUHashTableHolder(int64_t size)
+      : map_instance(static_cast<size_t>(size)) {}
 
   void insert_coords(at::Tensor coords) { map_instance.insert_coords(coords); }
 
   at::Tensor lookup_coords(at::Tensor coords, at::Tensor kernel_sizes,
                            at::Tensor strides, int64_t kernel_volume) {
     return map_instance.lookup_coords(coords, kernel_sizes, strides,
-                             static_cast<int>(kernel_volume));
+                                      static_cast<int>(kernel_volume));
   }
 };
 
@@ -48,7 +49,9 @@ TORCH_LIBRARY(nanots, m) {
 
   m.def("build_mask_from_kmap("
         "int n_points, int n_out_points, "
-        "Tensor neighbor_maps, Tensor kmap_sizes) -> Tensor
+        "Tensor neighbor_maps, Tensor kmap_sizes) -> Tensor[]");
+}
+
 TORCH_LIBRARY_IMPL(nanots, CPU, m) {
   m.impl("conv_forward_gather_scatter_cpu", &conv_forward_gather_scatter_cpu);
   m.impl("conv_backward_gather_scatter_cpu", &conv_backward_gather_scatter_cpu);

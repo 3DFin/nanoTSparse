@@ -43,8 +43,6 @@ def build_kernel_map(
             ("reorder_loc", None),
             ("nbmaps", None),
             ("nbsizes", None),
-            ("input_mask", None),
-            ("output_mask", None),
             ("hashmap",  hashmap),
             ("spatial_range", spatial_range),
         ]

@@ -1,30 +1,33 @@
-# nanoTorchSparse
+# [nano]TorchSparse
+
+`[nano]TorchSparse` (or `[nano]TS`) is a versatile and portable library for Sparse Convolutions
+It is a trimmed, reviewed and improved version of `TorchSparse++`, a high-performance neural network library for point cloud processing.
+
+# Changes:
+- Trim the FoD kernel and other auxiliary functions to improve compilation speed and maintenance.
+- Trim and simplify the entire Gather-GEMM-Scatter algo on GPU (TODO: remove `conv mode > 1` since it's unused, and remove mask generation on the hashmap, which incurs a runtime penalty if not used).
+nanoTS only embed the simplest Gather-GEMM-Scatter flavor of Torchsparse++.
+- Re-enabled the CPU Workflow. This previously was a no-op in TorchSparse++ 2.1. We now create a CPU Hashtable and improve parallelization (avoiding thread oversubscriptions in Gather/Scatter operations).
+- Enable amp on CUDA.
+- Added `tsl::robin_map` (replacing `sparsehash`) and replaced `openMP` with `Taskflow`. While `Taskflow` might seem like overkill, it is header-only and 100% cross-platform (working "out of the box" on macOS and with all types of integer indexing on Windows).
+- We now cache the HASHMAP instead of the key/value pair. This is more "robust," as it avoids cumbersome workflows and allows for better alignment between the CPU and GPU versions. 
+- Reviewed and improved the build system.
+- Created an ABI-compatible build (using Python's stable ABI) to ease distribution. This will be extended to support the Torch stable AB.
+
+# TODO:
+- Add CIBuildWheels workflow
+- Add proper `TORCH_CHECK` for functions
+- Fix the inconsistent behavior of mask sorting in the backward pass for small kernels:
+The backward pass **always** uses a sorted mask for small kernels (with a hardcoded threshold `kernel_volume < 32`), but sorting is **always** performed during training. This unnecessarily consumes time and memory, and is not needed in some cases (for higher kernel volumes than 32).
+
+
+# [ORIGINAL TorchSparse README]
 
 <p align="center">
 <img 
    src="./docs/figs/torchsparse.png"
    height="300" 
 >
-
-`[nano]TorchSparse` (`[nano]TS`) is a versatile and portable library for Sparse Convolutions
-It's a trimmed, reviewed and improved version of `TorchSparse++`, a high-performance neural network library for point cloud processing.
-
-# Changes:
-- Trim the FoD kernel and other auxiliary functions to improve compilation speed and maintenance.
-- Re-enabled the CPU Workflow. This previously was a no-op in TorchSparse++ 2.1. We now create a CPU Hashtable and improve parallelization (avoiding thread oversubscriptions in Gather/Scatter operations).
-- Added `tsl::robin_map` (replacing `sparsehash`) and replaced `openMP` with `Taskflow`. While `Taskflow` might seem like overkill, it is header-only and 100% cross-platform (working "out of the box" on macOS and with all types of integer indexing on Windows).
-- We now cache the HASHMAP instead of the key/value pair. This is more "robust," as it avoids cumbersome workflows and allows for better alignment between the CPU and GPU versions. 
-- Reviewed and improved the build system.
-- Created an ABI-compatible build (using Python's stable ABI) to ease distribution. This will be extended to support the Torch stable ABI.
-
-
-# TODO:
-- Add CIBuildWheels workflow
-- Add proper `TORCH_CHECK` for functions
-- Trim and simplify the entire gather-gemm-scatter algo on GPU (TODO: remove `conv mode > 1` since it's unused, and remove mask generation on the hashmap, which incurs a runtime penalty for no-op).
-- Fix the inconsistent behavior of mask sorting in the backward pass for small kernels:
-The backward pass **always** uses a sorted mask for small kernels (with a hardcoded threshold `kernel_volume < 32`), but sorting is **always** performed during training. This unnecessarily consumes time and memory, and is not needed in some cases (for higher kernel volumes than 32).
-
 
 ### [website](http://torchsparse.mit.edu/) | [paper (MICRO 2023)](https://www.dropbox.com/scl/fi/obdku0kqxjlkvuom2opk4/paper.pdf?rlkey=0zmy8eq9fzllgkx54zsvwsecf&dl=0) | [paper (MLSys 2022)](https://arxiv.org/abs/2204.10319) | [presentation](https://www.youtube.com/watch?v=IIh4EwmcLUs) | [documents](http://torchsparse-docs.github.io/) | [pypi server](http://pypi.hanlab.ai/simple/torchsparse)
 

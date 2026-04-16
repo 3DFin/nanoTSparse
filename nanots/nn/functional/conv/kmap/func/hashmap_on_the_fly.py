@@ -131,21 +131,9 @@ def build_kmap_Gather_Scatter_hashmap_on_the_fly(
     nbsizes = torch.sum(results != -1, dim=1)
     nbmaps = torch.nonzero(results != -1)
     nbmaps[:, 0] = results.view(-1)[nbmaps[:, 0] * results.size(1) + nbmaps[:, 1]]
-    # important for build masks
+
     nbmaps = nbmaps.contiguous()
-
-    # compute mask for GPU implementation
-    # it's only available when using conv_mode > 0
-    input_mask, output_mask = torch.ops.nanots.build_mask_from_kmap(
-        _coords.shape[0],
-        kmap["coords"].shape[0],
-        nbmaps.int(),
-        nbsizes.int()[0 : kmap["coords"].shape[0]],
-    )
-
     kmap["nbmaps"] = nbmaps
     kmap["nbsizes"] = nbsizes
-    kmap["input_mask"] = input_mask
-    kmap["output_mask"] = output_mask
 
     return kmap

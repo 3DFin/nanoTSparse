@@ -26,29 +26,24 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
         nbmaps = kmap["nbmaps"]
         nbsizes = kmap["nbsizes"].cpu()
         sizes = kmap["sizes"]
-        input_mask = kmap["input_mask"]
-        output_mask = kmap["output_mask"]
-        epsilon = config["epsilon"]
-        mm_thresh = config["mm_thresh"]
 
         conv_mode = 0
-        global buffer
-        if nanots.backends.benchmark:  # type: ignore
-            conv_mode = 1 if (epsilon == 0.0 and mm_thresh == 0) else 2
-            if buffer.shape[0] == 0 or buffer.dtype != input.dtype:
-                buffer = torch.zeros(
-                    4000000 * 64,
-                    dtype=input.dtype,
-                    device=input.device,
-                    requires_grad=False,
-                )
 
         input = input.contiguous()
         weight = weight.contiguous()
         nbmaps = nbmaps.int().contiguous()
         nbsizes = nbsizes.int().contiguous()
 
-        if not input.device.type == "cuda":
+        if input.device.type == "cuda":
+            output = torch.ops.nanots.conv_forward_gather_scatter_cuda(
+                input, weight, nbmaps,  sizes[1] if not transposed else sizes[0], conv_mode, nbsizes, transposed
+            )
+
+        elif input.device.type == "cpu":
+            output = torch.ops.nanots.conv_forward_gather_scatter_cpu(
+                input, weight, nbmaps, nbsizes, sizes[1] if not transposed else sizes[0], transposed
+            )
+        else:
             if not transposed:
                 output = torch.zeros(
                     sizes[1], weight.size(-1), dtype=input.dtype, device=input.device
@@ -59,31 +54,6 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
                     sizes[0], weight.size(-1), dtype=input.dtype, device=input.device
                 )
 
-        if input.device.type == "cuda":
-            output = torch.ops.nanots.conv_forward_gather_scatter_cuda(
-                input, weight, nbmaps,  sizes[1] if not transposed else sizes[0], conv_mode, nbsizes, transposed
-            )
-
-            # output = torch.ops.nanots.conv_forward_gather_scatter_cuda(
-            #     input,
-            #     weight,
-            #     nbmaps,
-            #     nbsizes.cpu(),
-            #     input_mask,
-            #     output_mask,
-            #     sizes[1] if not transposed else sizes[0],
-            #     epsilon,
-            #     int(mm_thresh),
-            #     conv_mode,
-            #     transposed,
-            #     buffer,
-            # )
-
-        elif input.device.type == "cpu":
-            output = torch.ops.nanots.conv_forward_gather_scatter_cpu(
-                input, weight, nbmaps, nbsizes, sizes[1] if not transposed else sizes[0], transposed
-            )
-        else:
             # use the native pytorch XLA APIs for the TPU.
             cur_st = 0
             for kernel_idx in range(weight.shape[0]):

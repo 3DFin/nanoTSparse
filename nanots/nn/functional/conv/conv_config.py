@@ -18,8 +18,6 @@ _default_conv_config = AttributeDict(
         ("downsample_mode", "spconv"),
         ("split_mask_num", 1),
         ("split_mask_num_bwd", 3),
-        ("epsilon", 0.0),
-        ("mm_thresh", 0),
     ]
 )
 
@@ -44,12 +42,6 @@ def keys_check(conv_config):
     if "split_mask_num_bwd" not in conv_config:
         flag = True
         conv_config["split_mask_num_bwd"] = _default_conv_config["split_mask_num_bwd"]
-    if "epsilon" not in conv_config:
-        flag = True
-        conv_config["epsilon"] = _default_conv_config["epsilon"]
-    if "mm_thresh" not in conv_config:
-        flag = True
-        conv_config["mm_thresh"] = _default_conv_config["mm_thresh"]
     if flag == True:
         print(
             "Warning: Missing fields for ConvConfig. Use default configs for these fields."
@@ -76,8 +68,6 @@ def get_default_conv_config(
     conv_mode: ConvMode = ConvMode.mode0, training: bool = False
 ):
     config = _default_conv_config
-    # if training:
-    #     config.ifsort = True
     if conv_mode == ConvMode.mode0:
         pass
     elif conv_mode == ConvMode.mode1:

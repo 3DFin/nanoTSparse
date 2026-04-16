@@ -10,10 +10,10 @@ from torch.utils.cpp_extension import (
     CUDAExtension,
 )
 
-with open("torchsparse/version.py") as f:
+with open("nanots/version.py") as f:
     __version__ = f.read().split("'")[1]
 
-print("torchsparse version:", __version__)
+print("nanots version:", __version__)
 
 build_ext = BuildExtension.with_options(use_ninja=True)
 
@@ -27,7 +27,7 @@ else:
     module_code = f"nanots_module_cpp.cpp"
 
 
-base_dir = os.path.join("torchsparse", "backend")
+base_dir = os.path.join("nanots", "csrc")
 
 sources = [os.path.join(base_dir, module_code)]
 
@@ -81,21 +81,21 @@ extra_compile_args = {
 }
 
 setup(
-    name="torchsparse",
+    name="nanots",
     version=__version__,
     packages=find_packages(),
     ext_modules=[
         extension_type(
-            "torchsparse._nanots",
+            "nanots._nanots",
             sources,
             extra_compile_args=extra_compile_args,
             py_limited_api=True
         )
     ],
-    url="https://github.com/mit-han-lab/torchsparse",
+    url="https://github.com/3DFin/nanoTorchSparse",
     include_dirs=include_dirs,
     include_package_data=True,
-    install_requires=["numpy", "tqdm", "torch", "torchvision"],
+    install_requires=["numpy", "tqdm", "torch"],
     cmdclass={"build_ext": build_ext},
     options={"bdist_wheel": {"py_limited_api": "cp39"}}
 )

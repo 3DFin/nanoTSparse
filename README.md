@@ -1,4 +1,4 @@
-# TorchSparse
+# nanoTorchSparse
 
 <p align="center">
 <img 
@@ -6,22 +6,24 @@
    height="300" 
 >
 
-miniTorchSparse is a versatile and portable library for Sparse Convolutions
-It's a trimmed, reviewed and improved version of TorchSparse++, a high-performance neural network library for point cloud processing.
+`[nano]TorchSparse` (`[nano]TS`) is a versatile and portable library for Sparse Convolutions
+It's a trimmed, reviewed and improved version of `TorchSparse++`, a high-performance neural network library for point cloud processing.
 
-# Changed:
+# Changes:
+- Trim the FoD kernel and other auxiliary functions to improve compilation speed and maintenance.
+- Re-enabled the CPU Workflow. This previously was a no-op in TorchSparse++ 2.1. We now create a CPU Hashtable and improve parallelization (avoiding thread oversubscriptions in Gather/Scatter operations).
+- Added `tsl::robin_map` (replacing `sparsehash`) and replaced `openMP` with `Taskflow`. While `Taskflow` might seem like overkill, it is header-only and 100% cross-platform (working "out of the box" on macOS and with all types of integer indexing on Windows).
+- We now cache the HASHMAP instead of the key/value pair. This is more "robust," as it avoids cumbersome workflows and allows for better alignment between the CPU and GPU versions. 
+- Reviewed and improved the build system.
+- Created an ABI-compatible build (using Python's stable ABI) to ease distribution. This will be extended to support the Torch stable ABI.
 
-- Trimmed FOD kernel and auxilliary functions for compilation speed and maintainance purposes
-- Re-enable CPU Workflow. Create a CPUHASHMAP, improve parallelization (avoid threads oversubscriptions in Gather/Scatter kernels) 
-- Review and improved the build system
 
 # TODO:
-
-- WIP: create ABI compatible build (first for Python, then maybe for Torch) to ease distribution.
-- Fix the weird behavior of sorting mask in backward for small kernels.
-Backward pass **always** use sorted mask for small kernels (with a hardcoded threshold kernel_volume < 32) but
-Sort is **always** perfomed in training, it consumes time and memory, and it's not even not used in some case (for higher kenel volume than 32S)
-
+- Add CIBuildWheels workflow
+- Add proper `TORCH_CHECK` for functions
+- Trim and simplify the entire gather-gemm-scatter algo on GPU (TODO: remove `conv mode > 1` since it's unused, and remove mask generation on the hashmap, which incurs a runtime penalty for no-op).
+- Fix the inconsistent behavior of mask sorting in the backward pass for small kernels:
+The backward pass **always** uses a sorted mask for small kernels (with a hardcoded threshold `kernel_volume < 32`), but sorting is **always** performed during training. This unnecessarily consumes time and memory, and is not needed in some cases (for higher kernel volumes than 32).
 
 
 ### [website](http://torchsparse.mit.edu/) | [paper (MICRO 2023)](https://www.dropbox.com/scl/fi/obdku0kqxjlkvuom2opk4/paper.pdf?rlkey=0zmy8eq9fzllgkx54zsvwsecf&dl=0) | [paper (MLSys 2022)](https://arxiv.org/abs/2204.10319) | [presentation](https://www.youtube.com/watch?v=IIh4EwmcLUs) | [documents](http://torchsparse-docs.github.io/) | [pypi server](http://pypi.hanlab.ai/simple/torchsparse)

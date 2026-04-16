@@ -3,8 +3,9 @@
 
 
 #include <c10/cuda/CUDAGuard.h>
-#include <cstdint>
 #include <cuda_fp16.h>
+
+#include <cstdint>
 
 // Pack two half values.
 static inline __device__ __host__ unsigned
@@ -18,7 +19,7 @@ __pack_half2(const half x, const half y)
 
 // conv_forward_cuda_m128n16k16_m64n16k16_m16n16k16_f16f16f32
 template <int K_ld_factor, int N_ld_factor, bool K_ld_check, bool N_ld_check>
-__global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_f16f16f32(int M, int K_original, int N, int kernel_volume, half *__restrict__ A, half *__restrict__ B, int *__restrict__ out_in_map, half *__restrict__ C)
+__global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_f16f16f32(int M, int K_original, int N, int kernel_volume, const half *__restrict__ A, const half *__restrict__ B, const int *__restrict__ out_in_map, half *__restrict__ C)
 {
   // warning: kernel could not work with K_original < 32!
   const int K_tile = 16; // min(16, K_original);
@@ -41,10 +42,10 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_f16f16f32
   // hoisting shared pointer offsets
   int j_factors1 = (N + 15) / 16 / 1;
   // int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 16 + threadIdx.x / 2) * kernel_volume + ((threadIdx.y * 256) % 16) / K_original + ((threadIdx.x * 8) % 16) / K_original;
-  int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 16 + threadIdx.x / 2) * kernel_volume + ((threadIdx.y * 256) % 16) / K_tile_padded + ((threadIdx.x * 8) % 16) / K_tile_padded;
+  const int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 16 + threadIdx.x / 2) * kernel_volume + ((threadIdx.y * 256) % 16) / K_tile_padded + ((threadIdx.x * 8) % 16) / K_tile_padded;
   // half *A_ptr = A + ((threadIdx.y * 256 % 16) % K_original) + ((threadIdx.x * 8 % 16) % K_original);
-  half *A_ptr = A + ((threadIdx.y * 256 % 16) % K_tile_padded) + ((threadIdx.x * 8 % 16) % K_tile_padded);
-  half *B_ptr = B + (blockIdx.x % j_factors1) * 16 + threadIdx.y * 256 / 16 * N + threadIdx.x * 8 / 16 * N + (threadIdx.x * 8) % 16;
+  const half *A_ptr = A + ((threadIdx.y * 256 % 16) % K_tile_padded) + ((threadIdx.x * 8 % 16) % K_tile_padded);
+  const half *B_ptr = B + (blockIdx.x % j_factors1) * 16 + threadIdx.y * 256 / 16 * N + threadIdx.x * 8 / 16 * N + (threadIdx.x * 8) % 16;
   int reorder_loc_offset = blockIdx.x / j_factors1 * 8 * 16 + (threadIdx.y % 2) * 4 * 16 + (threadIdx.x / 4);
   half *C_ptr = C
                 //+ blockIdx.x / j_factors1 * 8 * N / 16 * 256
@@ -98,10 +99,10 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_f16f16f32
 
     // int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * K_tile / K_original;
     // half *A_ptr_local = A_ptr + (i2_0_0 * K_tile % K_original);
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * K_tile / K_tile_padded;
-    half *A_ptr_local = A_ptr + (i2_0_0 * K_tile % K_tile_padded);
+    const int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * K_tile / K_tile_padded;
+    const half *A_ptr_local = A_ptr + (i2_0_0 * K_tile % K_tile_padded);
     // half *B_ptr_local = B_ptr + i2_0_0 * K_tile * N;
-    half *B_ptr_local;
+    const half *B_ptr_local;
     if constexpr (K_ld_check)
       B_ptr_local = B_ptr + (i2_0_0 * K_tile / K_tile_padded * K_original + i2_0_0 * K_tile % K_tile_padded) * N;
     else
@@ -268,7 +269,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_f16f16f32
 }
 
 // conv_forward_cuda_m128n16k32_m64n16k32_m16n16k16_f16f16f32
-__global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_f16f16f32(int M, int K_original, int N, int kernel_volume, half *__restrict__ A, half *__restrict__ B, int *__restrict__ out_in_map, half *__restrict__ C)
+__global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_f16f16f32(int M, int K_original, int N, int kernel_volume, const half *__restrict__ A, const half *__restrict__ B, const int *__restrict__ out_in_map, half *__restrict__ C)
 {
   // warning: kernel could not work with K_original < 32!
   int K_implicit = K_original * kernel_volume;
@@ -287,9 +288,9 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_f16f16f32
 
   // hoisting shared pointer offsets
   int j_factors1 = N / 16 / 1;
-  int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 8 + threadIdx.x / 4) * kernel_volume + ((threadIdx.y * 256) % 32) / K_original + ((threadIdx.x * 8) % 32) / K_original;
-  half *A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) + ((threadIdx.x * 8 % 32) % K_original);
-  half *B_ptr = B + (blockIdx.x % j_factors1) * 16 + threadIdx.y * 256 / 16 * N + threadIdx.x * 8 / 16 * N + (threadIdx.x * 8) % 16;
+  const int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 8 + threadIdx.x / 4) * kernel_volume + ((threadIdx.y * 256) % 32) / K_original + ((threadIdx.x * 8) % 32) / K_original;
+  const half *A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) + ((threadIdx.x * 8 % 32) % K_original);
+  const half *B_ptr = B + (blockIdx.x % j_factors1) * 16 + threadIdx.y * 256 / 16 * N + threadIdx.x * 8 / 16 * N + (threadIdx.x * 8) % 16;
   int reorder_loc_offset = blockIdx.x / j_factors1 * 8 * 16 + (threadIdx.y % 2) * 4 * 16 + (threadIdx.x / 4);
   half *C_ptr = C
                 //+ blockIdx.x / j_factors1 * 8 * N / 16 * 256
@@ -300,9 +301,9 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_f16f16f32
 
   {
 
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 32 / K_original;
-    half *A_ptr_local = A_ptr + (i2_0_0 * 32 % K_original);
-    half *B_ptr_local = B_ptr + i2_0_0 * 32 * N;
+    const int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 32 / K_original;
+    const half *A_ptr_local = A_ptr + (i2_0_0 * 32 % K_original);
+    const half *B_ptr_local = B_ptr + i2_0_0 * 32 * N;
     __syncthreads();
     for (int ax0_ax1_fused_0 = 0; ax0_ax1_fused_0 < 8; ++ax0_ax1_fused_0)
     {
@@ -445,7 +446,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_f16f16f32
 }
 
 // conv_forward_cuda_m128n64k32_m64n32k32_m16n16k16_f16f16f32
-__global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f16f16f32(int M, int K_original, int N, int kernel_volume, half *__restrict__ A, half *__restrict__ B, int *__restrict__ out_in_map, half *__restrict__ C)
+__global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f16f16f32(int M, int K_original, int N, int kernel_volume, const half *__restrict__ A, const half *__restrict__ B, const int *__restrict__ out_in_map, half *__restrict__ C)
 {
   int K_implicit = K_original * kernel_volume;
   float C_warp[64];
@@ -466,9 +467,9 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f16f16f3
 
   // hoisting shared pointer offsets
   int j_factors1 = N / 16 / 4;
-  int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 8 + threadIdx.x / 4) * kernel_volume + ((threadIdx.y * 256) % 32) / K_original + ((threadIdx.x * 8) % 32) / K_original;
-  half *A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) + ((threadIdx.x * 8 % 32) % K_original);
-  half *B_ptr = B + (blockIdx.x % j_factors1) * 64 + threadIdx.y * 256 / 64 * N + threadIdx.x * 8 / 64 * N + (threadIdx.x * 8) % 64;
+  const int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 8 + threadIdx.x / 4) * kernel_volume + ((threadIdx.y * 256) % 32) / K_original + ((threadIdx.x * 8) % 32) / K_original;
+  const half *A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) + ((threadIdx.x * 8 % 32) % K_original);
+  const half *B_ptr = B + (blockIdx.x % j_factors1) * 64 + threadIdx.y * 256 / 64 * N + threadIdx.x * 8 / 64 * N + (threadIdx.x * 8) % 64;
   int reorder_loc_offset = blockIdx.x / j_factors1 * 8 * 16 + (threadIdx.y % 2) * 4 * 16 + (threadIdx.x / 4);
   half *C_ptr = C
                 //+ blockIdx.x / j_factors1 * 8 * N / 16 * 256
@@ -483,9 +484,9 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f16f16f3
 
   {
 
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 32 / K_original;
-    half *A_ptr_local = A_ptr + (i2_0_0 * 32 % K_original);
-    half *B_ptr_local = B_ptr + i2_0_0 * 32 * N;
+    const int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 32 / K_original;
+    const half *A_ptr_local = A_ptr + (i2_0_0 * 32 % K_original);
+    const half *B_ptr_local = B_ptr + i2_0_0 * 32 * N;
 
     __syncthreads();
     for (int ax0_ax1_fused_0 = 0; ax0_ax1_fused_0 < 4; ++ax0_ax1_fused_0)
@@ -642,7 +643,7 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f16f16f3
 
 // conv_forward_cuda_m128n16k16_m64n16k16_m16n16k16_tf32tf32f32
 template <int K_ld_factor, int N_ld_factor, bool K_ld_check, bool N_ld_check>
-__global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_tf32tf32f32(int M, int K_original, int N, int kernel_volume, float *__restrict__ A, float *__restrict__ B, int *__restrict__ out_in_map, float *__restrict__ C)
+__global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_tf32tf32f32(int M, int K_original, int N, int kernel_volume, const float *__restrict__ A, const float *__restrict__ B, const int *__restrict__ out_in_map, float *__restrict__ C)
 {
   // warning: kernel could not work with K_original < 32!
   const int K_tile = 16; // min(16, K_original);
@@ -665,10 +666,10 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_tf32tf32f
   // hoisting shared pointer offsets
   int j_factors1 = (N + 15) / 16 / 1;
   // int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 16 + threadIdx.x / 2) * kernel_volume + ((threadIdx.y * 256) % 16) / K_original + ((threadIdx.x * 8) % 16) / K_original;
-  int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 16 + threadIdx.x / 2) * kernel_volume + ((threadIdx.y * 256) % 16) / K_tile_padded + ((threadIdx.x * 8) % 16) / K_tile_padded;
+  const int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 16 + threadIdx.x / 2) * kernel_volume + ((threadIdx.y * 256) % 16) / K_tile_padded + ((threadIdx.x * 8) % 16) / K_tile_padded;
   // float *A_ptr = A + ((threadIdx.y * 256 % 16) % K_original) + ((threadIdx.x * 8 % 16) % K_original);
-  float *A_ptr = A + ((threadIdx.y * 256 % 16) % K_tile_padded) + ((threadIdx.x * 8 % 16) % K_tile_padded);
-  float *B_ptr = B + (blockIdx.x % j_factors1) * 16 + threadIdx.y * 256 / 16 * N + threadIdx.x * 8 / 16 * N + (threadIdx.x * 8) % 16;
+  const float *A_ptr = A + ((threadIdx.y * 256 % 16) % K_tile_padded) + ((threadIdx.x * 8 % 16) % K_tile_padded);
+  const float *B_ptr = B + (blockIdx.x % j_factors1) * 16 + threadIdx.y * 256 / 16 * N + threadIdx.x * 8 / 16 * N + (threadIdx.x * 8) % 16;
   int reorder_loc_offset = blockIdx.x / j_factors1 * 8 * 16 + (threadIdx.y % 2) * 4 * 16 + (threadIdx.x / 4);
   float *C_ptr = C
                  //+ blockIdx.x / j_factors1 * 8 * N / 16 * 256
@@ -720,10 +721,10 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_tf32tf32f
 
     // int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 16 / K_original;
     // float *A_ptr_local = A_ptr + (i2_0_0 * 16 % K_original);
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * K_tile / K_tile_padded;
-    float *A_ptr_local = A_ptr + (i2_0_0 * K_tile % K_tile_padded);
+    const int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * K_tile / K_tile_padded;
+    const float *A_ptr_local = A_ptr + (i2_0_0 * K_tile % K_tile_padded);
     // float *B_ptr_local = B_ptr + i2_0_0 * 16 * N;
-    float *B_ptr_local;
+    const float *B_ptr_local;
     if constexpr (K_ld_check)
       B_ptr_local = B_ptr + (i2_0_0 * K_tile / K_tile_padded * K_original + i2_0_0 * K_tile % K_tile_padded) * N;
     else
@@ -846,7 +847,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_tf32tf32f
 }
 
 // conv_forward_cuda_m128n16k32_m64n16k32_m16n16k16_tf32tf32f32
-__global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_tf32tf32f32(int M, int K_original, int N, int kernel_volume, float *__restrict__ A, float *__restrict__ B, int *__restrict__ out_in_map, float *__restrict__ C)
+__global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_tf32tf32f32(int M, int K_original, int N, int kernel_volume, const float *__restrict__ A, const float *__restrict__ B, const int *__restrict__ out_in_map, float *__restrict__ C)
 {
   // warning: kernel could not work with K_original < 32!
   int K_implicit = K_original * kernel_volume;
@@ -865,9 +866,9 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_tf32tf32f
 
   // hoisting shared pointer offsets
   int j_factors1 = N / 16 / 1;
-  int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 8 + threadIdx.x / 4) * kernel_volume + ((threadIdx.y * 256) % 32) / K_original + ((threadIdx.x * 8) % 32) / K_original;
-  float *A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) + ((threadIdx.x * 8 % 32) % K_original);
-  float *B_ptr = B + (blockIdx.x % j_factors1) * 16 + threadIdx.y * 256 / 16 * N + threadIdx.x * 8 / 16 * N + (threadIdx.x * 8) % 16;
+  const int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 8 + threadIdx.x / 4) * kernel_volume + ((threadIdx.y * 256) % 32) / K_original + ((threadIdx.x * 8) % 32) / K_original;
+  const float *A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) + ((threadIdx.x * 8 % 32) % K_original);
+  const float *B_ptr = B + (blockIdx.x % j_factors1) * 16 + threadIdx.y * 256 / 16 * N + threadIdx.x * 8 / 16 * N + (threadIdx.x * 8) % 16;
   int reorder_loc_offset = blockIdx.x / j_factors1 * 8 * 16 + (threadIdx.y % 2) * 4 * 16 + (threadIdx.x / 4);
   float *C_ptr = C
                  //+ blockIdx.x / j_factors1 * 8 * N / 16 * 256
@@ -877,9 +878,9 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_tf32tf32f
   for (int i2_0_0 = 0; i2_0_0 < K_implicit / 32; ++i2_0_0)
 
   {
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 32 / K_original;
-    float *A_ptr_local = A_ptr + (i2_0_0 * 32 % K_original);
-    float *B_ptr_local = B_ptr + i2_0_0 * 32 * N;
+    const int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 32 / K_original;
+    const float *A_ptr_local = A_ptr + (i2_0_0 * 32 % K_original);
+    const float *B_ptr_local = B_ptr + i2_0_0 * 32 * N;
     __syncthreads();
     for (int ax0_ax1_fused_0 = 0; ax0_ax1_fused_0 < 8; ++ax0_ax1_fused_0)
     {
@@ -983,7 +984,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_tf32tf32f
 }
 
 // conv_forward_cuda_m128n64k32_m64n32k32_m16n16k16_tf32tf32f32
-__global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_tf32tf32f32(int M, int K_original, int N, int kernel_volume, float *__restrict__ A, float *__restrict__ B, int *__restrict__ out_in_map, float *__restrict__ C)
+__global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_tf32tf32f32(int M, int K_original, int N, int kernel_volume, const float *__restrict__ A, const float *__restrict__ B, const int *__restrict__ out_in_map, float *__restrict__ C)
 {
   int K_implicit = K_original * kernel_volume;
   float C_warp[64];
@@ -1004,9 +1005,9 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_tf32tf32
 
   // hoisting shared pointer offsets
   int j_factors1 = N / 16 / 4;
-  int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 8 + threadIdx.x / 4) * kernel_volume + ((threadIdx.y * 256) % 32) / K_original + ((threadIdx.x * 8) % 32) / K_original;
-  float *A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) + ((threadIdx.x * 8 % 32) % K_original);
-  float *B_ptr = B + (blockIdx.x % j_factors1) * 64 + threadIdx.y * 256 / 64 * N + threadIdx.x * 8 / 64 * N + (threadIdx.x * 8) % 64;
+  const int *out_in_map_ptr = out_in_map + (blockIdx.x / j_factors1 * 128 + threadIdx.y * 8 + threadIdx.x / 4) * kernel_volume + ((threadIdx.y * 256) % 32) / K_original + ((threadIdx.x * 8) % 32) / K_original;
+  const float *A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) + ((threadIdx.x * 8 % 32) % K_original);
+  const float *B_ptr = B + (blockIdx.x % j_factors1) * 64 + threadIdx.y * 256 / 64 * N + threadIdx.x * 8 / 64 * N + (threadIdx.x * 8) % 64;
   int reorder_loc_offset = blockIdx.x / j_factors1 * 8 * 16 + (threadIdx.y % 2) * 4 * 16 + (threadIdx.x / 4);
   float *C_ptr = C
                  //+ blockIdx.x / j_factors1 * 8 * N / 16 * 256
@@ -1020,9 +1021,9 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_tf32tf32
   for (int i2_0_0 = 0; i2_0_0 < K_implicit / 32; ++i2_0_0)
 
   {
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 32 / K_original;
-    float *A_ptr_local = A_ptr + (i2_0_0 * 32 % K_original);
-    float *B_ptr_local = B_ptr + i2_0_0 * 32 * N;
+    const int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 32 / K_original;
+    const float *A_ptr_local = A_ptr + (i2_0_0 * 32 % K_original);
+    const float *B_ptr_local = B_ptr + i2_0_0 * 32 * N;
 
     __syncthreads();
     for (int ax0_ax1_fused_0 = 0; ax0_ax1_fused_0 < 4; ++ax0_ax1_fused_0)
@@ -1142,7 +1143,7 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_tf32tf32
 
 // conv_forward_cuda_m128n16k16_f32f32f32
 template <int K_ld_factor, int N_ld_factor, bool K_ld_check, bool N_ld_check>
-__global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_f32f32f32(int M, int K_original, int N, int kernel_volume, float* __restrict__ A, float* __restrict__ B, int* __restrict__ out_in_map, float* __restrict__ C)
+__global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_f32f32f32(int M, int K_original, int N, int kernel_volume, const float* __restrict__ A, const float* __restrict__ B, const int* __restrict__ out_in_map, float* __restrict__ C)
 {
 
   const int K_tile = 16;
@@ -1166,10 +1167,10 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_f32f32f32
   int threadIdx_x = (int)threadIdx.x;
 
   // hoisting shared pointer offsets
-  int * out_in_map_ptr = out_in_map
+  const int * out_in_map_ptr = out_in_map
                          + (blockIdx_m * 128 + (threadIdx_x / (16/4)))* kernel_volume;
 
-  float * B_ptr = B
+  const float * B_ptr = B
                   + (threadIdx_x / (16/4)) * N
                   + (blockIdx_n * 16) + ((threadIdx_x * 4) % 16);
 
@@ -1229,11 +1230,11 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_f32f32f32
           B_pred_guard |= (1 << i);
       }
 
-      int* out_in_map_ptr_local = out_in_map_ptr + k_0 * 16 / K_tile_padded;
-      float* A_ptr_local = A  + (k_0 * 16 % K_tile_padded) + channel_offset_A;
+      const int* out_in_map_ptr_local = out_in_map_ptr + k_0 * 16 / K_tile_padded;
+      const float* A_ptr_local = A  + (k_0 * 16 % K_tile_padded) + channel_offset_A;
 
       // float *B_ptr_local = B_ptr + i2_0_0 * K_tile * N;
-      float* B_ptr_local;
+      const float* B_ptr_local;
       if constexpr (K_ld_check)
         B_ptr_local = B_ptr + (k_0 * K_tile / K_tile_padded * K_original + k_0 * K_tile % K_tile_padded) * N;
       else
@@ -1311,7 +1312,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting1_mode0_f32f32f32
 }
 
 // conv_forward_cuda_m128n16k32_f32f32f32
-__global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_f32f32f32(int M, int K_original, int N, int kernel_volume, float* __restrict__ A, float* __restrict__ B, int* __restrict__ out_in_map, float* __restrict__ C)
+__global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_f32f32f32(int M, int K_original, int N, int kernel_volume, const float* __restrict__ A, const float* __restrict__ B, const int* __restrict__ out_in_map, float* __restrict__ C)
 {
   float C_local[32];
   __shared__ float A_shared[4096];
@@ -1330,10 +1331,10 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_f32f32f32
   int threadIdx_x = (int)threadIdx.x;
 
   // hoisting shared pointer offsets
-  int * out_in_map_ptr = out_in_map
+  const int * out_in_map_ptr = out_in_map
                          + (blockIdx_m * 128 + (threadIdx_x / (32/4)))* kernel_volume;
 
-  float * B_ptr = B
+  const float * B_ptr = B
                   + (threadIdx_x / (16/4)) * N
                   + (blockIdx_n * 16) + ((threadIdx_x * 4) % 16);
 
@@ -1355,7 +1356,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_f32f32f32
 
     int channel_offset = k_0 % (K_original / 32) * 32 + channel_offset_A;
     int kernel_offset = k_0 / (K_original / 32);
-    int *out_in_map_ptr_k = out_in_map_ptr + kernel_offset;
+    const int *out_in_map_ptr_k = out_in_map_ptr + kernel_offset;
 
     {
       __syncthreads();
@@ -1419,7 +1420,7 @@ __global__ void __launch_bounds__(64) conv_forward_cuda_setting2_mode0_f32f32f32
 }
 
 // conv_forward_cuda_m128n64k32_f32f32f32
-__global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f32f32f32(int M, int K_original, int N, int kernel_volume, float* __restrict__ A, float* __restrict__ B, int* __restrict__ out_in_map, float* __restrict__ C)
+__global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f32f32f32(int M, int K_original, int N, int kernel_volume, const float* __restrict__ A, const float* __restrict__ B, const int* __restrict__ out_in_map, float* __restrict__ C)
 {
   float C_local[64];
   __shared__ float A_shared[4096];
@@ -1438,10 +1439,10 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f32f32f3
   int threadIdx_x = (int)threadIdx.x;
 
   // hoisting shared pointer offsets
-  int * out_in_map_ptr = out_in_map
+  const int * out_in_map_ptr = out_in_map
                          + (blockIdx_m * 128 + (threadIdx_x / (32/4)))* kernel_volume;
 
-  float * B_ptr = B
+  const float * B_ptr = B
                   + (threadIdx_x / (64/4)) * N
                   + (blockIdx_n * 64) + ((threadIdx_x * 4) % 64);
 
@@ -1463,7 +1464,7 @@ __global__ void __launch_bounds__(128) conv_forward_cuda_setting3_mode0_f32f32f3
 
     int channel_offset = k_0 % (K_original / 32) * 32 + channel_offset_A;
     int kernel_offset = k_0 / (K_original / 32);
-    int *out_in_map_ptr_k = out_in_map_ptr + kernel_offset;
+    const int *out_in_map_ptr_k = out_in_map_ptr + kernel_offset;
 
     {
       __syncthreads();
@@ -1560,20 +1561,20 @@ at::Tensor conv_forward_implicit_gemm_cuda(
     if (num_out_channels % 64 == 0 && num_in_channels % 32 == 0)
     {
       int j_factors1 = num_out_channels / 16 / 4;
-      dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
+      const dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
       // threadIdx.x: 32
       // threadIdx.y: i_factors[2] * j_factors[2]
-      dim3 threads_per_block(32, 4);
+      const dim3 threads_per_block(32, 4);
       conv_forward_cuda_setting3_mode0_f16f16f32<<<num_blocks, threads_per_block>>>(
           _out_feats.size(0), num_in_channels, num_out_channels, kernel_volume, in_feats, kernel, out_in_map, out_feats);
     }
     else if (num_in_channels % 32 == 0 && num_out_channels % 16 == 0)
     {
       int j_factors1 = num_out_channels / 16 / 1;
-      dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
+      const dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
       // threadIdx.x: 32
       // threadIdx.y: i_factors[2] * j_factors[2]
-      dim3 threads_per_block(32, 2);
+      const dim3 threads_per_block(32, 2);
       conv_forward_cuda_setting2_mode0_f16f16f32<<<num_blocks, threads_per_block>>>(
           _out_feats.size(0), num_in_channels, num_out_channels, kernel_volume, in_feats, kernel, out_in_map, out_feats);
     }
@@ -1581,10 +1582,10 @@ at::Tensor conv_forward_implicit_gemm_cuda(
     {
       // throw std::invalid_argument("IC is too small for this kernel");
       int j_factors1 = (num_out_channels + 15) / 16 / 1;
-      dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
+      const dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
       // threadIdx.x: 32
       // threadIdx.y: i_factors[2] * j_factors[2]
-      dim3 threads_per_block(32, 2);
+      const dim3 threads_per_block(32, 2);
       // conv_forward_cuda_setting1_mode0_f16f16f32<<<num_blocks, threads_per_block>>>(
       //     _out_feats.size(0), num_in_channels, num_out_channels, kernel_volume, in_feats, kernel, out_in_map, out_feats);
       if (num_in_channels % 16 == 0)
@@ -1738,20 +1739,20 @@ at::Tensor conv_forward_implicit_gemm_cuda(
     if (num_out_channels % 64 == 0 && num_in_channels % 32 == 0)
     {
       int j_factors1 = num_out_channels / 16 / 4;
-      dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
+      const dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
       // threadIdx.x: 32
       // threadIdx.y: i_factors[2] * j_factors[2]
-      dim3 threads_per_block(32, 4);
+      const dim3 threads_per_block(32, 4);
       conv_forward_cuda_setting3_mode0_tf32tf32f32<<<num_blocks, threads_per_block>>>(
           _out_feats.size(0), num_in_channels, num_out_channels, kernel_volume, in_feats, kernel, out_in_map, out_feats);
     }
     else if (num_in_channels % 32 == 0 && num_out_channels % 16 == 0)
     {
       int j_factors1 = num_out_channels / 16 / 1;
-      dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
+      const dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
       // threadIdx.x: 32
       // threadIdx.y: i_factors[2] * j_factors[2]
-      dim3 threads_per_block(32, 2);
+      const dim3 threads_per_block(32, 2);
       conv_forward_cuda_setting2_mode0_tf32tf32f32<<<num_blocks, threads_per_block>>>(
           _out_feats.size(0), num_in_channels, num_out_channels, kernel_volume, in_feats, kernel, out_in_map, out_feats);
     }
@@ -1759,10 +1760,10 @@ at::Tensor conv_forward_implicit_gemm_cuda(
     {
       // throw std::invalid_argument("IC is too small for this kernel");
       int j_factors1 = (num_out_channels + 15) / 16 / 1;
-      dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
+      const dim3 num_blocks((num_out_feats + 127) / 128 * j_factors1);
       // threadIdx.x: 32
       // threadIdx.y: i_factors[2] * j_factors[2]
-      dim3 threads_per_block(32, 2);
+      const dim3 threads_per_block(32, 2);
       // conv_forward_cuda_setting1_mode0_tf32tf32f32<<<num_blocks, threads_per_block>>>(
       //     _out_feats.size(0), num_in_channels, num_out_channels, kernel_volume, in_feats, kernel, out_in_map, out_feats);
       if (num_in_channels % 16 == 0)
@@ -1870,8 +1871,8 @@ at::Tensor conv_forward_implicit_gemm_cuda(
     {
       int block_num_M = (num_out_feats + 127) / 128;
       int block_num_N = num_out_channels / 64;  //j_factors1
-      dim3 num_blocks(block_num_M * block_num_N);
-      dim3 threads_per_block(128);
+      const dim3 num_blocks(block_num_M * block_num_N);
+      const dim3 threads_per_block(128);
       conv_forward_cuda_setting3_mode0_f32f32f32<<<num_blocks, threads_per_block>>>(
           _out_feats.size(0), num_in_channels, num_out_channels, kernel_volume, in_feats, kernel, out_in_map, out_feats);
     }
@@ -1879,8 +1880,8 @@ at::Tensor conv_forward_implicit_gemm_cuda(
     {
       int block_num_M = (num_out_feats + 127) / 128;
       int block_num_N = num_out_channels / 16;  //j_factors1
-      dim3 num_blocks(block_num_M * block_num_N);
-      dim3 threads_per_block(64);
+      const dim3 num_blocks(block_num_M * block_num_N);
+      const dim3 threads_per_block(64);
       conv_forward_cuda_setting2_mode0_f32f32f32<<<num_blocks, threads_per_block>>>(
           _out_feats.size(0), num_in_channels, num_out_channels, kernel_volume, in_feats, kernel, out_in_map, out_feats);
     }
@@ -1888,8 +1889,8 @@ at::Tensor conv_forward_implicit_gemm_cuda(
     {
       int block_num_M = (num_out_feats + 127) / 128;
       int block_num_N = (num_out_channels + 15) / 16;  //j_factors1
-      dim3 num_blocks(block_num_M * block_num_N);
-      dim3 threads_per_block(64);
+      const dim3 num_blocks(block_num_M * block_num_N);
+      const dim3 threads_per_block(64);
       // conv_forward_cuda_setting1_mode0_tf32tf32f32<<<num_blocks, threads_per_block>>>(
       //     _out_feats.size(0), num_in_channels, num_out_channels, kernel_volume, in_feats, kernel, out_in_map, out_feats);
 

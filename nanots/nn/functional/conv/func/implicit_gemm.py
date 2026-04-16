@@ -48,16 +48,6 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
 
         input = input.contiguous()
         weight = weight.contiguous()
-        if input.device.type != "cuda":
-            if not transposed:
-                output = torch.zeros(
-                    sizes[1], weight.size(-1), dtype=input.dtype, device=input.device
-                )
-            else:
-                # TODO(Haotian): ensure the original, upsampled size to be the same.
-                output = torch.zeros(
-                    sizes[0], weight.size(-1), dtype=input.dtype, device=input.device
-                )
 
         if input.device.type == "cuda":
 

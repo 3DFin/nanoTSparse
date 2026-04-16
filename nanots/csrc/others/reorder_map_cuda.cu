@@ -7,8 +7,8 @@
 
 
 __global__ void __launch_bounds__(thd_num) reorder_out_in_map_kernel(
-    int* __restrict__ out_in_map,
-    int* __restrict__ reorder_loc,
+    const int* __restrict__ out_in_map,
+    const int* __restrict__ reorder_loc,
     int M, // node num
     int kernel_volume,
     int split_mask_len,

@@ -14,7 +14,7 @@
 
 __global__
 void __launch_bounds__(thd_per_blk) reduce_mask_cuda_int32(
-                                         int* __restrict__ bitmask,
+                                         const int* __restrict__ bitmask,
                                          int output_node_num,
                                          int reduced_row_num,
                                          int reduce_tile,
@@ -31,7 +31,7 @@ void __launch_bounds__(thd_per_blk) reduce_mask_cuda_int32(
   __shared__ int bitmask_shared[thd_per_blk];
   int* final_reduce_ptr = bitmask_shared + (laneid << 2);
 
-  int* bitmask_blk = bitmask + split_mask_iter * output_node_num;
+  const int* bitmask_blk = bitmask + split_mask_iter * output_node_num;
   int* reduced_bitmask_blk = reduced_bitmask + split_mask_iter * reduced_row_num;
   int block_offset = blockIdx_x * thd_per_blk * thread_size;
   int thread_offset = block_offset + (threadIdx_x * thread_size);
@@ -71,11 +71,11 @@ at::Tensor reduce_bitmask_cuda(
     int output_node_num = _bitmask_int.size(1);
     int reduced_row_num = (output_node_num - 1) / M_tile + 1;
 
-    auto options = at::TensorOptions().dtype(torch::kInt32).device(_bitmask_int.device());
+    const auto options = at::TensorOptions().dtype(torch::kInt32).device(_bitmask_int.device());
     at::Tensor _reduced_bitmask_int = at::zeros({split_mask_num, reduced_row_num}, options);
 
-    auto bitmask_int = _bitmask_int.data_ptr<int>();
-    auto reduced_bitmask_int = _reduced_bitmask_int.data_ptr<int>();
+    const auto* bitmask_int = _bitmask_int.data_ptr<int>();
+    auto* reduced_bitmask_int = _reduced_bitmask_int.data_ptr<int>();
 
     const dim3 num_blocks(((reduced_row_num - 1) / output_per_blk + 1), split_mask_num);
     const dim3 num_threads(thd_per_blk);

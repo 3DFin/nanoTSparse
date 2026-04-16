@@ -4,7 +4,7 @@
 #include <cstdint>
 
 
-__global__ void convert_out_in_map_kernel(const int* out_in_map, int* out_in_map_t, int n, int kernel_volume){
+__global__ void convert_out_in_map_kernel(const int* __restrict__ out_in_map, int* out_in_map_t, int n, int kernel_volume){
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if(idx >= n * kernel_volume) return;
   int input_idx = out_in_map[idx];
@@ -12,18 +12,19 @@ __global__ void convert_out_in_map_kernel(const int* out_in_map, int* out_in_map
   out_in_map_t[idx % kernel_volume + input_idx * kernel_volume] = idx / kernel_volume;
 }
 
-__global__ void derive_bit_mask_from_out_in_map_kernel(int* out_in_map, int* bitmask, int valid_n, int n, int kernel_volume, int split_mask_num){
+__global__ void derive_bit_mask_from_out_in_map_kernel(const int* __restrict__ out_in_map, int* __restrict__ bitmask, int valid_n, int n, int kernel_volume, int split_mask_num){
   int tidx = blockIdx.x * blockDim.x + threadIdx.x;
   int idx = tidx / split_mask_num;
   if(idx >= valid_n) return;
   int split_mask_iter = tidx % split_mask_num;
   int split_mask_len = (kernel_volume + split_mask_num - 1) / split_mask_num;
-  int* cur_out_in_map = out_in_map + kernel_volume * idx + split_mask_iter * split_mask_len;
+  const int* cur_out_in_map = out_in_map + kernel_volume * idx + split_mask_iter * split_mask_len;
   if (split_mask_iter == (split_mask_num - 1)) // The last tile
     split_mask_len = kernel_volume - split_mask_iter * split_mask_len;
   int cur_bitmask = 0;
   for(int i = 0; i < split_mask_len; i++){
-    cur_bitmask += (int)(cur_out_in_map[i] >= 0) * (int)(1u << i);
+    cur_bitmask += (int)(cur_out_in_map[i] >= 0) * (int)(1u << i);  // Beware, split_mask_len should be < 32. or  (kernel_volume + split_mask_num - 1) / split_mask_num < 32.
+    // this mean that for a 5x5x5 kernel, the split_mask_num should be at least 4.
   }
   bitmask[split_mask_iter * n + idx] = cur_bitmask;
 }

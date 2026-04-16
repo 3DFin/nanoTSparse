@@ -98,6 +98,7 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
         ctx.reduced_sorted_mask_bwd_dgrad = reduced_sorted_mask_bwd_dgrad
         ctx.reorder_loc_bwd = reorder_loc_bwd
         ctx.transposed = transposed
+        ctx.ifsort = ifsort
         return output
 
     @staticmethod
@@ -113,7 +114,7 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
         kernel_volume, ic, oc = weight.size()
 
         if grad_output.device.type == "cuda":
-            if kernel_volume < 32:  # sort mode
+            if ctx.ifsort:  # sort mode kernel_volume < 32
                 # dgrad
                 grad_input = torch.ops.nanots.conv_forward_implicit_gemm_sorted_cuda(
                     grad_output,

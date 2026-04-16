@@ -144,38 +144,49 @@ def build_kernel_map(
                 "[Build kernel map] unsupported dataflow: {}".format(dataflow)
             )
 
-    elif mode == "grid":
-        assert 0, "grid mode is temporarily deprecated."
-
     else:
         raise ValueError("[Build kernel map] unknown mode: {}".format(mode))
 
     if dataflow == Dataflow.ImplicitGEMM:
-        if training:
-            out_in_map_bwd = torch.ops.nanots.convert_transposed_out_in_map(
-                kmap["out_in_map"],
-                make_divisible(kmap["sizes"][0], cta_M)
-            )
-            bitmask_bwd = torch.ops.nanots.derive_bitmask_from_out_in_map(
-                out_in_map_bwd, split_mask_num_bwd, kmap["sizes"][0]
-            )
-            sorted_mask_bwd, reorder_loc_bwd = torch.sort(bitmask_bwd, descending=True)
-            reorder_loc_bwd = reorder_loc_bwd.to(torch.int32)
-            reorder_out_in_map_bwd = torch.ops.nanots.reorder_out_in_map_cuda(
-                out_in_map_bwd, reorder_loc_bwd
-            )
-            reduced_sorted_mask_bwd_wgrad = torch.ops.nanots.reduce_bitmask_cuda(
-                sorted_mask_bwd, cta_M_wgrad
-            )
-            reduced_sorted_mask_bwd_dgrad = torch.ops.nanots.reduce_bitmask_cuda(
-                sorted_mask_bwd, cta_M
-            )
+        if ifsort:
+            if training:
+                out_in_map_bwd = torch.ops.nanots.convert_transposed_out_in_map(
+                    kmap["out_in_map"],
+                    make_divisible(kmap["sizes"][0], cta_M)
+                )
+                bitmask_bwd = torch.ops.nanots.derive_bitmask_from_out_in_map(
+                        out_in_map_bwd, split_mask_num_bwd, kmap["sizes"][0]
+                    )
+                sorted_mask_bwd, reorder_loc_bwd = torch.sort(bitmask_bwd, descending=True)
+                reorder_loc_bwd = reorder_loc_bwd.to(torch.int32)
+                reorder_out_in_map_bwd = torch.ops.nanots.reorder_out_in_map_cuda(
+                    out_in_map_bwd, reorder_loc_bwd
+                )
+                reduced_sorted_mask_bwd_wgrad = torch.ops.nanots.reduce_bitmask_cuda(
+                    sorted_mask_bwd, cta_M_wgrad
+                )
+                reduced_sorted_mask_bwd_dgrad = torch.ops.nanots.reduce_bitmask_cuda(
+                    sorted_mask_bwd, cta_M
+                )
+            else:
+                out_in_map_bwd = None
+                reorder_out_in_map_bwd = None
+                reduced_sorted_mask_bwd_wgrad = None
+                reduced_sorted_mask_bwd_dgrad = None
+                reorder_loc_bwd = None
         else:
-            out_in_map_bwd = None
+            if training:
+                out_in_map_bwd = torch.ops.nanots.convert_transposed_out_in_map(
+                    kmap["out_in_map"],
+                    make_divisible(kmap["sizes"][0], cta_M)
+                )
+            else:
+                out_in_map_bwd = None
             reorder_out_in_map_bwd = None
             reduced_sorted_mask_bwd_wgrad = None
             reduced_sorted_mask_bwd_dgrad = None
             reorder_loc_bwd = None
+
         kmap["out_in_map_bwd"] = out_in_map_bwd
         kmap["reorder_out_in_map_bwd"] = reorder_out_in_map_bwd
         kmap["reduced_sorted_mask_bwd_wgrad"] = reduced_sorted_mask_bwd_wgrad
@@ -238,32 +249,14 @@ def transpose_kernel_map(
         kmap["reorder_loc_t"] = reorder_loc
     else:
         if training:
-            out_in_map_bwd = kmap["out_in_map"]
-            bitmask_bwd = torch.ops.nanots.derive_bitmask_from_out_in_map(
-                out_in_map_bwd, split_mask_num_bwd, kmap["sizes"][1]
-            )
-            sorted_mask_bwd, reorder_loc_bwd = torch.sort(bitmask_bwd, descending=True)
-            reorder_loc_bwd = reorder_loc_bwd.to(torch.int32)
-            reorder_out_in_map_bwd = torch.ops.nanots.reorder_out_in_map_cuda(
-                out_in_map_bwd, reorder_loc_bwd
-            )
-            reduced_sorted_mask_bwd_wgrad = torch.ops.nanots.reduce_bitmask_cuda(
-                sorted_mask_bwd, cta_M_wgrad
-            )
-            reduced_sorted_mask_bwd_dgrad = torch.ops.nanots.reduce_bitmask_cuda(
-                sorted_mask_bwd, cta_M
-            )
-            kmap["out_in_map_bwd_t"] = out_in_map_bwd
-            kmap["reorder_out_in_map_bwd_t"] = reorder_out_in_map_bwd
-            kmap["reduced_sorted_mask_bwd_wgrad_t"] = reduced_sorted_mask_bwd_wgrad
-            kmap["reduced_sorted_mask_bwd_dgrad_t"] = reduced_sorted_mask_bwd_dgrad
-            kmap["reorder_loc_bwd_t"] = reorder_loc_bwd
+            kmap["out_in_map_bwd_t"] = kmap["out_in_map"]
         else:
             kmap["out_in_map_bwd_t"] = None
-            kmap["reorder_out_in_map_bwd_t"] = None
-            kmap["reduced_sorted_mask_bwd_wgrad_t"] = None
-            kmap["reduced_sorted_mask_bwd_dgrad_t"] = None
-            kmap["reorder_loc_bwd_t"] = None
+
+        kmap["reorder_out_in_map_bwd_t"] = None
+        kmap["reduced_sorted_mask_bwd_wgrad_t"] = None
+        kmap["reduced_sorted_mask_bwd_dgrad_t"] = None
+        kmap["reorder_loc_bwd_t"] = None
         kmap["reorder_out_in_map_t"] = None
         kmap["reduced_sorted_mask_t"] = None
         kmap["reorder_loc_t"] = None

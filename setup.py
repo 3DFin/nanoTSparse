@@ -92,6 +92,7 @@ setup(
             py_limited_api=True
         )
     ],
+    exclude_package_data={"": ["csrc/*"],},
     url="https://github.com/3DFin/nanoTorchSparse",
     include_dirs=include_dirs,
     include_package_data=True,

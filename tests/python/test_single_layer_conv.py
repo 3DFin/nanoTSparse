@@ -4,10 +4,10 @@ import numpy as np
 import torch
 from torch import nn
 
-import nanots
-from nanots import nn as spnn
-from nanots.nn import functional as F
-from nanots.utils import make_ntuple
+import nanotsparse
+from nanotsparse import nn as spnn
+from nanotsparse.nn import functional as F
+from nanotsparse.utils import make_ntuple
 
 from .test_utils import *
 
@@ -57,7 +57,7 @@ class TestSparseConv(nn.Module):
 
     def forward(self, feats, coords):
         coords = coords.int()
-        ts_tensor = nanots.SparseTensor(feats, coords)
+        ts_tensor = nanotsparse.SparseTensor(feats, coords)
         return self.net(ts_tensor)
 
 

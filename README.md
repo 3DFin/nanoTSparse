@@ -1,25 +1,27 @@
 # [nano]TorchSparse
 
-`[nano]TorchSparse` (or `[nano]TS`) is a versatile and portable library for Sparse Convolutions
-It is a trimmed, reviewed and improved version of `TorchSparse++`, a high-performance neural network library for point cloud processing.
+`[nano]TorchSparse` (or `[nano]TSparse`) is a versatile and portable library for Sparse Convolutions. It is a trimmed, reviewed, and improved version of `TorchSparse++`, a high-performance neural network library for point cloud processing.
 
-# Notable changes:
-- Trim the FoD kernel and other auxiliary functions to improve compilation speed and maintenance.
-- Trim and simplify the entire Gather-GEMM-Scatter algo on GPU (TODO: remove `conv mode > 1` since it's unused, and remove mask generation on the hashmap, which incurs a runtime penalty if not used). `[nano]TS` **only** embed the simplest Gather-GEMM-Scatter flavor of `Torchsparse++`.
-- Re-enabled the CPU Workflow. This previously was a no-op in `TorchSparse++` 2.1. We now create a CPU Hashtable and improve parallelization (avoiding thread oversubscriptions in Gather/Scatter operations).
-- Added `tsl::robin_map` (replacing `sparsehash`) and replaced `openMP` with `Taskflow`. While `Taskflow` might seem like overkill, it is header-only and 100% cross-platform (working "out of the box" on macOS and with all types of integer indexing on Windows).
-- We now cache the full hashmap instead of the key/value pair as tensors. This is more "robust," as it avoids cumbersome workflows and allows for better alignment between the CPU and GPU versions. 
-- Improve general training runtime: Enable amp on CUDA, fix a double `__sync_threads()`...
-- Fix the inconsistent behavior of mask sorting in the backward pass for small kernels:
-  in `Torchsparse++` 2.1 The backward pass **always** used a sorted mask for small kernels (with a hardcoded threshold `kernel_volume < 32`) even if the `ifsort=false` parameter was used. As a result, bitmask generation and sorting was **always** performed during training even if not used afterward. This was an hidden control flow and it unnecessarily consumes time and memory. This behavior was induced by the fact that bitmask is coded on 32 bit wide integer so kernel volume **must** be splitted in a way that each part of the volume does not exceed 32 offsets. i.e a single split is fine for a 3x3x3 kernel but you should use at least 4 splits for a 5x5x5 kernel. 
-- Reviewed and improved the build system (PEP 517).
-- Created an ABI-compatible build (using Python's stable ABI) to ease distribution. 
+If you use this project, please cite the original `TorchSparse` project (see at the end of the Readme).
 
-# TODO:
-- Add `CIBuildWheels` workflow at least for CPU
-- Add proper `TORCH_CHECK` for functions
-- Use the Torch stable ABI / header only interface.
-- Aync load for SM80+?
+# Notable Changes:
+- We trimmed the FoD kernel and other auxiliary functions (in .py and .c files) to improve compilation speed and overall maintainability.
+- The entire Gather-GEMM-Scatter algorithm on GPU has been trimmed and simplified. (TODO: remove `conv mode > 1` since it is unused, and remove mask generation on the hashmap, which incurs a runtime penalty if not required). `[nano]TS` now embeds only the simplest Gather-GEMM-Scatter flavor from `Torchsparse++`. For performance scenarion, ImplicitGEMM is enough.
+- CPU Workflow Re-enabled: This feature was previously a no-op in `TorchSparse++` 2.1. We have now implemented a CPU Hashtable and significantly improved parallelization (avoiding thread oversubscriptions during Gather/Scatter operations).
+- Dependencies modernization:  We added `tsl::robin_map` (replacing `sparsehash`) and replaced `openMP` with `Taskflow`. While `Taskflow` might seem like overkill, it is header-only and 100% cross-platform (working seamlessly on macOS and supporting all types of integer indexing on Windows).
+- We now cache the full hashmap instead of just the key/value pair as tensors. This approach is more robust, as it avoids cumbersome workflows and allows for better alignment between the CPU and GPU versions.
+- We improved the general training runtime by re-enabling `amp` on CUDA and fixing a double `__sync_threads()` call.
+- Mask Sorting Fix (for backward): We fixed an inconsistent behavior regarding mask sorting in the backward pass for small kernels. In `Torchsparse++` 2.1, the backward pass *always* used a sorted mask for small kernels (with a hardcoded threshold `kernel_volume < 32`) even when `ifsort=false` was used. Bitmask generation and sorting were *always* performed during training, even if not required afterward. This was an hidden control flow that unnecessarily consumes time and memory. This behavior was caused by the fact that bitmasks were coded on 32-bit wide integers, requiring the kernel volume to be split such that it does not exceeded 32 offsets. For example, a single split is fine for a 3x3x3 kernel, but a 5x5x5 kernel requires at least 1 splits.
+- Build System: We reviewed and improved the build system. It is now PEP 517 compatible.
+- Distribution Compatibility: We created an ABI-compatible build (using Python's stable ABI) to simplify distribution.
+
+# TODO, WIP:
+- Add `CIBuildWheels` workflow, at least for CPU.
+- Implement proper `TORCH_CHECK` for functions.
+- Add FakeTensors for compile compat.
+- Use the Torch stable ABI / header-only interface.
+- Support asynchronous (Async) loading for SM80+ architectures. Experimental port to Cute/CuteDSL.
+- Test / Integrate PointCNN++ kernel.
 
 # [ORIGINAL TorchSparse README]
 

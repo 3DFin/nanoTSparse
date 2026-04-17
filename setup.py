@@ -10,10 +10,10 @@ from torch.utils.cpp_extension import (
     CUDAExtension,
 )
 
-with open("nanots/version.py") as f:
+with open("nanotsparse/version.py") as f:
     __version__ = f.read().split("'")[1]
 
-print("nanots version:", __version__)
+print("nanotsparse version:", __version__)
 
 build_ext = BuildExtension.with_options(use_ninja=True)
 
@@ -21,13 +21,13 @@ if (torch.cuda.is_available() and CUDA_HOME is not None) or (
     os.getenv("FORCE_CUDA", "0") == "1"
 ):
     device = "cuda"
-    module_code = f"nanots_module_cuda.cu"
+    module_code = f"nanotsparse_module_cuda.cu"
 else:
     device = "cpu"
-    module_code = f"nanots_module_cpp.cpp"
+    module_code = f"nanotsparse_module_cpp.cpp"
 
 
-base_dir = os.path.join("nanots", "csrc")
+base_dir = os.path.join("nanotsparse", "csrc")
 
 sources = [os.path.join(base_dir, module_code)]
 
@@ -81,12 +81,12 @@ extra_compile_args = {
 }
 
 setup(
-    name="nanots",
+    name="nanotsparse",
     version=__version__,
     packages=find_packages(),
     ext_modules=[
         extension_type(
-            "nanots._nanots",
+            "nanotsparse._nanotsparse",
             sources,
             extra_compile_args=extra_compile_args,
             py_limited_api=True

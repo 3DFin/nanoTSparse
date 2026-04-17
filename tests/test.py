@@ -1,5 +1,5 @@
 import unittest
-from nanots.nn import functional as F
+from nanotsparse.nn import functional as F
 from python import (
     test_single_layer_convolution_forward,
 )

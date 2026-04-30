@@ -23,13 +23,11 @@
 
 namespace nanotsparse {
 
-extern "C" {
-PyObject *PyInit__nanotsparse(void) {
+PyMODINIT_FUNC PyInit__nanotsparse(void) {
   static struct PyModuleDef module_def = {
       PyModuleDef_HEAD_INIT, "_nanotsparse", NULL, -1, NULL,
   };
   return PyModule_Create(&module_def);
-}
 }
 
 struct CPUHashTableHolder : torch::CustomClassHolder {

@@ -4,13 +4,11 @@
 #include "convolution/convolution_gather_scatter_cpu.h"
 #include "hashmap/hashmap_cpu.h"
 
-extern "C" {
-PyObject *PyInit__nanotsparse(void) {
+PyMODINIT_FUNC PyInit__nanotsparse(void) {
   static struct PyModuleDef module_def = {
       PyModuleDef_HEAD_INIT, "_nanotsparse", NULL, -1, NULL,
   };
   return PyModule_Create(&module_def);
-}
 }
 
 namespace nanotsparse {

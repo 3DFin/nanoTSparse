@@ -127,12 +127,12 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
 
       {
         unsigned int addr;
-        __asm__ __volatile__(
+        asm volatile(
             "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, addr; }"
             : "=r"(addr)
             : "l"((void *)((&(A_shared[(i2_0_1 * 640)])) + (((((int)threadIdx.x) & 15) * 40) + ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
-        __asm__ __volatile__(
+        asm volatile(
             "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
             "{%0, %1, %2, %3}, [%4];"
             : "=r"(((unsigned *)(A_shared_warp + 0))[0]), "=r"(((unsigned *)(A_shared_warp + 0))[2]), "=r"(((unsigned *)(A_shared_warp + 0))[1]), "=r"(((unsigned *)(A_shared_warp + 0))[3])
@@ -144,12 +144,12 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
 
       {
         unsigned int addr;
-        __asm__ __volatile__(
+        asm volatile(
             "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, addr; }"
             : "=r"(addr)
             : "l"((void *)((&(B_shared[(i2_0_1 * 640)])) + (((((int)threadIdx.x) & 15) * 40) + ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
-        __asm__ __volatile__(
+        asm volatile(
             "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
             "{%0, %1, %2, %3}, [%4];"
             : "=r"(((unsigned *)(B_shared_warp + 0))[0]), "=r"(((unsigned *)(B_shared_warp + 0))[1]), "=r"(((unsigned *)(B_shared_warp + 0))[2]), "=r"(((unsigned *)(B_shared_warp + 0))[3])
@@ -160,7 +160,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 #if __CUDA_ARCH__ >= 800
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 0))[0]), "=f"(((float *)(C_warp + 0))[1]), "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
@@ -168,7 +168,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 4))[0]), "=f"(((float *)(C_warp + 4))[1]), "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
@@ -176,7 +176,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 #elif __CUDA_ARCH__ >= 750
       {
-        __asm__ __volatile__(
+        asm volatile(
           "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
           "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
           :  "=f"(((float *)(C_warp + 0))[0]), "=f"(((float *)(C_warp + 0))[1]), "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
@@ -184,7 +184,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
           "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
           "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
           :  "=f"(((float *)(C_warp + 4))[0]), "=f"(((float *)(C_warp + 4))[1]), "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
@@ -192,7 +192,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
           "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
           "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
           :  "=f"(((float *)(C_warp + 0))[0]), "=f"(((float *)(C_warp + 0))[1]), "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
@@ -200,7 +200,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
           "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
           "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
           :  "=f"(((float *)(C_warp + 4))[0]), "=f"(((float *)(C_warp + 4))[1]), "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
@@ -268,12 +268,12 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
 
       {
         unsigned int addr;
-        __asm__ __volatile__(
+        asm volatile(
             "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, addr; }"
             : "=r"(addr)
             : "l"((void *)((&(A_shared[(i2_0_1 * 640)])) + (((((int)threadIdx.x) & 15) * 40) + ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
-        __asm__ __volatile__(
+        asm volatile(
             "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
             "{%0, %1, %2, %3}, [%4];"
             : "=r"(((unsigned *)(A_shared_warp + 0))[0]), "=r"(((unsigned *)(A_shared_warp + 0))[2]), "=r"(((unsigned *)(A_shared_warp + 0))[1]), "=r"(((unsigned *)(A_shared_warp + 0))[3])
@@ -285,12 +285,12 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
 
       {
         unsigned int addr;
-        __asm__ __volatile__(
+        asm volatile(
             "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, addr; }"
             : "=r"(addr)
             : "l"((void *)((&(B_shared[(i2_0_1 * 640)])) + (((((int)threadIdx.x) & 15) * 40) + ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
-        __asm__ __volatile__(
+        asm volatile(
             "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
             "{%0, %1, %2, %3}, [%4];"
             : "=r"(((unsigned *)(B_shared_warp + 0))[0]), "=r"(((unsigned *)(B_shared_warp + 0))[1]), "=r"(((unsigned *)(B_shared_warp + 0))[2]), "=r"(((unsigned *)(B_shared_warp + 0))[3])
@@ -301,7 +301,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 #if __CUDA_ARCH__ >= 800
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 0))[0]), "=f"(((float *)(C_warp + 0))[1]), "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
@@ -309,7 +309,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 4))[0]), "=f"(((float *)(C_warp + 4))[1]), "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
@@ -317,7 +317,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 #elif __CUDA_ARCH__ >= 750
       {
-        __asm__ __volatile__(
+        asm volatile(
           "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
           "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
           :  "=f"(((float *)(C_warp + 0))[0]), "=f"(((float *)(C_warp + 0))[1]), "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
@@ -325,7 +325,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
           "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
           "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
           :  "=f"(((float *)(C_warp + 4))[0]), "=f"(((float *)(C_warp + 4))[1]), "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
@@ -333,7 +333,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
           "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
           "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
           :  "=f"(((float *)(C_warp + 0))[0]), "=f"(((float *)(C_warp + 0))[1]), "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
@@ -341,7 +341,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_f16f16f3
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
           "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
           "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
           :  "=f"(((float *)(C_warp + 4))[0]), "=f"(((float *)(C_warp + 4))[1]), "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
@@ -441,12 +441,12 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
 
         {
           unsigned int addr;
-          __asm__ __volatile__(
+          asm volatile(
               "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, addr; }"
               : "=r"(addr)
               : "l"((void *)((&(A_shared[((i2_0_1 * 640) + (ax1_0 * 16))])) + (((((int)threadIdx.x) & 15) * 40) + ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
-          __asm__ __volatile__(
+          asm volatile(
               "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
               "{%0, %1, %2, %3}, [%4];"
               : "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[0]), "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[2]), "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[1]), "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[3])
@@ -461,12 +461,12 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
 
         {
           unsigned int addr;
-          __asm__ __volatile__(
+          asm volatile(
               "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, addr; }"
               : "=r"(addr)
               : "l"((void *)((&(B_shared[(((i2_0_1 * 1152) + (((int)threadIdx.y) * 32)) + (ax1_0_1 * 16))])) + (((((int)threadIdx.x) & 15) * 72) + ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
-          __asm__ __volatile__(
+          asm volatile(
               "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
               "{%0, %1, %2, %3}, [%4];"
               : "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[0]), "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[1]), "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[2]), "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[3])
@@ -482,7 +482,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
         {
 #if __CUDA_ARCH__ >= 800
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
@@ -490,7 +490,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
@@ -498,7 +498,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
           }
 #elif __CUDA_ARCH__ >= 750
           {
-            __asm__ __volatile__(
+            asm volatile(
               "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
               "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
               :  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
@@ -506,7 +506,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
               "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
               "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
               :  "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
@@ -514,7 +514,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
               "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
               "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
               :  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
@@ -522,7 +522,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
               "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
               "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
               :  "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
@@ -587,12 +587,12 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
 
         {
           unsigned int addr;
-          __asm__ __volatile__(
+          asm volatile(
               "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, addr; }"
               : "=r"(addr)
               : "l"((void *)((&(A_shared[((i2_0_1 * 640) + (ax1_0 * 16))])) + (((((int)threadIdx.x) & 15) * 40) + ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
-          __asm__ __volatile__(
+          asm volatile(
               "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
               "{%0, %1, %2, %3}, [%4];"
               : "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[0]), "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[2]), "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[1]), "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[3])
@@ -607,12 +607,12 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
 
         {
           unsigned int addr;
-          __asm__ __volatile__(
+          asm volatile(
               "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, addr; }"
               : "=r"(addr)
               : "l"((void *)((&(B_shared[(((i2_0_1 * 1152) + (((int)threadIdx.y) * 32)) + (ax1_0_1 * 16))])) + (((((int)threadIdx.x) & 15) * 72) + ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
-          __asm__ __volatile__(
+          asm volatile(
               "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
               "{%0, %1, %2, %3}, [%4];"
               : "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[0]), "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[1]), "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[2]), "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[3])
@@ -628,7 +628,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
         {
 #if __CUDA_ARCH__ >= 800
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
@@ -636,7 +636,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
@@ -644,7 +644,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
           }
 #elif __CUDA_ARCH__ >= 750
           {
-            __asm__ __volatile__(
+            asm volatile(
               "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
               "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};\n"
               :  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
@@ -652,7 +652,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
               "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
               "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};\n"
               :  "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
@@ -660,7 +660,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
               "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
               "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};\n"
               :  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
@@ -668,7 +668,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_f16f16f3
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
               "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
               "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};\n"
               :  "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
@@ -817,7 +817,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_tf32tf32
       }
 #if __CUDA_ARCH__ >= 800
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 0))[0]), "=f"(((float *)(C_warp + 0))[1]), "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
@@ -825,7 +825,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_tf32tf32
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 4))[0]), "=f"(((float *)(C_warp + 4))[1]), "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
@@ -833,7 +833,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_tf32tf32
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 0))[0]), "=f"(((float *)(C_warp + 0))[1]), "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
@@ -841,7 +841,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_tf32tf32
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 4))[0]), "=f"(((float *)(C_warp + 4))[1]), "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
@@ -917,7 +917,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_tf32tf32
       }
 #if __CUDA_ARCH__ >= 800
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 0))[0]), "=f"(((float *)(C_warp + 0))[1]), "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
@@ -925,7 +925,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_tf32tf32
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 4))[0]), "=f"(((float *)(C_warp + 4))[1]), "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
@@ -933,7 +933,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_tf32tf32
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 0))[0]), "=f"(((float *)(C_warp + 0))[1]), "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
@@ -941,7 +941,7 @@ __global__ void __launch_bounds__(32) conv_backward_cuda_setting1_mode0_tf32tf32
       }
 
       {
-        __asm__ __volatile__(
+        asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
             : "=f"(((float *)(C_warp + 4))[0]), "=f"(((float *)(C_warp + 4))[1]), "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
@@ -1058,7 +1058,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_tf32tf32
         {
 #if __CUDA_ARCH__ >= 800
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
@@ -1066,7 +1066,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_tf32tf32
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
@@ -1074,7 +1074,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_tf32tf32
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
@@ -1082,7 +1082,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_tf32tf32
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
@@ -1163,7 +1163,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_tf32tf32
         {
 #if __CUDA_ARCH__ >= 800
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
@@ -1171,7 +1171,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_tf32tf32
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
@@ -1179,7 +1179,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_tf32tf32
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]), "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
@@ -1187,7 +1187,7 @@ __global__ void __launch_bounds__(64) conv_backward_cuda_setting2_mode0_tf32tf32
           }
 
           {
-            __asm__ __volatile__(
+            asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, %13};"
                 : "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]), "=f"(((float *)(C_warp + (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])

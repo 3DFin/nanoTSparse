@@ -5,7 +5,8 @@
 If you use this project, please cite the original `TorchSparse` project (see at the end of the Readme).
 
 # Notable Changes:
-- We trimmed the FoD kernel and other auxiliary functions (in .py and .c files) to improve compilation speed and overall maintainability.
+- Compile and work on Windows (CPU and CUDA), Linux (CPU and CUDA) and macOS (CPU) 
+- We axed the FoD kernel and other auxiliary functions (in .py and .c files) to improve compilation speed and overall maintainability.
 - The entire Gather-GEMM-Scatter algorithm on GPU has been trimmed and simplified. (removed `conv mode > 1` since it is unused, and remove mask generation on the hashmap, which incurs a runtime penalty if not required). `[nano]TS` now embeds only the simplest Gather-GEMM-Scatter flavor from `Torchsparse++`. For performance scenarii, ImplicitGEMM is enough.
 - CPU Workflow Re-enabled: This feature was previously a no-op in `TorchSparse++` 2.1. We have now implemented a CPU Hashtable and significantly improved parallelization (avoiding thread oversubscriptions during Gather/Scatter operations).
 - Dependencies modernization:  We added `tsl::robin_map` (replacing `sparsehash`) and replaced `openMP` with `Taskflow`. While `Taskflow` might seem like overkill, it is header-only and 100% cross-platform (working seamlessly on macOS and supporting all types of integer indexing on Windows).

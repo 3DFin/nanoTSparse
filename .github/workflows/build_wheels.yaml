@@ -1,0 +1,106 @@
+name: Build Wheels
+on:
+  push:
+    branches: ["*"]
+    tags: ["*"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  build_linux:
+    name: Linux Wheels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Build Linux CPU wheels
+        uses: pypa/cibuildwheel@v3.4.1
+        with:
+          package-dir: "."
+          output-dir: "wheelhouse"
+        env:
+          #CIBW_BUILD: "cp310-*"
+          CIBW_SKIP: "*-manylinux_i686 *-musllinux*"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.10,<3.11"
+          CIBW_BEFORE_BUILD: "pip install torch==2.12.0+cpu --index-url https://download.pytorch.org/whl/cpu"
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: >-
+            auditwheel repair
+            --exclude libtorch.so
+            --exclude libtorch_python.so
+            --exclude libtorch_cpu.so
+            --exclude libc10.so
+            -w {dest_dir} {wheel}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheels-linux
+          path: wheelhouse/*.whl
+
+  build_windows:
+    name: Windows Wheels
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Build Windows CPU wheels
+        uses: pypa/cibuildwheel@v3.4.1
+        with:
+          package-dir: "."
+          output-dir: "wheelhouse"
+        env:
+          CIBW_BUILD: "cp310-win_amd64"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.10,<3.11"
+          CIBW_BEFORE_BUILD: "pip install torch==2.12.0+cpu --index-url https://download.pytorch.org/whl/cpu"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheels-windows
+          path: wheelhouse/*.whl
+
+  build_macos:
+    name: macOS Wheels
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Build macOS CPU wheels
+        uses: pypa/cibuildwheel@v3.4.1
+        with:
+          package-dir: "."
+          output-dir: "wheelhouse"
+        env:
+          CIBW_BUILD: "cp310-macosx_arm64"
+          CIBW_MACOSX_ARCHITECTURES: "arm64"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.10,<3.11"
+          CIBW_BEFORE_BUILD: "pip install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu"
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: >-
+            delocate-wheel --require-archs {delocate_archs}
+            --ignore-missing-dependencies
+            -w {dest_dir} -v {wheel}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheels-macos
+          path: wheelhouse/*.whl
+
+  pypi-publish:
+    name: Upload release to PyPI
+    runs-on: ubuntu-latest
+    needs:
+      - build_macos
+      - build_linux
+      - build_windows
+    environment:
+      name: pypi
+      url: https://pypi.org/p/nanoTSparse
+    permissions:
+      id-token: write # for trusted publishing
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

@@ -136,5 +136,5 @@ setup(
     include_package_data=True,
     install_requires=["numpy", "tqdm", "torch"],
     cmdclass={"build_ext": build_ext},
-    options={"bdist_wheel": {"py_limited_api": "cp39"}},
+    options={"bdist_wheel": {"py_limited_api": "cp310"}},
 )

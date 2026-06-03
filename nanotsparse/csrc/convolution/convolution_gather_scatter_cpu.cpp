@@ -1,5 +1,7 @@
 #include "convolution_gather_scatter_cpu.h"
 
+#include <c10/util/Exception.h>
+
 #include <algorithm>
 #include <cassert>
 #include <taskflow/algorithm/for_each.hpp>
@@ -39,9 +41,42 @@ at::Tensor conv_forward_gather_scatter_cpu(const at::Tensor& in_feats,
                                            const at::Tensor& neighbor_offsets,
                                            int64_t output_size,
                                            bool transpose) {
-  if (in_feats.size(1) != kernel.size(1)) {
-    throw std::invalid_argument("Input feature size and kernel size mismatch");
-  }
+  // Input validation
+  TORCH_CHECK(in_feats.dim() == 2,
+              "in_feats must be a 2D tensor (num_points, in_channels)");
+  TORCH_CHECK(in_feats.numel() > 0, "in_feats tensor must not be empty");
+  TORCH_CHECK(in_feats.scalar_type() == at::ScalarType::Float ||
+                  in_feats.scalar_type() == at::ScalarType::Half,
+              "in_feats must be a Float or a Half tensor");
+
+  TORCH_CHECK(
+      kernel.dim() == 3,
+      "kernel must be a 3D tensor (kernel_volume, in_channels, out_channels)");
+  TORCH_CHECK(kernel.numel() > 0, "kernel tensor must not be empty");
+  TORCH_CHECK(kernel.scalar_type() == at::ScalarType::Float ||
+                  kernel.scalar_type() == at::ScalarType::Half,
+              "kernel must be a Float or a Half tensor");
+
+  TORCH_CHECK(neighbor_maps.dim() == 1, "neighbor_maps must be a 1D tensor");
+  TORCH_CHECK(neighbor_maps.scalar_type() == at::ScalarType::Int,
+              "neighbor_maps must be an Int tensor");
+
+  TORCH_CHECK(neighbor_offsets.dim() == 1,
+              "neighbor_offsets must be a 1D tensor");
+  TORCH_CHECK(neighbor_offsets.scalar_type() == at::ScalarType::Int,
+              "neighbor_offsets must be an Int tensor");
+
+  TORCH_CHECK(output_size > 0, "output_size must be positive");
+
+  // Dimension compatibility checks
+  TORCH_CHECK(in_feats.size(1) == kernel.size(1),
+              "Input feature size (in_feats.size(1) = ", in_feats.size(1),
+              ") and kernel input channels (kernel.size(1) = ", kernel.size(1),
+              ") must match");
+
+  TORCH_CHECK(kernel.size(0) == neighbor_offsets.size(0), "kernel volume (",
+              kernel.size(0), ") must match neighbor_offsets size (",
+              neighbor_offsets.size(0), ")");
 
   auto out_feat =
       torch::zeros({output_size, kernel.size(-1)}, in_feats.options());
@@ -138,6 +173,52 @@ std::vector<at::Tensor> conv_backward_gather_scatter_cpu(
     const at::Tensor& in_feats, const at::Tensor& grad_out_feats,
     const at::Tensor& kernel, const at::Tensor& neighbor_maps,
     const at::Tensor& neighbor_offsets, bool transpose) {
+  // Input validation
+  TORCH_CHECK(in_feats.dim() == 2,
+              "in_feats must be a 2D tensor (num_points, in_channels)");
+  TORCH_CHECK(in_feats.numel() > 0, "in_feats tensor must not be empty");
+  TORCH_CHECK(in_feats.scalar_type() == at::ScalarType::Float ||
+                  in_feats.scalar_type() == at::ScalarType::Half,
+              "in_feats must be a Float or a Half tensor");
+
+  TORCH_CHECK(grad_out_feats.dim() == 2, "grad_out_feats must be a 2D tensor");
+  TORCH_CHECK(grad_out_feats.numel() > 0,
+              "grad_out_feats tensor must not be empty");
+  TORCH_CHECK(grad_out_feats.scalar_type() == in_feats.scalar_type(),
+              "grad_out_feats must have the same dtype as in_feats");
+
+  TORCH_CHECK(
+      kernel.dim() == 3,
+      "kernel must be a 3D tensor (kernel_volume, in_channels, out_channels)");
+  TORCH_CHECK(kernel.numel() > 0, "kernel tensor must not be empty");
+  TORCH_CHECK(kernel.scalar_type() == at::ScalarType::Float ||
+                  kernel.scalar_type() == at::ScalarType::Half,
+              "kernel must be a Float or a Half tensor");
+
+  TORCH_CHECK(neighbor_maps.dim() == 1, "neighbor_maps must be a 1D tensor");
+  TORCH_CHECK(neighbor_maps.scalar_type() == at::ScalarType::Int,
+              "neighbor_maps must be an Int tensor");
+
+  TORCH_CHECK(neighbor_offsets.dim() == 1,
+              "neighbor_offsets must be a 1D tensor");
+  TORCH_CHECK(neighbor_offsets.scalar_type() == at::ScalarType::Int,
+              "neighbor_offsets must be an Int tensor");
+
+  // Dimension compatibility checks
+  TORCH_CHECK(in_feats.size(1) == kernel.size(1),
+              "Input feature size (in_feats.size(1) = ", in_feats.size(1),
+              ") and kernel input channels (kernel.size(1) = ", kernel.size(1),
+              ") must match");
+
+  TORCH_CHECK(kernel.size(0) == neighbor_offsets.size(0), "kernel volume (",
+              kernel.size(0), ") must match neighbor_offsets size (",
+              neighbor_offsets.size(0), ")");
+
+  TORCH_CHECK(kernel.size(2) == grad_out_feats.size(1),
+              "kernel output channels (", kernel.size(2),
+              ") must match grad_out_feats channels (", grad_out_feats.size(1),
+              ")");
+
   auto grad_in_feats = torch::zeros_like(in_feats);
   auto grad_kernel = torch::zeros_like(kernel);
 

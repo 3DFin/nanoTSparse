@@ -19,12 +19,11 @@ If you use this project, please cite the original `TorchSparse` project (see at 
 
 # TODO, WIP:
 
-- Implement proper `TORCH_CHECK` for functions.
+- Test / Integrate PointCNN++ kernel.
+- Use the Torch stable ABI / header-only interface.
 - Add `CIBuildWheels` workflow for CUDA.
 - Add FakeTensors for torch compile compatiblity.
-- Use the Torch stable ABI / header-only interface.
 - Support asynchronous (Async) loading for SM80+ architectures. Experimental port to Cute/CuteDSL.
-- Test / Integrate PointCNN++ kernel.
 
 # [ORIGINAL TorchSparse README]
 

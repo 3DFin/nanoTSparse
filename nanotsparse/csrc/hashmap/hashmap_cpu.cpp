@@ -1,10 +1,27 @@
 #include "hashmap_cpu.h"
 
+#include <c10/util/Exception.h>
+
 #include <cstdint>
 
 std::vector<at::Tensor> build_mask_from_kmap_native(
     int64_t n_points, int64_t n_out_points, const at::Tensor& neighbor_maps,
     const at::Tensor& kmap_sizes) {
+  // Input validation
+  TORCH_CHECK(n_points > 0, "n_points must be positive");
+  TORCH_CHECK(n_out_points > 0, "n_out_points must be positive");
+
+  TORCH_CHECK(neighbor_maps.dim() == 1, "neighbor_maps must be a 1D tensor");
+  TORCH_CHECK(neighbor_maps.scalar_type() == at::ScalarType::Int,
+              "neighbor_maps must be an Int tensor");
+  TORCH_CHECK(neighbor_maps.numel() > 0,
+              "neighbor_maps tensor must not be empty");
+
+  TORCH_CHECK(kmap_sizes.dim() == 1, "kmap_sizes must be a 1D tensor");
+  TORCH_CHECK(kmap_sizes.scalar_type() == at::ScalarType::Int,
+              "kmap_sizes must be an Int tensor");
+  TORCH_CHECK(kmap_sizes.numel() > 0, "kmap_sizes tensor must not be empty");
+
   int kernel_volume = kmap_sizes.size(0);
   const auto options = torch::TensorOptions()
                            .dtype(at::ScalarType::Int)

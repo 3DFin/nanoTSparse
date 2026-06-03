@@ -1,31 +1,32 @@
 #include "hashmap_cpu.h"
+
 #include <cstdint>
 
-std::vector<at::Tensor>
-build_mask_from_kmap_native(int64_t n_points, int64_t n_out_points,
-                            const at::Tensor &neighbor_maps,
-                            const at::Tensor &kmap_sizes) {
+std::vector<at::Tensor> build_mask_from_kmap_native(
+    int64_t n_points, int64_t n_out_points, const at::Tensor& neighbor_maps,
+    const at::Tensor& kmap_sizes) {
   int kernel_volume = kmap_sizes.size(0);
-  const auto options =
-      torch::TensorOptions().dtype(at::ScalarType::Int).device(neighbor_maps.device());
+  const auto options = torch::TensorOptions()
+                           .dtype(at::ScalarType::Int)
+                           .device(neighbor_maps.device());
   at::Tensor input_mask = at::full({kernel_volume * n_points}, -1, options);
   at::Tensor output_mask =
       torch::full({kernel_volume * n_out_points}, -1, options);
   at::Tensor cum_kmap_sizes =
       torch::cumsum(kmap_sizes, 0).to(at::ScalarType::Int);
 
-  auto *kmap_sizes_ptr = kmap_sizes.data_ptr<int>();
-  auto *cum_kmap_sizes_ptr = cum_kmap_sizes.data_ptr<int>();
-  auto *kmap_ptr = neighbor_maps.data_ptr<int>();
+  auto* kmap_sizes_ptr = kmap_sizes.data_ptr<int>();
+  auto* cum_kmap_sizes_ptr = cum_kmap_sizes.data_ptr<int>();
+  auto* kmap_ptr = neighbor_maps.data_ptr<int>();
 
-  auto *input_mask_ptr = input_mask.data_ptr<int>();
-  auto *output_mask_ptr = output_mask.data_ptr<int>();
+  auto* input_mask_ptr = input_mask.data_ptr<int>();
+  auto* output_mask_ptr = output_mask.data_ptr<int>();
 
   tf::Executor executor;
   tf::Taskflow taskflow;
 
   taskflow.for_each_index(0, kernel_volume, 1, [&](int k) {
-    int n_neighbors = kmap_sizes_ptr[k]; // num of offsets with this K
+    int n_neighbors = kmap_sizes_ptr[k];  // num of offsets with this K
     // submanifold test.
     if ((n_points == n_out_points) && (kernel_volume % 2) &&
         (k == kernel_volume / 2)) {
@@ -33,7 +34,7 @@ build_mask_from_kmap_native(int64_t n_points, int64_t n_out_points,
     }
 
     int offset = k == 0 ? 0 : 2 * cum_kmap_sizes_ptr[k - 1];
-    const auto *curr_in_kmap = &kmap_ptr[offset];
+    const auto* curr_in_kmap = &kmap_ptr[offset];
     int in_offset = k * n_points;
     int out_offset = k * n_out_points;
     for (int i = 0; i < n_neighbors; ++i) {

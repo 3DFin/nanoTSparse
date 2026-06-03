@@ -1,8 +1,10 @@
 import unittest
-from nanotsparse.nn import functional as F
+
 from python import (
     test_single_layer_convolution_forward,
 )
+
+from nanotsparse.nn import functional as F
 
 
 class SparseConvTestCase(unittest.TestCase):
@@ -16,9 +18,7 @@ class SparseConvTestCase(unittest.TestCase):
         # hashmap mode by default
         for kernel_size in kernel_sizes:
             for stride in strides:
-                mean_adiff, max_rdiff = test_single_layer_convolution_forward(
-                    kernel_size=kernel_size, stride=stride
-                )
+                mean_adiff, max_rdiff = test_single_layer_convolution_forward(kernel_size=kernel_size, stride=stride)
                 acc_adiff += mean_adiff
                 acc_rdiff += max_rdiff
                 count += 1
@@ -29,9 +29,7 @@ class SparseConvTestCase(unittest.TestCase):
         F.conv_config.set_global_conv_config(config)
         for kernel_size in kernel_sizes:
             for stride in strides:
-                mean_adiff, max_rdiff = test_single_layer_convolution_forward(
-                    kernel_size=kernel_size, stride=stride
-                )
+                mean_adiff, max_rdiff = test_single_layer_convolution_forward(kernel_size=kernel_size, stride=stride)
                 acc_adiff += mean_adiff
                 acc_rdiff += max_rdiff
                 count += 1

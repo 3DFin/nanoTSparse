@@ -1,14 +1,10 @@
 import math
-import sys
 from typing import Dict, List, Tuple, Union
-
-from functools import cached_property
 
 import numpy as np
 import torch
 from torch import nn
 
-import nanotsparse
 from nanotsparse import SparseTensor
 from nanotsparse.nn import functional as F
 from nanotsparse.utils import make_ntuple
@@ -47,19 +43,11 @@ class Conv2d(nn.Module):
         self.generative = generative
 
         self.kernel_volume = int(np.prod(self.kernel_size))
-        if (
-            self.kernel_volume > 1
-            or self.kernel_volume == 1
-            and self.stride != (1, 1)
-        ):
+        if self.kernel_volume > 1 or self.kernel_volume == 1 and self.stride != (1, 1):
             if self.transposed:
-                self.kernel = nn.Parameter(
-                    torch.zeros(in_channels, out_channels, *self.kernel_size)
-                )
+                self.kernel = nn.Parameter(torch.zeros(in_channels, out_channels, *self.kernel_size))
             else:
-                self.kernel = nn.Parameter(
-                    torch.zeros(out_channels, in_channels, *self.kernel_size)
-                )
+                self.kernel = nn.Parameter(torch.zeros(out_channels, in_channels, *self.kernel_size))
         else:
             self.kernel = nn.Parameter(torch.zeros(in_channels, out_channels))
         if bias:
@@ -81,16 +69,13 @@ class Conv2d(nn.Module):
         return s.format(**self.__dict__)
 
     def reset_parameters(self) -> None:
-        std = 1 / math.sqrt(
-            (self.out_channels if self.transposed else self.in_channels)
-            * self.kernel_volume
-        )
+        std = 1 / math.sqrt((self.out_channels if self.transposed else self.in_channels) * self.kernel_volume)
         self.kernel.data.uniform_(-std, std)
         if self.bias is not None:
             self.bias.data.uniform_(-std, std)
 
     def forward(self, input: SparseTensor) -> SparseTensor:
-        coords=input.coords
+        coords = input.coords
         feats = input.feats
         spatial_range = input.spatial_range
 
@@ -102,29 +87,29 @@ class Conv2d(nn.Module):
                 feats = feats + self.bias
         elif not self.transposed:
             feats = feats.unflatten(-2, spatial_range[:3]).movedim(-1, -3).contiguous()
-            tensor_stride = tuple(
-                input.stride[k] * self.stride[k] for k in range(2)
-            ) + input.stride[2:]
-            feats = torch.nn.functional.conv2d(
-                feats, self.kernel, self.bias, self.stride, self.padding, self.dilation
-            )
+            tensor_stride = tuple(input.stride[k] * self.stride[k] for k in range(2)) + input.stride[2:]
+            feats = torch.nn.functional.conv2d(feats, self.kernel, self.bias, self.stride, self.padding, self.dilation)
             feats = feats.movedim(-3, -1).contiguous()
             tensor_spatial_range = feats.shape[:3] + spatial_range[3:]
             feats = feats.flatten(-4, -2)
         else:
-            tensor_stride = tuple(
-                input.stride[k] // self.stride[k] for k in range(2)
-            ) + input.stride[2:]
+            tensor_stride = tuple(input.stride[k] // self.stride[k] for k in range(2)) + input.stride[2:]
             coords, tensor_spatial_range = input._caches.cmaps[tensor_stride]
             output_padding = tuple(
-                tensor_spatial_range[k + 1] - (
-                    (spatial_range[k + 1] - 1) * self.stride[k]
-                    - 2 * self.padding[k] + self.kernel_size[k]
-                ) for k in range(2)
+                tensor_spatial_range[k + 1]
+                - ((spatial_range[k + 1] - 1) * self.stride[k] - 2 * self.padding[k] + self.kernel_size[k])
+                for k in range(2)
             )
             feats = feats.unflatten(-2, spatial_range[:3]).movedim(-1, -3).contiguous()
             feats = torch.nn.functional.conv_transpose2d(
-                feats, self.kernel, self.bias, self.stride, self.padding, output_padding, 1, self.dilation
+                feats,
+                self.kernel,
+                self.bias,
+                self.stride,
+                self.padding,
+                output_padding,
+                1,
+                self.dilation,
             )
             feats = feats.movedim(-3, -1).contiguous().flatten(-4, -2)
 
@@ -135,9 +120,7 @@ class Conv2d(nn.Module):
             spatial_range=tensor_spatial_range,
         )
         output._caches = input._caches
-        output._caches.cmaps.setdefault(
-            output.stride, (output.coords, output.spatial_range)
-        )
+        output._caches.cmaps.setdefault(output.stride, (output.coords, output.spatial_range))
         return output
 
 
@@ -176,14 +159,8 @@ class Conv3d(nn.Module):
         self._config = config
 
         self.kernel_volume = int(np.prod(self.kernel_size))
-        if (
-            self.kernel_volume > 1
-            or self.kernel_volume == 1
-            and self.stride != (1, 1, 1)
-        ):
-            self.kernel = nn.Parameter(
-                torch.zeros(self.kernel_volume, in_channels, out_channels)
-            )
+        if self.kernel_volume > 1 or self.kernel_volume == 1 and self.stride != (1, 1, 1):
+            self.kernel = nn.Parameter(torch.zeros(self.kernel_volume, in_channels, out_channels))
         else:
             self.kernel = nn.Parameter(torch.zeros(in_channels, out_channels))
         if bias:
@@ -207,10 +184,7 @@ class Conv3d(nn.Module):
         return s.format(**self.__dict__)
 
     def reset_parameters(self) -> None:
-        std = 1 / math.sqrt(
-            (self.out_channels if self.transposed else self.in_channels)
-            * self.kernel_volume
-        )
+        std = 1 / math.sqrt((self.out_channels if self.transposed else self.in_channels) * self.kernel_volume)
         self.kernel.data.uniform_(-std, std)
         if self.bias is not None:
             self.bias.data.uniform_(-std, std)

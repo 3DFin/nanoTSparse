@@ -26,7 +26,7 @@ def sparse_quantize(
     voxel_size: Union[float, Tuple[float, ...]] = 1,
     *,
     return_index: bool = False,
-    return_inverse: bool = False
+    return_inverse: bool = False,
 ) -> List[np.ndarray]:
     if isinstance(voxel_size, (float, int)):
         voxel_size = tuple(repeat(voxel_size, 3))
@@ -35,9 +35,7 @@ def sparse_quantize(
     voxel_size = np.array(voxel_size)
     coords = np.floor(coords / voxel_size).astype(np.int32)
 
-    _, indices, inverse_indices = np.unique(
-        ravel_hash(coords), return_index=True, return_inverse=True
-    )
+    _, indices, inverse_indices = np.unique(ravel_hash(coords), return_index=True, return_inverse=True)
     coords = coords[indices]
 
     outputs = [coords]

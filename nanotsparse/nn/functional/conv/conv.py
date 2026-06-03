@@ -1,8 +1,7 @@
-from typing import List, Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 
-import nanotsparse
 from nanotsparse import SparseTensor
 from nanotsparse.utils import make_ntuple
 
@@ -35,9 +34,7 @@ def conv3d(
     if config is None:
         config = F.conv_config.get_global_conv_config()
         if config is None:
-            config = F.conv_config.get_default_conv_config(
-                conv_mode=conv_mode, training=training
-            )
+            config = F.conv_config.get_default_conv_config(conv_mode=conv_mode, training=training)
 
     # TODO: Deal with kernel volume > 32. (Split mask or unsort)
 
@@ -50,7 +47,7 @@ def conv3d(
         ConvolutionFunction = GatherScatterConvolutionFuntion
         config.ifsort = False
     else:
-        raise ValueError("unsupported dataflow: {}".format(dataflow))
+        raise ValueError(f"unsupported dataflow: {dataflow}")
 
     if kernel_size == (1, 1, 1) and stride == (1, 1, 1) and dilation == (1, 1, 1):
         feats = feats.matmul(weight)
@@ -68,9 +65,7 @@ def conv3d(
         if kmap_mode != "hashmap_on_the_fly":
             hashmap = input._caches.hashmaps.get(input.stride)
         else:
-            hashmap = input._caches.hashmaps.get(
-                tuple(input.stride[k] * stride[k] for k in range(3))
-            )
+            hashmap = input._caches.hashmaps.get(tuple(input.stride[k] * stride[k] for k in range(3)))
 
         spatial_range = input.spatial_range
 
@@ -116,9 +111,7 @@ def conv3d(
     else:
         tensor_stride = tuple(input.stride[k] // stride[k] for k in range(3))
         if not generative:
-            kmap = input._caches.kmaps.get(
-                (tensor_stride, kernel_size, stride, dilation)
-            )
+            kmap = input._caches.kmaps.get((tensor_stride, kernel_size, stride, dilation))
 
             kmap = F.transpose_kernel_map(
                 kmap,
@@ -187,7 +180,5 @@ def conv3d(
             input._caches.hashmaps = dict()
 
     output._caches = input._caches
-    output._caches.cmaps.setdefault(
-        output.stride, (output.coords, output.spatial_range)
-    )
+    output._caches.cmaps.setdefault(output.stride, (output.coords, output.spatial_range))
     return output

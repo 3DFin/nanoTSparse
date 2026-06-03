@@ -1,14 +1,13 @@
+from functools import lru_cache
 from itertools import repeat
 from typing import List, Tuple, Union
-from functools import lru_cache
+
 import torch
 
 __all__ = ["make_ntuple", "make_tensor", "make_divisible"]
 
 
-def make_ntuple(
-    x: Union[int, List[int], Tuple[int, ...], torch.Tensor], ndim: int
-) -> Tuple[int, ...]:
+def make_ntuple(x: Union[int, List[int], Tuple[int, ...], torch.Tensor], ndim: int) -> Tuple[int, ...]:
     if isinstance(x, int):
         x = tuple(repeat(x, ndim))
     elif isinstance(x, list):
@@ -20,7 +19,7 @@ def make_ntuple(
     return x
 
 
-@lru_cache()
+@lru_cache
 def make_tensor(x: Tuple[int, ...], dtype: torch.dtype, device) -> torch.Tensor:
     return torch.tensor(x, dtype=dtype, device=device)
 

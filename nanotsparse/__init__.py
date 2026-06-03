@@ -1,7 +1,4 @@
-from . import _nanotsparse
-
-from . import backends
-
+from . import _nanotsparse, backends
 from .operators import *
 from .tensor import *
 from .version import __version__

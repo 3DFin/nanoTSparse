@@ -1,6 +1,8 @@
-from typing import Any, Dict, Tuple, Union
-from enum import Enum
 import copy
+from enum import Enum
+from typing import Any, Dict, Tuple
+
+import torch
 
 
 class TensorCacheMode(Enum):
@@ -13,14 +15,11 @@ _global_tensor_cache = None
 
 
 def set_tensor_cache_mode(mode: TensorCacheMode):
-    r"""
-    _tensor_cache_mode is set SEPARATE_TENSOR_CACHE by default
+    r"""_tensor_cache_mode is set SEPARATE_TENSOR_CACHE by default
     if _tensor_cache_mode is set to GLOBAL_TENSOR_CACHE
     the _global_tensor_cache must be cleared after each forward/backward
     """
-    assert isinstance(
-        mode, TensorCacheMode
-    ), f"Input must be an instance of TensorCacheMode"
+    assert isinstance(mode, TensorCacheMode), "Input must be an instance of TensorCacheMode"
     global _tensor_cache_mode
     _tensor_cache_mode = mode
 
@@ -50,8 +49,7 @@ def set_global_tensor_cache(tensor_cache):
 
 
 def clear_global_tensor_cache():
-    r"""
-    if _tensor_cache_mode is set to GLOBAL_TENSOR_CACHE
+    r"""If _tensor_cache_mode is set to GLOBAL_TENSOR_CACHE
     the _global_tensor_cache must be cleared after each forward/backward
     """
     global _global_tensor_cache

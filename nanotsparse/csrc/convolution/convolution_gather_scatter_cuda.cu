@@ -1,6 +1,5 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
-
 #include <cuda.h>
 #include <cuda_runtime.h>
 
@@ -9,16 +8,17 @@
 
 #include "convolution_gather_scatter_cuda.h"
 
-#define CONVERT_FLOAT(pointer) (reinterpret_cast<float *>(&(pointer))[0])
-#define CONVERT_HALF2(pointer) (reinterpret_cast<half2 *>(&(pointer))[0])
-#define CONVERT_HALF2_CONST(pointer) (reinterpret_cast<const half2 *>(&(pointer))[0])
-#define CONVERT_INT4(pointer) (reinterpret_cast<int4 *>(&(pointer))[0])
+#define CONVERT_FLOAT(pointer) (reinterpret_cast<float*>(&(pointer))[0])
+#define CONVERT_HALF2(pointer) (reinterpret_cast<half2*>(&(pointer))[0])
+#define CONVERT_HALF2_CONST(pointer) \
+  (reinterpret_cast<const half2*>(&(pointer))[0])
+#define CONVERT_INT4(pointer) (reinterpret_cast<int4*>(&(pointer))[0])
 
 template <typename scalar_t>
 __global__ void gather_kernel(const int n_k, const int n_in, const int c,
-                              const scalar_t *__restrict__ in_feat,
-                              scalar_t *__restrict__ out_feat,
-                              const int *__restrict__ kmap,
+                              const scalar_t* __restrict__ in_feat,
+                              scalar_t* __restrict__ out_feat,
+                              const int* __restrict__ kmap,
                               const bool transpose) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   bool isfloat = sizeof(scalar_t) == 4;
@@ -30,11 +30,9 @@ __global__ void gather_kernel(const int n_k, const int n_in, const int c,
     i = index / (c >> 1);
     j = index % (c >> 1);
   }
-  if (i >= n_k)
-    return;
+  if (i >= n_k) return;
   int in_pos = kmap[2 * i + transpose];
-  if (in_pos < 0)
-    return;
+  if (in_pos < 0) return;
   if (isfloat) {
     out_feat[i * c + j] = in_feat[in_pos * c + j];
   } else {
@@ -45,9 +43,9 @@ __global__ void gather_kernel(const int n_k, const int n_in, const int c,
 
 template <typename scalar_t>
 __global__ void scatter_kernel(const int n_in, const int n_out, const int c,
-                               const scalar_t *__restrict__ in_feat,
-                               scalar_t *__restrict__ out_feat,
-                               const int *__restrict__ kmap,
+                               const scalar_t* __restrict__ in_feat,
+                               scalar_t* __restrict__ out_feat,
+                               const int* __restrict__ kmap,
                                const bool transpose) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   int i, j;
@@ -59,11 +57,9 @@ __global__ void scatter_kernel(const int n_in, const int n_out, const int c,
     i = index / (c >> 1);
     j = index % (c >> 1);
   }
-  if (i >= n_in)
-    return;
+  if (i >= n_in) return;
   int out_pos = kmap[2 * i + 1 - transpose];
-  if (out_pos < 0 || out_pos >= n_out)
-    return;
+  if (out_pos < 0 || out_pos >= n_out) return;
   if (isfloat) {
     out_feat[out_pos * c + j] += in_feat[i * c + j];
   } else {
@@ -75,9 +71,9 @@ __global__ void scatter_kernel(const int n_in, const int n_out, const int c,
 }
 
 at::Tensor conv_forward_gather_scatter_cuda_fallback(
-    at::Tensor &in_feat, at::Tensor &kernel, const at::Tensor &neighbor_map,
+    at::Tensor& in_feat, at::Tensor& kernel, const at::Tensor& neighbor_map,
     const int64_t output_size, const int8_t conv_mode,
-    const at::Tensor &neighbor_offset, const bool transpose) {
+    const at::Tensor& neighbor_offset, const bool transpose) {
   c10::cuda::CUDAGuard guard(in_feat.device());
   if (in_feat.size(1) != kernel.size(1)) {
     throw std::invalid_argument("Input feature size and kernel size mismatch");
@@ -211,9 +207,9 @@ at::Tensor conv_forward_gather_scatter_cuda_fallback(
 }
 
 std::vector<at::Tensor> conv_backward_gather_scatter_cuda(
-    const at::Tensor &in_feats, const at::Tensor &grad_out_feats,
-    const at::Tensor &kernel, const at::Tensor &neighbor_maps,
-    const at::Tensor &neighbor_offsets, bool transpose) {
+    const at::Tensor& in_feats, const at::Tensor& grad_out_feats,
+    const at::Tensor& kernel, const at::Tensor& neighbor_maps,
+    const at::Tensor& neighbor_offsets, bool transpose) {
   c10::cuda::CUDAGuard guard(in_feats.device());
 
   auto grad_in_feats = torch::zeros_like(in_feats);

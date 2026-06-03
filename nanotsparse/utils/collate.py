@@ -40,9 +40,7 @@ def sparse_collate_fn(inputs: List[Any]) -> Any:
             if isinstance(inputs[0][name], dict):
                 output[name] = sparse_collate_fn([input[name] for input in inputs])
             elif isinstance(inputs[0][name], np.ndarray):
-                output[name] = torch.stack(
-                    [torch.tensor(input[name]) for input in inputs], dim=0
-                )
+                output[name] = torch.stack([torch.tensor(input[name]) for input in inputs], dim=0)
             elif isinstance(inputs[0][name], torch.Tensor):
                 output[name] = torch.stack([input[name] for input in inputs], dim=0)
             elif isinstance(inputs[0][name], SparseTensor):

@@ -39,14 +39,17 @@ class ToDenseBEVConvolution(nn.Module):
 
     Group points with the same z value together and apply the same FC kernel.
     Aggregate the results by summing up all features within one BEV grid.
+
     Note:
         This module consumes larger memory than `ToBEVHeightCompression`.
+
     Args:
         in_channels: Number of input channels
         out_channels: Number of output channels
         shape: Shape of BEV map
         dim: Dimension index for z (default: 1 for KITTI coords)
         bias: Whether to use bias
+
     """
 
     def __init__(
@@ -70,16 +73,12 @@ class ToDenseBEVConvolution(nn.Module):
         self.n_kernels = int(self.shape[self.dim])
         self.bev_dims = [i for i in range(3) if i != self.dim]
         self.bev_shape = self.shape[self.bev_dims]
-        self.kernel = nn.Parameter(
-            torch.zeros(self.n_kernels, in_channels, out_channels)
-        )
+        self.kernel = nn.Parameter(torch.zeros(self.n_kernels, in_channels, out_channels))
         self.bias = nn.Parameter(torch.zeros(1, out_channels)) if bias else 0
         self.reset_parameters()
 
     def extra_repr(self):
-        return "in_channels={}, out_channels={}, n_kernels={}".format(
-            self.in_channels, self.out_channels, self.n_kernels
-        )
+        return f"in_channels={self.in_channels}, out_channels={self.out_channels}, n_kernels={self.n_kernels}"
 
     def reset_parameters(self):
         std = 1.0 / math.sqrt(self.in_channels)
@@ -89,17 +88,11 @@ class ToDenseBEVConvolution(nn.Module):
         coords, feats, stride = input.coords, input.feats, input.stride
         stride = torch.tensor(stride).unsqueeze(dim=0).to(feats)[:, self.dim]
 
-        kernel = torch.index_select(
-            self.kernel, 0, torch.div(coords[:, self.dim], stride).trunc().long()
-        )
+        kernel = torch.index_select(self.kernel, 0, torch.div(coords[:, self.dim], stride).trunc().long())
         feats = (feats.unsqueeze(dim=-1) * kernel).sum(1) + self.bias
         coords = (coords - self.offset).t()[[0] + self.bev_dims].long()
         coords[1:] = torch.div(coords[1:], stride).trunc().long()
-        indices = (
-            coords[0] * int(self.bev_shape.prod())
-            + coords[1] * int(self.bev_shape[1])
-            + coords[2]
-        )
+        indices = coords[0] * int(self.bev_shape.prod()) + coords[1] * int(self.bev_shape[1]) + coords[2]
         batch_size = coords[0].max().item() + 1
         output = torch.sparse_coo_tensor(
             indices.unsqueeze(dim=0),
@@ -138,18 +131,14 @@ class ToBEVConvolution(nn.Module):
         self.kernel.data.uniform_(-std, std)
 
     def extra_repr(self):
-        return "in_channels={}, out_channels={}, n_kernels={}, stride={}".format(
-            self.in_channels, self.out_channels, self.n_kernels, self.stride
-        )
+        return f"in_channels={self.in_channels}, out_channels={self.out_channels}, n_kernels={self.n_kernels}, stride={self.stride}"
 
     def forward(self, input: SparseTensor) -> torch.Tensor:
         coords, feats, stride = input.coords, input.feats, input.stride
         ratio = stride * self.stride
         stride = torch.tensor(stride).unsqueeze(dim=0).to(feats)[:, self.dim]
 
-        kernels = torch.index_select(
-            self.kernel, 0, torch.div(coords[:, self.dim].long(), stride).trunc()
-        )
+        kernels = torch.index_select(self.kernel, 0, torch.div(coords[:, self.dim].long(), stride).trunc())
         feats = (feats.unsqueeze(dim=-1) * kernels).sum(1) + self.bias
         coords = coords.t().long()
         coords[self.dim, :] = 0
@@ -168,6 +157,7 @@ class ToBEVHeightCompression(nn.Module):
         (Note: output channels = channels x #unique z values)
         shape: Shape of BEV map
         dim: Dimension index for z (default: 1 for KITTI coords)
+
     """
 
     def __init__(
@@ -206,10 +196,7 @@ class ToBEVHeightCompression(nn.Module):
         coords[1:] = torch.div(coords[1:], stride).trunc().long()
         coords[-1] = torch.clamp(coords[-1], 0, shape[-1] - 1)
         indices = (
-            coords[0] * int(shape.prod())
-            + coords[1] * int(shape[1:].prod())
-            + coords[2] * int(shape[2])
-            + coords[3]
+            coords[0] * int(shape.prod()) + coords[1] * int(shape[1:].prod()) + coords[2] * int(shape[2]) + coords[3]
         )
         batch_size = coords[0].max().item() + 1
         output = torch.sparse_coo_tensor(

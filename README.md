@@ -5,11 +5,12 @@
 If you use this project, please cite the original `TorchSparse` project (see at the end of the Readme).
 
 # Notable Changes:
-- Compile and work on Windows (CPU and CUDA), Linux (CPU and CUDA) and macOS (CPU) 
+
+- Compile and work on Windows (CPU and CUDA), Linux (CPU and CUDA) and macOS (CPU)
 - We axed the FoD kernel and other auxiliary functions (in .py and .c files) to improve compilation speed and overall maintainability.
 - The entire Gather-GEMM-Scatter algorithm on GPU has been trimmed and simplified. (removed `conv mode > 1` since it is unused, and remove mask generation on the hashmap, which incurs a runtime penalty if not required). `[nano]TS` now embeds only the simplest Gather-GEMM-Scatter flavor from `Torchsparse++`. For performance scenarii, ImplicitGEMM is enough.
 - CPU Workflow Re-enabled: This feature was previously a no-op in `TorchSparse++` 2.1. We have now implemented a CPU Hashtable and significantly improved parallelization (avoiding thread oversubscriptions during Gather/Scatter operations).
-- Dependencies modernization:  We added `tsl::robin_map` (replacing `sparsehash`) and replaced `openMP` with `Taskflow`. While `Taskflow` might seem like overkill, it is header-only and 100% cross-platform (working seamlessly on macOS and supporting all types of integer indexing on Windows).
+- Dependencies modernization: We added `tsl::robin_map` (replacing `sparsehash`) and replaced `openMP` with `Taskflow`. While `Taskflow` might seem like overkill, it is header-only and 100% cross-platform (working seamlessly on macOS and supporting all types of integer indexing on Windows).
 - We now cache the full hashmap instead of just the key/value pair as tensors. This approach is more robust, as it avoids cumbersome workflows and allows for better alignment between the CPU and GPU versions.
 - We improved the general training runtime by re-enabling `amp` on CUDA and fixing a double `__sync_threads()` call.
 - Mask Sorting Fix (for backward): We fixed an inconsistent behavior regarding mask sorting in the backward pass for small kernels. In `Torchsparse++` 2.1, the backward pass *always* used a sorted mask for small kernels (with a hardcoded threshold `kernel_volume < 32`) even when `ifsort=false` was used. Bitmask generation and sorting were *always* performed during training, even if not required afterward. This was an hidden control flow that unnecessarily consumes time and memory. This behavior was caused by the fact that bitmasks were coded on 32-bit wide integers, requiring the kernel volume to be split such that it does not exceeded 32 offsets. For example, a single split is fine for a 3x3x3 kernel, but a 5x5x5 kernel requires at least 4 splits.
@@ -17,6 +18,7 @@ If you use this project, please cite the original `TorchSparse` project (see at 
 - Distribution Compatibility: We created an ABI-compatible build (using Python's stable ABI) to simplify distribution.
 
 # TODO, WIP:
+
 - Add `CIBuildWheels` workflow, at least for CPU.
 - Implement proper `TORCH_CHECK` for functions.
 - Add FakeTensors for compile compat.
@@ -27,9 +29,9 @@ If you use this project, please cite the original `TorchSparse` project (see at 
 # [ORIGINAL TorchSparse README]
 
 <p align="center">
-<img 
+<img
    src="./docs/figs/torchsparse.png"
-   height="300" 
+   height="300"
 >
 
 ### [website](http://torchsparse.mit.edu/) | [paper (MICRO 2023)](https://www.dropbox.com/scl/fi/obdku0kqxjlkvuom2opk4/paper.pdf?rlkey=0zmy8eq9fzllgkx54zsvwsecf&dl=0) | [paper (MLSys 2022)](https://arxiv.org/abs/2204.10319) | [presentation](https://www.youtube.com/watch?v=IIh4EwmcLUs) | [documents](http://torchsparse-docs.github.io/) | [pypi server](http://pypi.hanlab.ai/simple/torchsparse)
@@ -40,25 +42,25 @@ Point cloud computation has become an increasingly more important workload for a
 
 ## News
 
-**\[2024/11\]** TorchSparse++ is now supporting [MMDetection3D](https://github.com/open-mmlab/mmdetection3d) and [OpenPCDet](https://github.com/open-mmlab/OpenPCDet) via plugins! [A full demo](./examples/) is available.
+**[2024/11]** TorchSparse++ is now supporting [MMDetection3D](https://github.com/open-mmlab/mmdetection3d) and [OpenPCDet](https://github.com/open-mmlab/OpenPCDet) via plugins! [A full demo](./examples/) is available.
 
-**\[2023/11\]** TorchSparse++ has been adopted by [One-2-3-45++](https://arxiv.org/abs/2311.07885) from Prof. Hao Su's lab (UCSD) for 3D object generation!
+**[2023/11]** TorchSparse++ has been adopted by [One-2-3-45++](https://arxiv.org/abs/2311.07885) from Prof. Hao Su's lab (UCSD) for 3D object generation!
 
-**\[2023/10\]** We present TorchSparse++ at 56th IEEE/ACM International Symposium on Microarchitecture (MICRO 2023). We also fully release the source code of TorchSparse++.
+**[2023/10]** We present TorchSparse++ at 56th IEEE/ACM International Symposium on Microarchitecture (MICRO 2023). We also fully release the source code of TorchSparse++.
 
-**\[2023/6\]** TorchSparse++ has been adopted by [One-2-3-45](https://arxiv.org/abs/2306.16928) from Prof. Hao Su's lab (UCSD) for 3D mesh reconstruction!
+**[2023/6]** TorchSparse++ has been adopted by [One-2-3-45](https://arxiv.org/abs/2306.16928) from Prof. Hao Su's lab (UCSD) for 3D mesh reconstruction!
 
-**\[2023/6\]** TorchSparse++ has been released and presented at CVPR 2023 workshops on autonomous driving. It achieves 1.7-2.9x inference speedup over previous state-of-the-art systems.
+**[2023/6]** TorchSparse++ has been released and presented at CVPR 2023 workshops on autonomous driving. It achieves 1.7-2.9x inference speedup over previous state-of-the-art systems.
 
-**\[2023/1\]** [Argoverse 2](https://arxiv.org/abs/2301.00493) dataset implements their baseline detector with TorchSparse.
+**[2023/1]** [Argoverse 2](https://arxiv.org/abs/2301.00493) dataset implements their baseline detector with TorchSparse.
 
-**\[2022/8\]** TorchSparse is presented at MLSys 2022. Talk video is available [here](https://www.youtube.com/watch?v=IIh4EwmcLUs).
+**[2022/8]** TorchSparse is presented at MLSys 2022. Talk video is available [here](https://www.youtube.com/watch?v=IIh4EwmcLUs).
 
-**\[2022/6\]** TorchSparse has been adopted by [SparseNeuS](https://arxiv.org/pdf/2206.05737) for neural surface reconstruction.
+**[2022/6]** TorchSparse has been adopted by [SparseNeuS](https://arxiv.org/pdf/2206.05737) for neural surface reconstruction.
 
-**\[2022/1\]** TorchSparse has been accepted to MLSys 2022, featuring adaptive matrix multiplication grouping and locality-aware memory access.
+**[2022/1]** TorchSparse has been accepted to MLSys 2022, featuring adaptive matrix multiplication grouping and locality-aware memory access.
 
-**\[2021/6\]** TorchSparse v1.4 has been released.
+**[2021/6]** TorchSparse v1.4 has been released.
 
 ## Installation
 
@@ -66,23 +68,23 @@ We provide pre-built torchsparse v2.1.0 packages (recommended) with different Py
 
 1. Ensure at least PyTorch 1.9.0 is installed:
 
-    ```bash
-    python -c "import torch; print(torch.__version__)"
-    >>> 1.10.0
-    ```
+   ```bash
+   python -c "import torch; print(torch.__version__)"
+   >>> 1.10.0
+   ```
 
 1. If you want to use TorchSparse with gpus, please ensure PyTorch was installed with CUDA:
 
-    ```bash
-    python -c "import torch; print(torch.version.cuda)"
-    >>> 11.3
-    ```
+   ```bash
+   python -c "import torch; print(torch.version.cuda)"
+   >>> 11.3
+   ```
 
 1. Then the right TorchSparse wheel can be found and installed by running the installation script:
 
-    ```bash
-    python -c "$(curl -fsSL https://raw.githubusercontent.com/mit-han-lab/torchsparse/master/install.py)"
-    ```
+   ```bash
+   python -c "$(curl -fsSL https://raw.githubusercontent.com/mit-han-lab/torchsparse/master/install.py)"
+   ```
 
 If Pypi server does not work as expected, no worries, you can still manually download the wheels. The wheels are listed in [this website](http://pypi.hanlab.ai/simple/torchsparse). One can utilize our installation script to automatically determine the version number used to index the wheels. For example, if you use PyTorch 1.11.0, CUDA 11.5, the version number will end up to be 2.1.0+torch111cu115. You can then select the proper wheel according to your Python version.
 
@@ -106,7 +108,7 @@ without the need to clone the repository.
 
 ![eval_benchmark.png](./docs/figs/eval_benchmark.png)
 
-TorchSparse significantly outperforms existing point cloud inference engines in both 3D object detection and LiDAR segmentation benchmarks across three generations of GPU architecture (Pascal, Turing and Ampere) and all precisions (FP16, TF32, FP32). It is up to **1.7x** faster than state-of-the-art SpConv 2.3.5 and is up to **2.2x** faster than  
+TorchSparse significantly outperforms existing point cloud inference engines in both 3D object detection and LiDAR segmentation benchmarks across three generations of GPU architecture (Pascal, Turing and Ampere) and all precisions (FP16, TF32, FP32). It is up to **1.7x** faster than state-of-the-art SpConv 2.3.5 and is up to **2.2x** faster than
 TorchSparse-MLsys on cloud GPUs. It also improves the latency of SpConv 2.3.5 by **1.25×** on Orin.
 
 ### Training benchmarks

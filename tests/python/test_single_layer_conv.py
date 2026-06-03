@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, Union, Optional, List
+from typing import Tuple, Union
 
 import numpy as np
 import torch
@@ -39,7 +39,7 @@ class TestSparseConv(nn.Module):
             )
         ]
 
-        for i in range(1, num_layers):
+        for _ in range(1, num_layers):
             layers.append(
                 spnn.Conv3d(
                     out_channels,
@@ -87,7 +87,7 @@ class TestTorchConv(nn.Module):
             )
         ]
 
-        for i in range(1, num_layers):
+        for _ in range(1, num_layers):
             layers.append(
                 nn.Conv3d(
                     in_channels,
@@ -126,7 +126,7 @@ def test_single_layer_convolution_forward(
     shape = make_ntuple(shape, ndim=3)
     if num_points > np.prod(shape):
         print("Warning: num_points exceeds coords range!")
-        print("         reduce num_points to %d!" % np.prod(shape))
+        print(f"         reduce num_points to {np.prod(shape)}!")
         num_points = np.prod(shape)
     num_points = [num_points] * batch_size
 
@@ -183,9 +183,7 @@ def test_single_layer_convolution_forward(
     feats_t = torch.from_numpy(feats).to(torch_dtype).to(device)
     dense_feats_t = torch.from_numpy(dense_feats).to(torch_dtype).to(device)
 
-    filters = np.random.uniform(
-        -1, 1, size=[kernel_size, kernel_size, kernel_size, IC, OC]
-    ).astype(np_dtype)
+    filters = np.random.uniform(-1, 1, size=[kernel_size, kernel_size, kernel_size, IC, OC]).astype(np_dtype)
     filters_t = torch.from_numpy(filters).to(torch_dtype).to(device)
 
     if kernel_size % 2 == 1:
@@ -238,9 +236,7 @@ if __name__ == "__main__":
         config.split_mask_num = kernel_size
         F.conv_config.set_global_conv_config(config)
         for stride in strides:
-            mean_adiff, max_rdiff = test_single_layer_convolution_forward(
-                kernel_size=kernel_size, stride=stride
-            )
+            mean_adiff, max_rdiff = test_single_layer_convolution_forward(kernel_size=kernel_size, stride=stride)
             print("****************************")
             print("kernel_size, stride:", kernel_size, stride)
             print("mean_adiff, max_rdiff:", mean_adiff, max_rdiff)

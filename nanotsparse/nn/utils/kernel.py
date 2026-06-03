@@ -1,5 +1,3 @@
-from typing import Tuple, Union
-
 import numpy as np
 import torch
 
@@ -9,9 +7,9 @@ __all__ = ["get_kernel_offsets"]
 
 
 def get_kernel_offsets(
-    size: Union[int, Tuple[int, ...]],
-    stride: Union[int, Tuple[int, ...]] = 1,
-    dilation: Union[int, Tuple[int, ...]] = 1,
+    size: int | tuple[int, ...],
+    stride: int | tuple[int, ...] = 1,
+    dilation: int | tuple[int, ...] = 1,
     device="cpu",
 ) -> torch.Tensor:
     size = make_ntuple(size, ndim=3)

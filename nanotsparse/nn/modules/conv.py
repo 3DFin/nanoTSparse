@@ -1,5 +1,4 @@
 import math
-from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -17,14 +16,14 @@ class Conv2d(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size: Union[int, List[int], Tuple[int, ...]] = 3,
-        stride: Union[int, List[int], Tuple[int, ...]] = 1,
-        padding: Union[int, Tuple[int, ...]] = 0,
+        kernel_size: int | list[int] | tuple[int, ...] = 3,
+        stride: int | list[int] | tuple[int, ...] = 1,
+        padding: int | tuple[int, ...] = 0,
         dilation: int = 1,
         bias: bool = False,
         transposed: bool = False,
         generative: bool = False,
-        config: Dict = None,
+        config: dict = None,
     ) -> None:
         super().__init__()
         self.in_channels = in_channels
@@ -129,14 +128,14 @@ class Conv3d(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size: Union[int, List[int], Tuple[int, ...]] = 3,
-        stride: Union[int, List[int], Tuple[int, ...]] = 1,
-        padding: Union[int, Tuple[int, ...]] = 0,
+        kernel_size: int | list[int] | tuple[int, ...] = 3,
+        stride: int | list[int] | tuple[int, ...] = 1,
+        padding: int | tuple[int, ...] = 0,
         dilation: int = 1,
         bias: bool = False,
         transposed: bool = False,
         generative: bool = False,
-        config: Dict = None,
+        config: dict = None,
     ) -> None:
         super().__init__()
         self.in_channels = in_channels

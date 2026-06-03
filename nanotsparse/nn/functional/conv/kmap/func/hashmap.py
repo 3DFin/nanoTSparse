@@ -1,5 +1,3 @@
-from typing import Dict, Optional, Tuple
-
 import torch
 
 import nanotsparse
@@ -7,20 +5,20 @@ from nanotsparse.utils import make_tensor
 
 
 def build_kmap_implicit_GEMM_hashmap(
-    kmap: Dict,
+    kmap: dict,
     input_node_num: int,
     _coords: torch.Tensor,
     kernel_size: torch.Tensor,
     stride: torch.Tensor,
     padding: torch.Tensor,
-    spatial_range: Optional[Tuple[int]] = None,
+    spatial_range: tuple[int] | None = None,
     cta_M: int = 128,
     subm: bool = False,
     ifsort: bool = False,
     split_mask_num: int = 1,
     downsample_mode: str = "spconv",
     generative: bool = False,
-) -> Dict:
+) -> dict:
     from nanotsparse.nn import functional as F
 
     if subm and not generative:
@@ -97,18 +95,18 @@ def build_kmap_implicit_GEMM_hashmap(
 
 
 def build_kmap_Gather_Scatter_hashmap(
-    kmap: Dict,
+    kmap: dict,
     input_node_num: int,
     _coords: torch.Tensor,
     kernel_size: torch.Tensor,
     stride: torch.Tensor,
     padding: torch.Tensor,
-    spatial_range: Optional[Tuple[int]] = None,
+    spatial_range: tuple[int] | None = None,
     cta_M: int = 128,
     subm: bool = False,
     downsample_mode: str = "spconv",
     generative: bool = False,
-) -> Dict:
+) -> dict:
 
     kmap = build_kmap_implicit_GEMM_hashmap(
         kmap,

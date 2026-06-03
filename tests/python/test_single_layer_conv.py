@@ -1,5 +1,3 @@
-from typing import Tuple, Union
-
 import numpy as np
 import torch
 from torch import nn
@@ -110,7 +108,7 @@ class TestTorchConv(nn.Module):
 
 def test_single_layer_convolution_forward(
     batch_size: int = 1,
-    shape: Union[int, Tuple[int, ...]] = 5,
+    shape: int | tuple[int, ...] = 5,
     num_points: int = 20,
     IC: int = 16,
     OC: int = 32,

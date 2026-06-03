@@ -1,5 +1,3 @@
-from typing import Optional, Tuple, Union
-
 import torch
 
 from nanotsparse.nn.utils.kernel import get_kernel_offsets
@@ -10,10 +8,10 @@ __all__ = ["spupsample_generative"]
 
 def spupsample_generative(
     _coords: torch.Tensor,
-    stride: Union[int, Tuple[int, ...]] = 2,
-    kernel_size: Union[int, Tuple[int, ...]] = 2,
+    stride: int | tuple[int, ...] = 2,
+    kernel_size: int | tuple[int, ...] = 2,
     padding: torch.Tensor = 0,
-    spatial_range: Optional[Tuple[int]] = None,
+    spatial_range: tuple[int] | None = None,
 ) -> torch.Tensor:
     stride = make_ntuple(stride, ndim=3)
     kernel_size = make_ntuple(kernel_size, ndim=3)

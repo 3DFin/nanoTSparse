@@ -1,5 +1,6 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
+#include <c10/util/Exception.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 
@@ -75,9 +76,49 @@ at::Tensor conv_forward_gather_scatter_cuda_fallback(
     const int64_t output_size, const int8_t conv_mode,
     const at::Tensor& neighbor_offset, const bool transpose) {
   c10::cuda::CUDAGuard guard(in_feat.device());
-  if (in_feat.size(1) != kernel.size(1)) {
-    throw std::invalid_argument("Input feature size and kernel size mismatch");
-  }
+
+  // Input validation
+  TORCH_CHECK(in_feat.dim() == 2,
+              "in_feat must be a 2D tensor (num_points, in_channels)");
+  TORCH_CHECK(in_feat.numel() > 0, "in_feat tensor must not be empty");
+  TORCH_CHECK(in_feat.device().is_cuda(), "in_feat must be a CUDA tensor");
+  TORCH_CHECK(in_feat.scalar_type() == at::ScalarType::Float ||
+                  in_feat.scalar_type() == at::ScalarType::Half,
+              "in_feat must be a Float or a Half tensor");
+
+  TORCH_CHECK(
+      kernel.dim() == 3,
+      "kernel must be a 3D tensor (kernel_volume, in_channels, out_channels)");
+  TORCH_CHECK(kernel.numel() > 0, "kernel tensor must not be empty");
+  TORCH_CHECK(kernel.device().is_cuda(), "kernel must be a CUDA tensor");
+  TORCH_CHECK(kernel.scalar_type() == at::ScalarType::Float ||
+                  kernel.scalar_type() == at::ScalarType::Half,
+              "kernel must be a Float or a Half tensor");
+
+  TORCH_CHECK(neighbor_map.dim() == 1, "neighbor_map must be a 1D tensor");
+  TORCH_CHECK(neighbor_map.scalar_type() == at::ScalarType::Int,
+              "neighbor_map must be an Int tensor");
+  TORCH_CHECK(neighbor_map.device().is_cuda(),
+              "neighbor_map must be a CUDA tensor");
+
+  TORCH_CHECK(neighbor_offset.dim() == 1,
+              "neighbor_offset must be a 1D tensor");
+  TORCH_CHECK(neighbor_offset.scalar_type() == at::ScalarType::Int,
+              "neighbor_offset must be an Int tensor");
+  TORCH_CHECK(neighbor_offset.device().is_cuda(),
+              "neighbor_offset must be a CUDA tensor");
+
+  TORCH_CHECK(output_size > 0, "output_size must be positive");
+
+  // Dimension compatibility checks
+  TORCH_CHECK(in_feat.size(1) == kernel.size(1),
+              "Input feature size (in_feat.size(1) = ", in_feat.size(1),
+              ") and kernel input channels (kernel.size(1) = ", kernel.size(1),
+              ") must match");
+
+  TORCH_CHECK(kernel.size(0) == neighbor_offset.size(0), "kernel volume (",
+              kernel.size(0), ") must match neighbor_offset size (",
+              neighbor_offset.size(0), ")");
   bool is_half = in_feat.scalar_type() == at::ScalarType::Half;
   auto options =
       torch::TensorOptions().dtype(in_feat.dtype()).device(in_feat.device());
@@ -211,6 +252,60 @@ std::vector<at::Tensor> conv_backward_gather_scatter_cuda(
     const at::Tensor& kernel, const at::Tensor& neighbor_maps,
     const at::Tensor& neighbor_offsets, bool transpose) {
   c10::cuda::CUDAGuard guard(in_feats.device());
+
+  // Input validation
+  TORCH_CHECK(in_feats.dim() == 2,
+              "in_feats must be a 2D tensor (num_points, in_channels)");
+  TORCH_CHECK(in_feats.numel() > 0, "in_feats tensor must not be empty");
+  TORCH_CHECK(in_feats.device().is_cuda(), "in_feats must be a CUDA tensor");
+  TORCH_CHECK(in_feats.scalar_type() == at::ScalarType::Float ||
+                  in_feats.scalar_type() == at::ScalarType::Half,
+              "in_feats must be a Float or a Half tensor");
+
+  TORCH_CHECK(grad_out_feats.dim() == 2, "grad_out_feats must be a 2D tensor");
+  TORCH_CHECK(grad_out_feats.numel() > 0,
+              "grad_out_feats tensor must not be empty");
+  TORCH_CHECK(grad_out_feats.device().is_cuda(),
+              "grad_out_feats must be a CUDA tensor");
+  TORCH_CHECK(grad_out_feats.scalar_type() == in_feats.scalar_type(),
+              "grad_out_feats must have the same dtype as in_feats");
+
+  TORCH_CHECK(
+      kernel.dim() == 3,
+      "kernel must be a 3D tensor (kernel_volume, in_channels, out_channels)");
+  TORCH_CHECK(kernel.numel() > 0, "kernel tensor must not be empty");
+  TORCH_CHECK(kernel.device().is_cuda(), "kernel must be a CUDA tensor");
+  TORCH_CHECK(kernel.scalar_type() == at::ScalarType::Float ||
+                  kernel.scalar_type() == at::ScalarType::Half,
+              "kernel must be a Float or a Half tensor");
+
+  TORCH_CHECK(neighbor_maps.dim() == 1, "neighbor_maps must be a 1D tensor");
+  TORCH_CHECK(neighbor_maps.scalar_type() == at::ScalarType::Int,
+              "neighbor_maps must be an Int tensor");
+  TORCH_CHECK(neighbor_maps.device().is_cuda(),
+              "neighbor_maps must be a CUDA tensor");
+
+  TORCH_CHECK(neighbor_offsets.dim() == 1,
+              "neighbor_offsets must be a 1D tensor");
+  TORCH_CHECK(neighbor_offsets.scalar_type() == at::ScalarType::Int,
+              "neighbor_offsets must be an Int tensor");
+  TORCH_CHECK(neighbor_offsets.device().is_cuda(),
+              "neighbor_offsets must be a CUDA tensor");
+
+  // Dimension compatibility checks
+  TORCH_CHECK(in_feats.size(1) == kernel.size(1),
+              "Input feature size (in_feats.size(1) = ", in_feats.size(1),
+              ") and kernel input channels (kernel.size(1) = ", kernel.size(1),
+              ") must match");
+
+  TORCH_CHECK(kernel.size(0) == neighbor_offsets.size(0), "kernel volume (",
+              kernel.size(0), ") must match neighbor_offsets size (",
+              neighbor_offsets.size(0), ")");
+
+  TORCH_CHECK(kernel.size(2) == grad_out_feats.size(1),
+              "kernel output channels (", kernel.size(2),
+              ") must match grad_out_feats channels (", grad_out_feats.size(1),
+              ")");
 
   auto grad_in_feats = torch::zeros_like(in_feats);
   auto grad_kernel = torch::zeros_like(kernel);

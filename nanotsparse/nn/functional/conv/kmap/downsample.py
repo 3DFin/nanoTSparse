@@ -1,5 +1,3 @@
-from typing import Optional, Tuple, Union
-
 import torch
 
 import nanotsparse
@@ -10,10 +8,10 @@ __all__ = ["spdownsample"]
 
 def spdownsample(
     _coords: torch.Tensor,
-    stride: Union[int, Tuple[int, ...]] = 2,
-    kernel_size: Union[int, Tuple[int, ...]] = 2,
+    stride: int | tuple[int, ...] = 2,
+    kernel_size: int | tuple[int, ...] = 2,
     padding: torch.Tensor = 0,
-    spatial_range: Optional[Tuple[int]] = None,
+    spatial_range: tuple[int] | None = None,
     downsample_mode: str = "spconv",
 ) -> torch.Tensor:
     assert downsample_mode in ["spconv", "minkowski"]

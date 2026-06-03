@@ -1,5 +1,3 @@
-from typing import Optional, Tuple
-
 import torch
 
 from nanotsparse import SparseTensor
@@ -9,8 +7,8 @@ __all__ = ["spcrop"]
 
 def spcrop(
     input: SparseTensor,
-    coords_min: Optional[Tuple[int, ...]] = None,
-    coords_max: Optional[Tuple[int, ...]] = None,
+    coords_min: tuple[int, ...] | None = None,
+    coords_max: tuple[int, ...] | None = None,
 ) -> SparseTensor:
     coords, feats, stride = input.coords, input.feats, input.stride
 

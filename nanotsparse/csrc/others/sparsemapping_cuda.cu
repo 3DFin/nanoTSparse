@@ -1,4 +1,5 @@
 #include <c10/cuda/CUDAGuard.h>
+#include <c10/util/Exception.h>
 
 #include <algorithm>
 #include <cstdint>
@@ -379,6 +380,24 @@ std::vector<at::Tensor> build_mask_from_kmap(int64_t n_points,
                                              const at::Tensor& _kmap,
                                              const at::Tensor& _kmap_sizes) {
   c10::cuda::CUDAGuard guard(_kmap.device());
+
+  // Input validation
+  TORCH_CHECK(n_points > 0, "n_points must be positive");
+  TORCH_CHECK(n_out_points > 0, "n_out_points must be positive");
+
+  TORCH_CHECK(_kmap.dim() == 1, "kmap must be a 1D tensor");
+  TORCH_CHECK(_kmap.scalar_type() == at::ScalarType::Int,
+              "kmap must be an Int tensor");
+  TORCH_CHECK(_kmap.numel() > 0, "kmap tensor must not be empty");
+  TORCH_CHECK(_kmap.device().is_cuda(), "kmap must be a CUDA tensor");
+
+  TORCH_CHECK(_kmap_sizes.dim() == 1, "kmap_sizes must be a 1D tensor");
+  TORCH_CHECK(_kmap_sizes.scalar_type() == at::ScalarType::Int,
+              "kmap_sizes must be an Int tensor");
+  TORCH_CHECK(_kmap_sizes.numel() > 0, "kmap_sizes tensor must not be empty");
+  TORCH_CHECK(_kmap_sizes.device().is_cuda(),
+              "kmap_sizes must be a CUDA tensor");
+
   int kernel_volume = _kmap_sizes.size(0);
   auto options =
       at::TensorOptions().dtype(at::ScalarType::Int).device(_kmap.device());

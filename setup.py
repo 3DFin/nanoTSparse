@@ -128,7 +128,7 @@ setup(
     url="https://github.com/3DFin/nanoTorchSparse",
     include_dirs=include_dirs,
     include_package_data=True,
-    install_requires=["numpy", "tqdm", "torch"],
+    install_requires=["numpy", "torch"],
     cmdclass={"build_ext": build_ext},
     options={"bdist_wheel": {"py_limited_api": "cp310"}},
 )

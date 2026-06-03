@@ -1,5 +1,3 @@
-from typing import Tuple, Union
-
 import torch
 
 from nanotsparse.utils import make_ntuple
@@ -31,8 +29,8 @@ class SparseTensor:
         self,
         feats: torch.Tensor,
         coords: torch.Tensor,
-        stride: Union[int, Tuple[int, ...]] = 1,
-        spatial_range: Union[int, Tuple[int, ...]] = None,
+        stride: int | tuple[int, ...] = 1,
+        spatial_range: int | tuple[int, ...] = None,
     ) -> None:
         self.feats = feats
         self.coords = coords
@@ -68,11 +66,11 @@ class SparseTensor:
         self.coords = coords
 
     @property
-    def s(self) -> Tuple[int, ...]:
+    def s(self) -> tuple[int, ...]:
         return self.stride
 
     @s.setter
-    def s(self, stride: Union[int, Tuple[int, ...]]) -> None:
+    def s(self, stride: int | tuple[int, ...]) -> None:
         self.stride = make_ntuple(stride, ndim=3)
 
     def cpu(self):

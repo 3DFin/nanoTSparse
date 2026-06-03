@@ -1,5 +1,4 @@
 import math
-from typing import List, Tuple, Union
 
 import torch
 from torch import nn
@@ -56,8 +55,8 @@ class ToDenseBEVConvolution(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        shape: Union[List[int], Tuple[int, int, int], torch.Tensor],
-        offset: Tuple[int, int, int] = (0, 0, 0),
+        shape: list[int] | tuple[int, int, int] | torch.Tensor,
+        offset: tuple[int, int, int] = (0, 0, 0),
         dim: int = 1,
         bias: bool = False,
     ) -> None:
@@ -163,8 +162,8 @@ class ToBEVHeightCompression(nn.Module):
     def __init__(
         self,
         channels: int,
-        shape: Union[List[int], Tuple[int, int, int], torch.Tensor],
-        offset: Tuple[int, int, int] = (0, 0, 0),
+        shape: list[int] | tuple[int, int, int] | torch.Tensor,
+        offset: tuple[int, int, int] = (0, 0, 0),
         dim: int = 1,
     ) -> None:
         super().__init__()

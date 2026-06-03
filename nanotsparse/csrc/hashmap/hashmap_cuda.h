@@ -95,7 +95,7 @@ class GPUHashTable {
         free_pointers(false),
         table_keys(table_keys.data_ptr<key_type>()),
         table_vals(table_vals.data_ptr<val_type>()),
-        _divisor(128){};
+        _divisor(128) {};
   ~GPUHashTable() {
     if (free_pointers) {
       cudaFree(table_keys);

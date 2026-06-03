@@ -10,9 +10,9 @@
 #define MAX_KVOL 27
 
 template <typename type_int>  // int32_t or int64_t
-__host__ __device__ inline type_int transform_coords(int *in_coords,
-                                                     int *coords_min,
-                                                     int *coords_max) {
+__host__ __device__ inline type_int transform_coords(int* in_coords,
+                                                     int* coords_min,
+                                                     int* coords_max) {
   type_int cur = 0;
   int sizes[NDim];
 #pragma unroll
@@ -26,10 +26,10 @@ __host__ __device__ inline type_int transform_coords(int *in_coords,
 }
 
 template <typename type_int>  // int32_t or int64_t
-__host__ __device__ inline void inverse_transform_coords(type_int *in_coords,
-                                                         int *coords_min,
-                                                         int *coords_max,
-                                                         int *out_coords) {
+__host__ __device__ inline void inverse_transform_coords(type_int* in_coords,
+                                                         int* coords_min,
+                                                         int* coords_max,
+                                                         int* out_coords) {
   type_int cur = in_coords[0];
   int sizes[NDim];
 #pragma unroll
@@ -44,8 +44,8 @@ __host__ __device__ inline void inverse_transform_coords(type_int *in_coords,
 template <typename type_hashtable_device_view,
           typename type_int>  // int32_t or int64_t
 __global__ void inverse_transform_coords_and_insert_kernel(
-    type_hashtable_device_view table, int n_points, type_int *in_coords,
-    int *coords_min, int *coords_max, int *out_coords) {
+    type_hashtable_device_view table, int n_points, type_int* in_coords,
+    int* coords_min, int* coords_max, int* out_coords) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= n_points) return;
   inverse_transform_coords(in_coords + idx, coords_min, coords_max,
@@ -55,9 +55,9 @@ __global__ void inverse_transform_coords_and_insert_kernel(
 
 template <typename type_int, bool odd>  // int32_t or int64_t
 __global__ void downsample_grid_kmap_stage1_specialized_fast(
-    int n_points, int kernel_volume, int *in_coords, int *kernel_sizes,
-    int *stride, int *padding, int *coords_min, int *coords_max,
-    int *n_out_points, type_int *transformed_coords, type_int *out_in_map) {
+    int n_points, int kernel_volume, int* in_coords, int* kernel_sizes,
+    int* stride, int* padding, int* coords_min, int* coords_max,
+    int* n_out_points, type_int* transformed_coords, type_int* out_in_map) {
   int tidx = blockIdx.x * blockDim.x + threadIdx.x;
   int idx = tidx / kernel_volume;
   int _kernel_idx = tidx % kernel_volume;
@@ -102,8 +102,8 @@ template <typename type_hashtable_device_view,
 __global__ void downsample_hashmap_kmap_stage3(type_hashtable_device_view table,
                                                int n_points, int n_points_out,
                                                int kernel_volume,
-                                               type_int *in_out_in_map,
-                                               int *out_in_map) {
+                                               type_int* in_out_in_map,
+                                               int* out_in_map) {
   int tidx = blockIdx.x * blockDim.x + threadIdx.x;
   int idx = tidx / kernel_volume;
   int kernel_idx = tidx % kernel_volume;
@@ -120,9 +120,9 @@ template <typename type_hashtable_device_view,
           typename type_int>  // int32_t or int64_t
 __global__ void subm_hashmap_kmap_stage1(type_hashtable_device_view table,
                                          int n_points, int kernel_volume,
-                                         int *in_coords, int *coords_min,
-                                         int *coords_max,
-                                         type_int *out_coords) {
+                                         int* in_coords, int* coords_min,
+                                         int* coords_max,
+                                         type_int* out_coords) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= n_points) return;
   type_int grid_index = transform_coords<type_int>(
@@ -136,8 +136,8 @@ template <typename type_hashtable_device_view,
           typename type_int>  // int32_t or int64_t
 __global__ void subm_hashmap_kmap_stage2_odd_kernel(
     type_hashtable_device_view table, int n_points, int kernel_volume,
-    int *in_coords, int *coords_min, int *coords_max, int *kernel_sizes,
-    int *out_in_map) {
+    int* in_coords, int* coords_min, int* coords_max, int* kernel_sizes,
+    int* out_in_map) {
   int tidx = blockIdx.x * blockDim.x + threadIdx.x;
   int idx = tidx / (kernel_volume / 2);
   int _kernel_idx = tidx % (kernel_volume / 2);
@@ -178,8 +178,8 @@ template <typename type_hashtable_device_view,
           typename type_int>  // int32_t or int64_t
 __global__ void subm_hashmap_kmap_stage2_even_kernel(
     type_hashtable_device_view table, int n_points, int kernel_volume,
-    int *in_coords, int *coords_min, int *coords_max, int *kernel_sizes,
-    int *out_in_map) {
+    int* in_coords, int* coords_min, int* coords_max, int* kernel_sizes,
+    int* out_in_map) {
   int tidx = blockIdx.x * blockDim.x + threadIdx.x;
   int idx = tidx / kernel_volume;
   int _kernel_idx = tidx % kernel_volume;
@@ -214,9 +214,9 @@ __global__ void subm_hashmap_kmap_stage2_even_kernel(
 
 // replace the coords in the output map with the output idx
 __global__ void get_masks_from_kmap_kernel(int n_points, int n_points_out,
-                                           int kernel_volume, int *kmap,
-                                           int *kmap_sizes, int *cum_kmap_sizes,
-                                           int *input_mask, int *output_mask) {
+                                           int kernel_volume, int* kmap,
+                                           int* kmap_sizes, int* cum_kmap_sizes,
+                                           int* input_mask, int* output_mask) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= n_points) return;
   for (int i = 0; i < kernel_volume; i++) {
@@ -226,7 +226,7 @@ __global__ void get_masks_from_kmap_kernel(int n_points, int n_points_out,
       continue;
     int kmap_size = kmap_sizes[i];
     int cum_size = i == 0 ? 0 : cum_kmap_sizes[i - 1];
-    int *cur_in_kmap = kmap + cum_size * 2;
+    int* cur_in_kmap = kmap + cum_size * 2;
     if (idx >= kmap_size) continue;
     // manual unroll
     int input_idx = cur_in_kmap[idx * 2];
@@ -238,18 +238,18 @@ __global__ void get_masks_from_kmap_kernel(int n_points, int n_points_out,
 }
 
 std::vector<at::Tensor> build_kernel_map_subm_hashmap(
-    GPUHashMap &table, const at::Tensor &_in_coords,
-    const at::Tensor &_coords_min, const at::Tensor &_coords_max,
-    const at::Tensor &_kernel_sizes, const at::Tensor &_stride,
-    const at::Tensor &_padding, bool to_insert) {
+    GPUHashMap& table, const at::Tensor& _in_coords,
+    const at::Tensor& _coords_min, const at::Tensor& _coords_max,
+    const at::Tensor& _kernel_sizes, const at::Tensor& _stride,
+    const at::Tensor& _padding, bool to_insert) {
   c10::cuda::CUDAGuard guard(_in_coords.device());
   int n_points = _in_coords.size(0);
   int kernel_volume = (int)(torch::prod(_kernel_sizes).item<int>());
-  int *in_coords = _in_coords.data_ptr<int>();
-  int *coords_min = _coords_min.data_ptr<int>();
-  int *coords_max = _coords_max.data_ptr<int>();
-  int *kernel_sizes = _kernel_sizes.data_ptr<int>();
-  int *stride = _stride.data_ptr<int>();
+  int* in_coords = _in_coords.data_ptr<int>();
+  int* coords_min = _coords_min.data_ptr<int>();
+  int* coords_max = _coords_max.data_ptr<int>();
+  int* kernel_sizes = _kernel_sizes.data_ptr<int>();
+  int* stride = _stride.data_ptr<int>();
   auto options = torch::TensorOptions()
                      .dtype(at::ScalarType::Int)
                      .device(_in_coords.device());
@@ -259,12 +259,12 @@ std::vector<at::Tensor> build_kernel_map_subm_hashmap(
   // auto options_long =
   // torch::TensorOptions().dtype(at::ScalarType::Long).device(_in_coords.device());
   at::Tensor _out_coords = at::empty({_in_coords.size(0)}, options_long);
-  int64_t *out_coords = _out_coords.data_ptr<int64_t>();
+  int64_t* out_coords = _out_coords.data_ptr<int64_t>();
   int divisor = table.get_divisor();
   int n_points_pad = (n_points + divisor - 1) / divisor * divisor;
   at::Tensor _out_in_map =
       torch::full({n_points_pad, kernel_volume}, -1, options);
-  int *out_in_map = _out_in_map.data_ptr<int>();
+  int* out_in_map = _out_in_map.data_ptr<int>();
   // stage1: insert to hashmap
   if (to_insert)
     subm_hashmap_kmap_stage1<GPUHashMap::device_view, int64_t>
@@ -289,19 +289,19 @@ std::vector<at::Tensor> build_kernel_map_subm_hashmap(
 }
 
 std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
-    GPUHashMap &table, const at::Tensor &_in_coords,
-    const at::Tensor &_coords_min, const at::Tensor &_coords_max,
-    const at::Tensor &_kernel_sizes, const at::Tensor &_stride,
-    const at::Tensor &_padding, bool to_insert) {
+    GPUHashMap& table, const at::Tensor& _in_coords,
+    const at::Tensor& _coords_min, const at::Tensor& _coords_max,
+    const at::Tensor& _kernel_sizes, const at::Tensor& _stride,
+    const at::Tensor& _padding, bool to_insert) {
   c10::cuda::CUDAGuard guard(_in_coords.device());
   int n_points = _in_coords.size(0);
   int kernel_volume = (int)(torch::prod(_kernel_sizes).item<int>());
-  int *in_coords = _in_coords.data_ptr<int>();
-  int *coords_min = _coords_min.data_ptr<int>();
-  int *coords_max = _coords_max.data_ptr<int>();
-  int *kernel_sizes = _kernel_sizes.data_ptr<int>();
-  int *stride = _stride.data_ptr<int>();
-  int *padding = _padding.data_ptr<int>();
+  int* in_coords = _in_coords.data_ptr<int>();
+  int* coords_min = _coords_min.data_ptr<int>();
+  int* coords_max = _coords_max.data_ptr<int>();
+  int* kernel_sizes = _kernel_sizes.data_ptr<int>();
+  int* stride = _stride.data_ptr<int>();
+  int* padding = _padding.data_ptr<int>();
   auto options = at::TensorOptions()
                      .dtype(at::ScalarType::Int)
                      .device(_in_coords.device());
@@ -315,9 +315,9 @@ std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
   at::Tensor _transformed_out_coords =
       torch::empty({kernel_volume * n_points}, options_long);
   // transformed coordinates is long
-  int64_t *out_kmap = _out_kmap.data_ptr<int64_t>();
-  int *n_out_points = _n_out_points.data_ptr<int>();
-  int64_t *transformed_out_coords = _transformed_out_coords.data_ptr<int64_t>();
+  int64_t* out_kmap = _out_kmap.data_ptr<int64_t>();
+  int* n_out_points = _n_out_points.data_ptr<int>();
+  int64_t* transformed_out_coords = _transformed_out_coords.data_ptr<int64_t>();
   /*
   // If we do specialized downsample for 3D coords (stage 1), we do it (using
   divided coords_min/max) as follows:
@@ -340,7 +340,7 @@ std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
   int n_out_points_with_duplicate = _n_out_points.item<int>();
   at::Tensor _out_coords = std::get<0>(torch::_unique(torch::from_blob(
       transformed_out_coords, {n_out_points_with_duplicate}, options_long)));
-  int64_t *out_coords = _out_coords.data_ptr<int64_t>();
+  int64_t* out_coords = _out_coords.data_ptr<int64_t>();
 
   // stage 2.1: insert to the hashmap and transform the out coords to N x 4
   // format.
@@ -365,7 +365,7 @@ std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
   at::Tensor _out_in_map = torch::full(
       {(n_out_points_scalar + divisor - 1) / divisor * divisor, kernel_volume},
       -1, options);
-  int *out_in_map = _out_in_map.data_ptr<int>();
+  int* out_in_map = _out_in_map.data_ptr<int>();
 
   downsample_hashmap_kmap_stage3<<<
       (int)ceil((double)(n_points * kernel_volume) / 256), 256>>>(
@@ -376,8 +376,8 @@ std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
 
 std::vector<at::Tensor> build_mask_from_kmap(int64_t n_points,
                                              int64_t n_out_points,
-                                             const at::Tensor &_kmap,
-                                             const at::Tensor &_kmap_sizes) {
+                                             const at::Tensor& _kmap,
+                                             const at::Tensor& _kmap_sizes) {
   c10::cuda::CUDAGuard guard(_kmap.device());
   int kernel_volume = _kmap_sizes.size(0);
   auto options =
@@ -388,11 +388,11 @@ std::vector<at::Tensor> build_mask_from_kmap(int64_t n_points,
   at::Tensor _input_mask = torch::full({kernel_volume * n_points}, -1, options);
   at::Tensor _output_mask =
       torch::full({kernel_volume * n_out_points}, -1, options);
-  int *kmap = _kmap.data_ptr<int>();
-  int *kmap_sizes = _kmap_sizes.data_ptr<int>();
-  int *cum_kmap_sizes = _cum_kmap_sizes.data_ptr<int>();
-  int *input_mask = _input_mask.data_ptr<int>();
-  int *output_mask = _output_mask.data_ptr<int>();
+  int* kmap = _kmap.data_ptr<int>();
+  int* kmap_sizes = _kmap_sizes.data_ptr<int>();
+  int* cum_kmap_sizes = _cum_kmap_sizes.data_ptr<int>();
+  int* input_mask = _input_mask.data_ptr<int>();
+  int* output_mask = _output_mask.data_ptr<int>();
 
   int max_kmap_size = 1;
   if (kernel_volume % 2 == 1 && n_points == n_out_points) {

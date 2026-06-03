@@ -61,7 +61,7 @@ struct GPUHashTableHolder : torch::CustomClassHolder {
 };
 
 static std::vector<at::Tensor> build_kernel_map_subm_impl(
-    const c10::intrusive_ptr<GPUHashTableHolder> &hash_table,
+    const c10::intrusive_ptr<GPUHashTableHolder>& hash_table,
     at::Tensor in_coords, at::Tensor coords_min, at::Tensor coords_max,
     at::Tensor kernel_sizes, at::Tensor stride, at::Tensor padding,
     bool to_insert) {
@@ -71,7 +71,7 @@ static std::vector<at::Tensor> build_kernel_map_subm_impl(
 }
 
 static std::vector<at::Tensor> build_kernel_map_downsample_impl(
-    const c10::intrusive_ptr<GPUHashTableHolder> &hash_table,
+    const c10::intrusive_ptr<GPUHashTableHolder>& hash_table,
     at::Tensor in_coords, at::Tensor coords_min, at::Tensor coords_max,
     at::Tensor kernel_sizes, at::Tensor stride, at::Tensor padding,
     bool to_insert) {

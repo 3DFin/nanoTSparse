@@ -3,8 +3,8 @@
 #include <cstdint>
 
 std::vector<at::Tensor> build_mask_from_kmap_native(
-    int64_t n_points, int64_t n_out_points, const at::Tensor &neighbor_maps,
-    const at::Tensor &kmap_sizes) {
+    int64_t n_points, int64_t n_out_points, const at::Tensor& neighbor_maps,
+    const at::Tensor& kmap_sizes) {
   int kernel_volume = kmap_sizes.size(0);
   const auto options = torch::TensorOptions()
                            .dtype(at::ScalarType::Int)
@@ -15,12 +15,12 @@ std::vector<at::Tensor> build_mask_from_kmap_native(
   at::Tensor cum_kmap_sizes =
       torch::cumsum(kmap_sizes, 0).to(at::ScalarType::Int);
 
-  auto *kmap_sizes_ptr = kmap_sizes.data_ptr<int>();
-  auto *cum_kmap_sizes_ptr = cum_kmap_sizes.data_ptr<int>();
-  auto *kmap_ptr = neighbor_maps.data_ptr<int>();
+  auto* kmap_sizes_ptr = kmap_sizes.data_ptr<int>();
+  auto* cum_kmap_sizes_ptr = cum_kmap_sizes.data_ptr<int>();
+  auto* kmap_ptr = neighbor_maps.data_ptr<int>();
 
-  auto *input_mask_ptr = input_mask.data_ptr<int>();
-  auto *output_mask_ptr = output_mask.data_ptr<int>();
+  auto* input_mask_ptr = input_mask.data_ptr<int>();
+  auto* output_mask_ptr = output_mask.data_ptr<int>();
 
   tf::Executor executor;
   tf::Taskflow taskflow;
@@ -34,7 +34,7 @@ std::vector<at::Tensor> build_mask_from_kmap_native(
     }
 
     int offset = k == 0 ? 0 : 2 * cum_kmap_sizes_ptr[k - 1];
-    const auto *curr_in_kmap = &kmap_ptr[offset];
+    const auto* curr_in_kmap = &kmap_ptr[offset];
     int in_offset = k * n_points;
     int out_offset = k * n_out_points;
     for (int i = 0; i < n_neighbors; ++i) {

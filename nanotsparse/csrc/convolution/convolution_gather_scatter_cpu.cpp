@@ -5,8 +5,8 @@
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/taskflow.hpp>
 
-void scatter_cpu(int n_in, int c, const float *in_feats, float *out_feat,
-                 const int *kmap, bool transpose, tf::Executor &executor) {
+void scatter_cpu(int n_in, int c, const float* in_feats, float* out_feat,
+                 const int* kmap, bool transpose, tf::Executor& executor) {
   tf::Taskflow taskflow;
   taskflow.for_each_index(0, n_in, 1, [&](int i) {
     assert(out_pos >= 0);
@@ -19,8 +19,8 @@ void scatter_cpu(int n_in, int c, const float *in_feats, float *out_feat,
   executor.run(taskflow).get();
 }
 
-void gather_cpu(int n_k, int c, const float *in_feats, float *out_feat,
-                const int *kmap, bool transpose, tf::Executor &executor) {
+void gather_cpu(int n_k, int c, const float* in_feats, float* out_feat,
+                const int* kmap, bool transpose, tf::Executor& executor) {
   tf::Taskflow taskflow;
   taskflow.for_each_index(0, n_k, 1, [&](int i) {
     assert(in_pos >= 0);
@@ -33,10 +33,10 @@ void gather_cpu(int n_k, int c, const float *in_feats, float *out_feat,
   executor.run(taskflow).get();
 }
 
-at::Tensor conv_forward_gather_scatter_cpu(const at::Tensor &in_feats,
-                                           const at::Tensor &kernel,
-                                           const at::Tensor &neighbor_maps,
-                                           const at::Tensor &neighbor_offsets,
+at::Tensor conv_forward_gather_scatter_cpu(const at::Tensor& in_feats,
+                                           const at::Tensor& kernel,
+                                           const at::Tensor& neighbor_maps,
+                                           const at::Tensor& neighbor_offsets,
                                            int64_t output_size,
                                            bool transpose) {
   if (in_feats.size(1) != kernel.size(1)) {
@@ -89,11 +89,11 @@ at::Tensor conv_forward_gather_scatter_cpu(const at::Tensor &in_feats,
   auto in_buffer = at::zeros({_buffer_size, c_in}, options);
   auto out_buffer = torch::zeros({_buffer_size, c_out}, options);
 
-  auto *in_buffer_ptr = in_buffer.data_ptr<float>();
-  auto *out_buffer_ptr = out_buffer.data_ptr<float>();
-  const auto *neighbor_offsets_ptr = neighbor_offsets.data_ptr<int>();
-  const auto *in_feats_ptr = in_feats.data_ptr<float>();
-  auto *out_feat_ptr = out_feat.data_ptr<float>();
+  auto* in_buffer_ptr = in_buffer.data_ptr<float>();
+  auto* out_buffer_ptr = out_buffer.data_ptr<float>();
+  const auto* neighbor_offsets_ptr = neighbor_offsets.data_ptr<int>();
+  const auto* in_feats_ptr = in_feats.data_ptr<float>();
+  auto* out_feat_ptr = out_feat.data_ptr<float>();
 
   int cur_offset = 0;
   int center_voxel_id = kernel_volume / 2;
@@ -111,9 +111,9 @@ at::Tensor conv_forward_gather_scatter_cpu(const at::Tensor &in_feats,
     }
 
     auto out_buffer_activated = torch::from_blob(
-        static_cast<void *>(out_buffer_ptr), {num_neighbors, c_out}, options);
+        static_cast<void*>(out_buffer_ptr), {num_neighbors, c_out}, options);
     auto in_buffer_activated = torch::from_blob(
-        static_cast<void *>(in_buffer_ptr), {num_neighbors, c_in}, options);
+        static_cast<void*>(in_buffer_ptr), {num_neighbors, c_in}, options);
 
     // gather
     gather_cpu(num_neighbors, c_in, in_feats_ptr,
@@ -135,9 +135,9 @@ at::Tensor conv_forward_gather_scatter_cpu(const at::Tensor &in_feats,
 }
 
 std::vector<at::Tensor> conv_backward_gather_scatter_cpu(
-    const at::Tensor &in_feats, const at::Tensor &grad_out_feats,
-    const at::Tensor &kernel, const at::Tensor &neighbor_maps,
-    const at::Tensor &neighbor_offsets, bool transpose) {
+    const at::Tensor& in_feats, const at::Tensor& grad_out_feats,
+    const at::Tensor& kernel, const at::Tensor& neighbor_maps,
+    const at::Tensor& neighbor_offsets, bool transpose) {
   auto grad_in_feats = torch::zeros_like(in_feats);
   auto grad_kernel = torch::zeros_like(kernel);
 
@@ -147,7 +147,7 @@ std::vector<at::Tensor> conv_backward_gather_scatter_cpu(
 
   bool is_submanifold = false;
 
-  const auto *neighbor_offsets_ptr = neighbor_offsets.data_ptr<int>();
+  const auto* neighbor_offsets_ptr = neighbor_offsets.data_ptr<int>();
 
   int _buffer_size = *std::max_element(neighbor_offsets_ptr,
                                        neighbor_offsets_ptr + kernel_volume);

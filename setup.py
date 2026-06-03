@@ -25,7 +25,7 @@ def get_cuda_bare_metal_version(cuda_dir):
 
 
 with open("nanotsparse/version.py") as f:
-    __version__ = f.read().split("'")[1]
+    __version__ = f.read().split('"')[1]
 
 print("nanotsparse version:", __version__)
 

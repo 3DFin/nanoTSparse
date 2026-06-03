@@ -6,4 +6,4 @@
 
 #include <cstdint>
 
-at::Tensor reduce_bitmask_cuda(const at::Tensor &_bitmask_int, int64_t M_tile);
+at::Tensor reduce_bitmask_cuda(const at::Tensor& _bitmask_int, int64_t M_tile);

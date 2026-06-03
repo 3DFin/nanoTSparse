@@ -7,8 +7,8 @@
 // Pack two half values.
 static inline __device__ __host__ unsigned __pack_half2(const half x,
                                                         const half y) {
-  unsigned v0 = *((unsigned short *)&x);
-  unsigned v1 = *((unsigned short *)&y);
+  unsigned v0 = *((unsigned short*)&x);
+  unsigned v1 = *((unsigned short*)&y);
   return (v1 << 16) | v0;
 }
 
@@ -18,9 +18,9 @@ __global__ void __launch_bounds__(32)
     conv_backward_cuda_setting1_mode1_f16f16f32(
         int M_fwd, int K_original, int N, int kernel_volume, int split_k_iters,
         int split_mask_len, int reduced_mask_len, int reorder_loc_len,
-        half *__restrict__ A, half *__restrict__ B,
-        int *__restrict__ reduced_mask, int *__restrict__ out_in_map,
-        int *__restrict__ reorder_loc, half *__restrict__ C) {
+        half* __restrict__ A, half* __restrict__ B,
+        int* __restrict__ reduced_mask, int* __restrict__ out_in_map,
+        int* __restrict__ reorder_loc, half* __restrict__ C) {
   const int K_tile = 16;
   int K_tile_padded = K_tile * ((K_original + K_tile - 1) / K_tile);
 
@@ -40,29 +40,29 @@ __global__ void __launch_bounds__(32)
       blockIdx.x % ((K_original + 15) / 16 * kernel_volume * j_factors1);
   int blockIdx_z =
       blockIdx.x / ((K_original + 15) / 16 * kernel_volume * j_factors1);
-  half *cur_C = C + blockIdx_z * kernel_volume * K_original * N;
-  int *out_in_map_ptr = out_in_map +
+  half* cur_C = C + blockIdx_z * kernel_volume * K_original * N;
+  int* out_in_map_ptr = out_in_map +
                         (threadIdx.y * 16 + threadIdx.x / 2) * kernel_volume +
                         ((threadIdx.y * 256) % 16) / K_tile_padded +
                         ((threadIdx.x * 8) % 16) / K_tile_padded +
                         (blockIdx_y / j_factors1 * 16) / K_tile_padded;
-  half *A_ptr = A + ((threadIdx.y * 256 % 16) % K_tile_padded) +
+  half* A_ptr = A + ((threadIdx.y * 256 % 16) % K_tile_padded) +
                 ((threadIdx.x * 8 % 16) % K_tile_padded) +
                 ((blockIdx_y / j_factors1 * 16) % K_tile_padded);
-  half *B_ptr = B + (blockIdx_y % j_factors1) * 16 + (threadIdx.x * 8) % 16;
+  half* B_ptr = B + (blockIdx_y % j_factors1) * 16 + (threadIdx.x * 8) % 16;
   int reorder_offset = threadIdx.y * 256 / 16 + threadIdx.x * 8 / 16;
   int K_iters = ((M_fwd + 63) / 64 + split_k_iters - 1) / split_k_iters;
   int kernel_offset =
       (blockIdx_y / j_factors1) / ((K_original + K_tile - 1) / K_tile);
   int split_mask_iter = kernel_offset / split_mask_len;
-  int *reorder_loc_ptr = reorder_loc + split_mask_iter * reorder_loc_len;
-  int *reduced_mask_ptr = reduced_mask + split_mask_iter * reduced_mask_len;
+  int* reorder_loc_ptr = reorder_loc + split_mask_iter * reorder_loc_len;
+  int* reduced_mask_ptr = reduced_mask + split_mask_iter * reduced_mask_len;
   int bitmask_shift = kernel_offset - split_mask_iter * split_mask_len;
   int cur_C_ic_start =
       (blockIdx_y / j_factors1 * 16) % K_tile_padded + (threadIdx.x / 4);
   int cur_C_oc_start = (blockIdx_y % j_factors1) * 16 + threadIdx.y / 1 * 16 +
                        (threadIdx.x % 4) * 2;
-  half *C_ptr = cur_C + (kernel_offset * K_original + cur_C_ic_start) * N +
+  half* C_ptr = cur_C + (kernel_offset * K_original + cur_C_ic_start) * N +
                 cur_C_oc_start;
 
   int A_pred_guard = 0;
@@ -89,8 +89,8 @@ __global__ void __launch_bounds__(32)
   for (int _i2_0_0 = 0; _i2_0_0 < K_iters - 1; ++_i2_0_0) {
     int i2_0_0 = blockIdx_z + split_k_iters * _i2_0_0;
 
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
-    half *A_ptr_local = A_ptr;
+    int* out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
+    half* A_ptr_local = A_ptr;
     int reorder_offset_local = reorder_offset + i2_0_0 * 64;
     bool bit_flag = (bool)(reduced_mask_ptr[i2_0_0] & (1 << bitmask_shift));
     if (!bit_flag) continue;
@@ -110,13 +110,13 @@ __global__ void __launch_bounds__(32)
             A_ptr_local + input_idx * K_original +
                 ((ax0_ax1_fused_0 * 256 % 16) % K_tile_padded),
             A_pred_guard);
-        *(uint4 *)(A_shared + (((ax0_ax1_fused_0 * 640) +
-                                ((((int)threadIdx.x) >> 1) * 40)) +
-                               ((((int)threadIdx.x) & 1) * 8))) = A_loaded;
+        *(uint4*)(A_shared + (((ax0_ax1_fused_0 * 640) +
+                               ((((int)threadIdx.x) >> 1) * 40)) +
+                              ((((int)threadIdx.x) & 1) * 8))) = A_loaded;
       } else {
-        *(uint4 *)(A_shared + (((ax0_ax1_fused_0 * 640) +
-                                ((((int)threadIdx.x) >> 1) * 40)) +
-                               ((((int)threadIdx.x) & 1) * 8))) =
+        *(uint4*)(A_shared + (((ax0_ax1_fused_0 * 640) +
+                               ((((int)threadIdx.x) >> 1) * 40)) +
+                              ((((int)threadIdx.x) & 1) * 8))) =
             make_uint4(__pack_half2(__float2half_rn(0.000000e+00f),
                                     __float2half_rn(0.000000e+00f)),
                        __pack_half2(__float2half_rn(0.000000e+00f),
@@ -133,9 +133,9 @@ __global__ void __launch_bounds__(32)
       int v0 = reorder_loc_ptr[reorder_offset_inner];
       uint4 B_loaded = make_uint4(0, 0, 0, 0);
       global_load<N_ld_factor>(B_loaded, B_ptr + v0 * N, B_pred_guard);
-      *(uint4 *)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
-                              ((((int)threadIdx.x) >> 1) * 40)) +
-                             ((((int)threadIdx.x) & 1) * 8))) = B_loaded;
+      *(uint4*)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
+                             ((((int)threadIdx.x) >> 1) * 40)) +
+                            ((((int)threadIdx.x) & 1) * 8))) = B_loaded;
     }
 
     __syncthreads();
@@ -146,17 +146,17 @@ __global__ void __launch_bounds__(32)
             "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, "
             "addr; }"
             : "=r"(addr)
-            : "l"((void *)((&(A_shared[(i2_0_1 * 640)])) +
-                           (((((int)threadIdx.x) & 15) * 40) +
-                            ((((int)threadIdx.x) >> 4) * 8)))));
+            : "l"((void*)((&(A_shared[(i2_0_1 * 640)])) +
+                          (((((int)threadIdx.x) & 15) * 40) +
+                           ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
         asm volatile(
             "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
             "{%0, %1, %2, %3}, [%4];"
-            : "=r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "=r"(((unsigned *)(A_shared_warp + 0))[2]),
-              "=r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "=r"(((unsigned *)(A_shared_warp + 0))[3])
+            : "=r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "=r"(((unsigned*)(A_shared_warp + 0))[2]),
+              "=r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "=r"(((unsigned*)(A_shared_warp + 0))[3])
             : "r"(addr));
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -169,17 +169,17 @@ __global__ void __launch_bounds__(32)
             "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, "
             "addr; }"
             : "=r"(addr)
-            : "l"((void *)((&(B_shared[(i2_0_1 * 640)])) +
-                           (((((int)threadIdx.x) & 15) * 40) +
-                            ((((int)threadIdx.x) >> 4) * 8)))));
+            : "l"((void*)((&(B_shared[(i2_0_1 * 640)])) +
+                          (((((int)threadIdx.x) & 15) * 40) +
+                           ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
         asm volatile(
             "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
             "{%0, %1, %2, %3}, [%4];"
-            : "=r"(((unsigned *)(B_shared_warp + 0))[0]),
-              "=r"(((unsigned *)(B_shared_warp + 0))[1]),
-              "=r"(((unsigned *)(B_shared_warp + 0))[2]),
-              "=r"(((unsigned *)(B_shared_warp + 0))[3])
+            : "=r"(((unsigned*)(B_shared_warp + 0))[0]),
+              "=r"(((unsigned*)(B_shared_warp + 0))[1]),
+              "=r"(((unsigned*)(B_shared_warp + 0))[2]),
+              "=r"(((unsigned*)(B_shared_warp + 0))[3])
             : "r"(addr));
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -191,17 +191,16 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 0))[0]),
-              "=f"(((float *)(C_warp + 0))[1]),
-              "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(A_shared_warp + 0))[2]),
-              "r"(((unsigned *)(A_shared_warp + 0))[3]),
-              "r"(((unsigned *)(B_shared_warp + 0))[0]),
-              "r"(((unsigned *)(B_shared_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[0]), "f"(((float *)(C_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[2]), "f"(((float *)(C_warp + 0))[3]));
+            : "=f"(((float*)(C_warp + 0))[0]), "=f"(((float*)(C_warp + 0))[1]),
+              "=f"(((float*)(C_warp + 0))[2]), "=f"(((float*)(C_warp + 0))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(A_shared_warp + 0))[2]),
+              "r"(((unsigned*)(A_shared_warp + 0))[3]),
+              "r"(((unsigned*)(B_shared_warp + 0))[0]),
+              "r"(((unsigned*)(B_shared_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[0]), "f"(((float*)(C_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[2]), "f"(((float*)(C_warp + 0))[3]));
       }
 
       {
@@ -209,73 +208,68 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 4))[0]),
-              "=f"(((float *)(C_warp + 4))[1]),
-              "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(A_shared_warp + 0))[2]),
-              "r"(((unsigned *)(A_shared_warp + 0))[3]),
-              "r"(((unsigned *)(B_shared_warp + 4))[0]),
-              "r"(((unsigned *)(B_shared_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[0]), "f"(((float *)(C_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[2]), "f"(((float *)(C_warp + 4))[3]));
+            : "=f"(((float*)(C_warp + 4))[0]), "=f"(((float*)(C_warp + 4))[1]),
+              "=f"(((float*)(C_warp + 4))[2]), "=f"(((float*)(C_warp + 4))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(A_shared_warp + 0))[2]),
+              "r"(((unsigned*)(A_shared_warp + 0))[3]),
+              "r"(((unsigned*)(B_shared_warp + 4))[0]),
+              "r"(((unsigned*)(B_shared_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[0]), "f"(((float*)(C_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[2]), "f"(((float*)(C_warp + 4))[3]));
       }
 #elif __CUDA_ARCH__ >= 750
       {
         asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-            : "=f"(((float *)(C_warp + 0))[0]),
-              "=f"(((float *)(C_warp + 0))[1]),
-              "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(B_shared_warp + 0))[0]),
-              "f"(((float *)(C_warp + 0))[0]), "f"(((float *)(C_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[2]), "f"(((float *)(C_warp + 0))[3]));
+            : "=f"(((float*)(C_warp + 0))[0]), "=f"(((float*)(C_warp + 0))[1]),
+              "=f"(((float*)(C_warp + 0))[2]), "=f"(((float*)(C_warp + 0))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(B_shared_warp + 0))[0]),
+              "f"(((float*)(C_warp + 0))[0]), "f"(((float*)(C_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[2]), "f"(((float*)(C_warp + 0))[3]));
       }
 
       {
         asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-            : "=f"(((float *)(C_warp + 4))[0]),
-              "=f"(((float *)(C_warp + 4))[1]),
-              "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(B_shared_warp + 4))[0]),
-              "f"(((float *)(C_warp + 4))[0]), "f"(((float *)(C_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[2]), "f"(((float *)(C_warp + 4))[3]));
+            : "=f"(((float*)(C_warp + 4))[0]), "=f"(((float*)(C_warp + 4))[1]),
+              "=f"(((float*)(C_warp + 4))[2]), "=f"(((float*)(C_warp + 4))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(B_shared_warp + 4))[0]),
+              "f"(((float*)(C_warp + 4))[0]), "f"(((float*)(C_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[2]), "f"(((float*)(C_warp + 4))[3]));
       }
 
       {
         asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-            : "=f"(((float *)(C_warp + 0))[0]),
-              "=f"(((float *)(C_warp + 0))[1]),
-              "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
-            : "r"(((unsigned *)(A_shared_warp + 4))[0]),
-              "r"(((unsigned *)(A_shared_warp + 4))[1]),
-              "r"(((unsigned *)(B_shared_warp + 2))[0]),
-              "f"(((float *)(C_warp + 0))[0]), "f"(((float *)(C_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[2]), "f"(((float *)(C_warp + 0))[3]));
+            : "=f"(((float*)(C_warp + 0))[0]), "=f"(((float*)(C_warp + 0))[1]),
+              "=f"(((float*)(C_warp + 0))[2]), "=f"(((float*)(C_warp + 0))[3])
+            : "r"(((unsigned*)(A_shared_warp + 4))[0]),
+              "r"(((unsigned*)(A_shared_warp + 4))[1]),
+              "r"(((unsigned*)(B_shared_warp + 2))[0]),
+              "f"(((float*)(C_warp + 0))[0]), "f"(((float*)(C_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[2]), "f"(((float*)(C_warp + 0))[3]));
       }
 
       {
         asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-            : "=f"(((float *)(C_warp + 4))[0]),
-              "=f"(((float *)(C_warp + 4))[1]),
-              "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
-            : "r"(((unsigned *)(A_shared_warp + 4))[0]),
-              "r"(((unsigned *)(A_shared_warp + 4))[1]),
-              "r"(((unsigned *)(B_shared_warp + 6))[0]),
-              "f"(((float *)(C_warp + 4))[0]), "f"(((float *)(C_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[2]), "f"(((float *)(C_warp + 4))[3]));
+            : "=f"(((float*)(C_warp + 4))[0]), "=f"(((float*)(C_warp + 4))[1]),
+              "=f"(((float*)(C_warp + 4))[2]), "=f"(((float*)(C_warp + 4))[3])
+            : "r"(((unsigned*)(A_shared_warp + 4))[0]),
+              "r"(((unsigned*)(A_shared_warp + 4))[1]),
+              "r"(((unsigned*)(B_shared_warp + 6))[0]),
+              "f"(((float*)(C_warp + 4))[0]), "f"(((float*)(C_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[2]), "f"(((float*)(C_warp + 4))[3]));
       }
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -287,8 +281,8 @@ __global__ void __launch_bounds__(32)
     int i2_0_0 = blockIdx_z + split_k_iters * (K_iters - 1);
     if (i2_0_0 >= (M_fwd + 63) / 64) continue;
 
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
-    half *A_ptr_local = A_ptr;
+    int* out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
+    half* A_ptr_local = A_ptr;
     int reorder_offset_local = reorder_offset + i2_0_0 * 64;
     bool bit_flag = (bool)(reduced_mask_ptr[i2_0_0] & (1 << bitmask_shift));
     if (!bit_flag) continue;
@@ -308,13 +302,13 @@ __global__ void __launch_bounds__(32)
             A_ptr_local + input_idx * K_original +
                 ((ax0_ax1_fused_0 * 256 % 16) % K_tile_padded),
             A_pred_guard);
-        *(uint4 *)(A_shared + (((ax0_ax1_fused_0 * 640) +
-                                ((((int)threadIdx.x) >> 1) * 40)) +
-                               ((((int)threadIdx.x) & 1) * 8))) = A_loaded;
+        *(uint4*)(A_shared + (((ax0_ax1_fused_0 * 640) +
+                               ((((int)threadIdx.x) >> 1) * 40)) +
+                              ((((int)threadIdx.x) & 1) * 8))) = A_loaded;
       } else {
-        *(uint4 *)(A_shared + (((ax0_ax1_fused_0 * 640) +
-                                ((((int)threadIdx.x) >> 1) * 40)) +
-                               ((((int)threadIdx.x) & 1) * 8))) =
+        *(uint4*)(A_shared + (((ax0_ax1_fused_0 * 640) +
+                               ((((int)threadIdx.x) >> 1) * 40)) +
+                              ((((int)threadIdx.x) & 1) * 8))) =
             make_uint4(__pack_half2(__float2half_rn(0.000000e+00f),
                                     __float2half_rn(0.000000e+00f)),
                        __pack_half2(__float2half_rn(0.000000e+00f),
@@ -332,13 +326,13 @@ __global__ void __launch_bounds__(32)
         int v0 = reorder_loc_ptr[reorder_offset_inner];
         uint4 B_loaded = make_uint4(0, 0, 0, 0);
         global_load<N_ld_factor>(B_loaded, B_ptr + v0 * N, B_pred_guard);
-        *(uint4 *)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
-                                ((((int)threadIdx.x) >> 1) * 40)) +
-                               ((((int)threadIdx.x) & 1) * 8))) = B_loaded;
+        *(uint4*)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
+                               ((((int)threadIdx.x) >> 1) * 40)) +
+                              ((((int)threadIdx.x) & 1) * 8))) = B_loaded;
       } else {
-        *(uint4 *)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
-                                ((((int)threadIdx.x) >> 1) * 40)) +
-                               ((((int)threadIdx.x) & 1) * 8))) =
+        *(uint4*)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
+                               ((((int)threadIdx.x) >> 1) * 40)) +
+                              ((((int)threadIdx.x) & 1) * 8))) =
             make_uint4(0, 0, 0, 0);
       }
     }
@@ -351,17 +345,17 @@ __global__ void __launch_bounds__(32)
             "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, "
             "addr; }"
             : "=r"(addr)
-            : "l"((void *)((&(A_shared[(i2_0_1 * 640)])) +
-                           (((((int)threadIdx.x) & 15) * 40) +
-                            ((((int)threadIdx.x) >> 4) * 8)))));
+            : "l"((void*)((&(A_shared[(i2_0_1 * 640)])) +
+                          (((((int)threadIdx.x) & 15) * 40) +
+                           ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
         asm volatile(
             "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
             "{%0, %1, %2, %3}, [%4];"
-            : "=r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "=r"(((unsigned *)(A_shared_warp + 0))[2]),
-              "=r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "=r"(((unsigned *)(A_shared_warp + 0))[3])
+            : "=r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "=r"(((unsigned*)(A_shared_warp + 0))[2]),
+              "=r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "=r"(((unsigned*)(A_shared_warp + 0))[3])
             : "r"(addr));
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -374,17 +368,17 @@ __global__ void __launch_bounds__(32)
             "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, "
             "addr; }"
             : "=r"(addr)
-            : "l"((void *)((&(B_shared[(i2_0_1 * 640)])) +
-                           (((((int)threadIdx.x) & 15) * 40) +
-                            ((((int)threadIdx.x) >> 4) * 8)))));
+            : "l"((void*)((&(B_shared[(i2_0_1 * 640)])) +
+                          (((((int)threadIdx.x) & 15) * 40) +
+                           ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
         asm volatile(
             "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
             "{%0, %1, %2, %3}, [%4];"
-            : "=r"(((unsigned *)(B_shared_warp + 0))[0]),
-              "=r"(((unsigned *)(B_shared_warp + 0))[1]),
-              "=r"(((unsigned *)(B_shared_warp + 0))[2]),
-              "=r"(((unsigned *)(B_shared_warp + 0))[3])
+            : "=r"(((unsigned*)(B_shared_warp + 0))[0]),
+              "=r"(((unsigned*)(B_shared_warp + 0))[1]),
+              "=r"(((unsigned*)(B_shared_warp + 0))[2]),
+              "=r"(((unsigned*)(B_shared_warp + 0))[3])
             : "r"(addr));
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -396,17 +390,16 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 0))[0]),
-              "=f"(((float *)(C_warp + 0))[1]),
-              "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(A_shared_warp + 0))[2]),
-              "r"(((unsigned *)(A_shared_warp + 0))[3]),
-              "r"(((unsigned *)(B_shared_warp + 0))[0]),
-              "r"(((unsigned *)(B_shared_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[0]), "f"(((float *)(C_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[2]), "f"(((float *)(C_warp + 0))[3]));
+            : "=f"(((float*)(C_warp + 0))[0]), "=f"(((float*)(C_warp + 0))[1]),
+              "=f"(((float*)(C_warp + 0))[2]), "=f"(((float*)(C_warp + 0))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(A_shared_warp + 0))[2]),
+              "r"(((unsigned*)(A_shared_warp + 0))[3]),
+              "r"(((unsigned*)(B_shared_warp + 0))[0]),
+              "r"(((unsigned*)(B_shared_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[0]), "f"(((float*)(C_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[2]), "f"(((float*)(C_warp + 0))[3]));
       }
 
       {
@@ -414,73 +407,68 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 4))[0]),
-              "=f"(((float *)(C_warp + 4))[1]),
-              "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(A_shared_warp + 0))[2]),
-              "r"(((unsigned *)(A_shared_warp + 0))[3]),
-              "r"(((unsigned *)(B_shared_warp + 4))[0]),
-              "r"(((unsigned *)(B_shared_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[0]), "f"(((float *)(C_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[2]), "f"(((float *)(C_warp + 4))[3]));
+            : "=f"(((float*)(C_warp + 4))[0]), "=f"(((float*)(C_warp + 4))[1]),
+              "=f"(((float*)(C_warp + 4))[2]), "=f"(((float*)(C_warp + 4))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(A_shared_warp + 0))[2]),
+              "r"(((unsigned*)(A_shared_warp + 0))[3]),
+              "r"(((unsigned*)(B_shared_warp + 4))[0]),
+              "r"(((unsigned*)(B_shared_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[0]), "f"(((float*)(C_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[2]), "f"(((float*)(C_warp + 4))[3]));
       }
 #elif __CUDA_ARCH__ >= 750
       {
         asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-            : "=f"(((float *)(C_warp + 0))[0]),
-              "=f"(((float *)(C_warp + 0))[1]),
-              "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(B_shared_warp + 0))[0]),
-              "f"(((float *)(C_warp + 0))[0]), "f"(((float *)(C_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[2]), "f"(((float *)(C_warp + 0))[3]));
+            : "=f"(((float*)(C_warp + 0))[0]), "=f"(((float*)(C_warp + 0))[1]),
+              "=f"(((float*)(C_warp + 0))[2]), "=f"(((float*)(C_warp + 0))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(B_shared_warp + 0))[0]),
+              "f"(((float*)(C_warp + 0))[0]), "f"(((float*)(C_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[2]), "f"(((float*)(C_warp + 0))[3]));
       }
 
       {
         asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-            : "=f"(((float *)(C_warp + 4))[0]),
-              "=f"(((float *)(C_warp + 4))[1]),
-              "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(B_shared_warp + 4))[0]),
-              "f"(((float *)(C_warp + 4))[0]), "f"(((float *)(C_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[2]), "f"(((float *)(C_warp + 4))[3]));
+            : "=f"(((float*)(C_warp + 4))[0]), "=f"(((float*)(C_warp + 4))[1]),
+              "=f"(((float*)(C_warp + 4))[2]), "=f"(((float*)(C_warp + 4))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(B_shared_warp + 4))[0]),
+              "f"(((float*)(C_warp + 4))[0]), "f"(((float*)(C_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[2]), "f"(((float*)(C_warp + 4))[3]));
       }
 
       {
         asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-            : "=f"(((float *)(C_warp + 0))[0]),
-              "=f"(((float *)(C_warp + 0))[1]),
-              "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
-            : "r"(((unsigned *)(A_shared_warp + 4))[0]),
-              "r"(((unsigned *)(A_shared_warp + 4))[1]),
-              "r"(((unsigned *)(B_shared_warp + 2))[0]),
-              "f"(((float *)(C_warp + 0))[0]), "f"(((float *)(C_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[2]), "f"(((float *)(C_warp + 0))[3]));
+            : "=f"(((float*)(C_warp + 0))[0]), "=f"(((float*)(C_warp + 0))[1]),
+              "=f"(((float*)(C_warp + 0))[2]), "=f"(((float*)(C_warp + 0))[3])
+            : "r"(((unsigned*)(A_shared_warp + 4))[0]),
+              "r"(((unsigned*)(A_shared_warp + 4))[1]),
+              "r"(((unsigned*)(B_shared_warp + 2))[0]),
+              "f"(((float*)(C_warp + 0))[0]), "f"(((float*)(C_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[2]), "f"(((float*)(C_warp + 0))[3]));
       }
 
       {
         asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
             "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-            : "=f"(((float *)(C_warp + 4))[0]),
-              "=f"(((float *)(C_warp + 4))[1]),
-              "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
-            : "r"(((unsigned *)(A_shared_warp + 4))[0]),
-              "r"(((unsigned *)(A_shared_warp + 4))[1]),
-              "r"(((unsigned *)(B_shared_warp + 6))[0]),
-              "f"(((float *)(C_warp + 4))[0]), "f"(((float *)(C_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[2]), "f"(((float *)(C_warp + 4))[3]));
+            : "=f"(((float*)(C_warp + 4))[0]), "=f"(((float*)(C_warp + 4))[1]),
+              "=f"(((float*)(C_warp + 4))[2]), "=f"(((float*)(C_warp + 4))[3])
+            : "r"(((unsigned*)(A_shared_warp + 4))[0]),
+              "r"(((unsigned*)(A_shared_warp + 4))[1]),
+              "r"(((unsigned*)(B_shared_warp + 6))[0]),
+              "f"(((float*)(C_warp + 4))[0]), "f"(((float*)(C_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[2]), "f"(((float*)(C_warp + 4))[3]));
       }
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -506,9 +494,9 @@ __global__ void __launch_bounds__(64)
     conv_backward_cuda_setting2_mode1_f16f16f32(
         int M_fwd, int K_original, int N, int kernel_volume, int split_k_iters,
         int split_mask_len, int reduced_mask_len, int reorder_loc_len,
-        half *__restrict__ A, half *__restrict__ B,
-        int *__restrict__ reduced_mask, int *__restrict__ out_in_map,
-        int *__restrict__ reorder_loc, half *__restrict__ C) {
+        half* __restrict__ A, half* __restrict__ B,
+        int* __restrict__ reduced_mask, int* __restrict__ out_in_map,
+        int* __restrict__ reorder_loc, half* __restrict__ C) {
   float C_warp[32];
   __shared__ half A_shared[2560];
   __shared__ half B_shared[4608];
@@ -529,18 +517,18 @@ __global__ void __launch_bounds__(64)
       blockIdx.x % ((K_original * kernel_volume + 31) / 32 * j_factors1);
   int blockIdx_z =
       blockIdx.x / ((K_original * kernel_volume + 31) / 32 * j_factors1);
-  half *cur_C = C + blockIdx_z * kernel_volume * N * K_original;
-  int *out_in_map_ptr = out_in_map +
+  half* cur_C = C + blockIdx_z * kernel_volume * N * K_original;
+  int* out_in_map_ptr = out_in_map +
                         (threadIdx.y * 8 + threadIdx.x / 4) * kernel_volume +
                         ((threadIdx.y * 256) % 32) / K_original +
                         ((threadIdx.x * 8) % 32) / K_original +
                         (blockIdx_y / j_factors1 * 32) / K_original;
-  half *A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) +
+  half* A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) +
                 ((threadIdx.x * 8 % 32) % K_original) +
                 ((blockIdx_y / j_factors1 * 32) % K_original);
-  half *B_ptr = B + (blockIdx_y % j_factors1) * 64 + (threadIdx.x * 8) % 64;
+  half* B_ptr = B + (blockIdx_y % j_factors1) * 64 + (threadIdx.x * 8) % 64;
   int reorder_offset = threadIdx.y * 256 / 64 + threadIdx.x * 8 / 64;
-  half *C_ptr = cur_C + blockIdx_x / 1 * 108 * N / 16 * 256 +
+  half* C_ptr = cur_C + blockIdx_x / 1 * 108 * N / 16 * 256 +
                 blockIdx_y / j_factors1 * 2 * N / 16 * 256 +
                 (threadIdx.y % 1) * 2 * N / 16 * 256 +
                 (blockIdx_x % 1) * j_factors1 * 64 +
@@ -549,15 +537,15 @@ __global__ void __launch_bounds__(64)
   int K_iters = ((M_fwd + 63) / 64 + split_k_iters - 1) / split_k_iters;
   int kernel_offset = (blockIdx_y / j_factors1) / (K_original / 32);
   int split_mask_iter = kernel_offset / split_mask_len;
-  int *reorder_loc_ptr = reorder_loc + split_mask_iter * reorder_loc_len;
-  int *reduced_mask_ptr = reduced_mask + split_mask_iter * reduced_mask_len;
+  int* reorder_loc_ptr = reorder_loc + split_mask_iter * reorder_loc_len;
+  int* reduced_mask_ptr = reduced_mask + split_mask_iter * reduced_mask_len;
   int bitmask_shift = kernel_offset - split_mask_iter * split_mask_len;
 
   for (int _i2_0_0 = 0; _i2_0_0 < K_iters - 1; ++_i2_0_0) {
     int i2_0_0 = blockIdx_z + split_k_iters * _i2_0_0;
 
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
-    half *A_ptr_local = A_ptr;
+    int* out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
+    half* A_ptr_local = A_ptr;
     int reorder_offset_local = reorder_offset + i2_0_0 * 64;
     bool bit_flag = (bool)(reduced_mask_ptr[i2_0_0] & (1 << bitmask_shift));
     if (!bit_flag) continue;
@@ -571,17 +559,17 @@ __global__ void __launch_bounds__(64)
                                (ax0_ax1_fused_0 * 512 % 32) / K_original];
 
       if (input_idx != -1) {
-        *(uint4 *)(A_shared +
-                   ((((ax0_ax1_fused_0 * 640) + (((int)threadIdx.y) * 320)) +
-                     ((((int)threadIdx.x) >> 2) * 40)) +
-                    ((((int)threadIdx.x) & 3) * 8))) =
-            *(uint4 *)(A_ptr_local + input_idx * K_original +
-                       ((ax0_ax1_fused_0 * 512 % 32) % K_original));
+        *(uint4*)(A_shared +
+                  ((((ax0_ax1_fused_0 * 640) + (((int)threadIdx.y) * 320)) +
+                    ((((int)threadIdx.x) >> 2) * 40)) +
+                   ((((int)threadIdx.x) & 3) * 8))) =
+            *(uint4*)(A_ptr_local + input_idx * K_original +
+                      ((ax0_ax1_fused_0 * 512 % 32) % K_original));
       } else {
-        *(uint4 *)(A_shared +
-                   ((((ax0_ax1_fused_0 * 640) + (((int)threadIdx.y) * 320)) +
-                     ((((int)threadIdx.x) >> 2) * 40)) +
-                    ((((int)threadIdx.x) & 3) * 8))) =
+        *(uint4*)(A_shared +
+                  ((((ax0_ax1_fused_0 * 640) + (((int)threadIdx.y) * 320)) +
+                    ((((int)threadIdx.x) >> 2) * 40)) +
+                   ((((int)threadIdx.x) & 3) * 8))) =
             make_uint4(__pack_half2(__float2half_rn(0.000000e+00f),
                                     __float2half_rn(0.000000e+00f)),
                        __pack_half2(__float2half_rn(0.000000e+00f),
@@ -596,10 +584,10 @@ __global__ void __launch_bounds__(64)
          ++ax0_ax1_fused_0_1) {
       int reorder_offset_inner = reorder_offset_local + ax0_ax1_fused_0_1 * 8;
       int v0 = reorder_loc_ptr[reorder_offset_inner];
-      *(uint4 *)(B_shared +
-                 ((((ax0_ax1_fused_0_1 * 576) + (((int)threadIdx.y) * 288)) +
-                   ((((int)threadIdx.x) >> 3) * 72)) +
-                  ((((int)threadIdx.x) & 7) * 8))) = *(uint4 *)(B_ptr + v0 * N);
+      *(uint4*)(B_shared +
+                ((((ax0_ax1_fused_0_1 * 576) + (((int)threadIdx.y) * 288)) +
+                  ((((int)threadIdx.x) >> 3) * 72)) +
+                 ((((int)threadIdx.x) & 7) * 8))) = *(uint4*)(B_ptr + v0 * N);
     }
 
     __syncthreads();
@@ -611,17 +599,17 @@ __global__ void __launch_bounds__(64)
               "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, "
               "addr; }"
               : "=r"(addr)
-              : "l"((void *)((&(A_shared[((i2_0_1 * 640) + (ax1_0 * 16))])) +
-                             (((((int)threadIdx.x) & 15) * 40) +
-                              ((((int)threadIdx.x) >> 4) * 8)))));
+              : "l"((void*)((&(A_shared[((i2_0_1 * 640) + (ax1_0 * 16))])) +
+                            (((((int)threadIdx.x) & 15) * 40) +
+                             ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
           asm volatile(
               "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
               "{%0, %1, %2, %3}, [%4];"
-              : "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[0]),
-                "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[2]),
-                "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[1]),
-                "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[3])
+              : "=r"(((unsigned*)(A_shared_warp + (ax1_0 * 8)))[0]),
+                "=r"(((unsigned*)(A_shared_warp + (ax1_0 * 8)))[2]),
+                "=r"(((unsigned*)(A_shared_warp + (ax1_0 * 8)))[1]),
+                "=r"(((unsigned*)(A_shared_warp + (ax1_0 * 8)))[3])
               : "r"(addr));
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -635,19 +623,19 @@ __global__ void __launch_bounds__(64)
               "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, "
               "addr; }"
               : "=r"(addr)
-              : "l"((void *)((&(B_shared[(
-                                 ((i2_0_1 * 1152) + (((int)threadIdx.y) * 32)) +
-                                 (ax1_0_1 * 16))])) +
-                             (((((int)threadIdx.x) & 15) * 72) +
-                              ((((int)threadIdx.x) >> 4) * 8)))));
+              : "l"((void*)((&(B_shared[(
+                                ((i2_0_1 * 1152) + (((int)threadIdx.y) * 32)) +
+                                (ax1_0_1 * 16))])) +
+                            (((((int)threadIdx.x) & 15) * 72) +
+                             ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
           asm volatile(
               "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
               "{%0, %1, %2, %3}, [%4];"
-              : "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[0]),
-                "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[1]),
-                "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[2]),
-                "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[3])
+              : "=r"(((unsigned*)(B_shared_warp + (ax1_0_1 * 8)))[0]),
+                "=r"(((unsigned*)(B_shared_warp + (ax1_0_1 * 8)))[1]),
+                "=r"(((unsigned*)(B_shared_warp + (ax1_0_1 * 8)))[2]),
+                "=r"(((unsigned*)(B_shared_warp + (ax1_0_1 * 8)))[3])
               : "r"(addr));
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -662,20 +650,20 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + (i1_0_4 * 8)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + (i1_0_4 * 8)))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
+                : "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + (i1_0_4 * 8)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + (i1_0_4 * 8)))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
           }
 
           {
@@ -683,112 +671,112 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                : "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "f"(((float *)(C_warp +
-                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
+                  "=f"(((float*)(C_warp +
+                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
           }
 #elif __CUDA_ARCH__ >= 750
           {
             asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-                : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(B_shared_warp + (i1_0_4 * 8)))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
+                : "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(B_shared_warp + (i1_0_4 * 8)))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
           }
 
           {
             asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-                : "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                : "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "f"(((float *)(C_warp +
-                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
+                  "=f"(((float*)(C_warp +
+                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
           }
 
           {
             asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-                : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
-                : "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 2)))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
+                : "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
+                : "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 2)))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
           }
 
           {
             asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-                : "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
-                : "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 6)))[0]),
-                  "f"(((float *)(C_warp +
+                : "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "f"(((float *)(C_warp +
-                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
+                  "=f"(((float*)(C_warp +
+                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
+                : "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 6)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
           }
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -802,8 +790,8 @@ __global__ void __launch_bounds__(64)
     int i2_0_0 = blockIdx_z + split_k_iters * (K_iters - 1);
     if (i2_0_0 >= (M_fwd + 63) / 64) continue;
 
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
-    half *A_ptr_local = A_ptr;
+    int* out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
+    half* A_ptr_local = A_ptr;
     int reorder_offset_local = reorder_offset + i2_0_0 * 64;
     bool bit_flag = (bool)(reduced_mask_ptr[i2_0_0] & (1 << bitmask_shift));
     if (!bit_flag) continue;
@@ -817,17 +805,17 @@ __global__ void __launch_bounds__(64)
                                (ax0_ax1_fused_0 * 512 % 32) / K_original];
 
       if (input_idx != -1) {
-        *(uint4 *)(A_shared +
-                   ((((ax0_ax1_fused_0 * 640) + (((int)threadIdx.y) * 320)) +
-                     ((((int)threadIdx.x) >> 2) * 40)) +
-                    ((((int)threadIdx.x) & 3) * 8))) =
-            *(uint4 *)(A_ptr_local + input_idx * K_original +
-                       ((ax0_ax1_fused_0 * 512 % 32) % K_original));
+        *(uint4*)(A_shared +
+                  ((((ax0_ax1_fused_0 * 640) + (((int)threadIdx.y) * 320)) +
+                    ((((int)threadIdx.x) >> 2) * 40)) +
+                   ((((int)threadIdx.x) & 3) * 8))) =
+            *(uint4*)(A_ptr_local + input_idx * K_original +
+                      ((ax0_ax1_fused_0 * 512 % 32) % K_original));
       } else {
-        *(uint4 *)(A_shared +
-                   ((((ax0_ax1_fused_0 * 640) + (((int)threadIdx.y) * 320)) +
-                     ((((int)threadIdx.x) >> 2) * 40)) +
-                    ((((int)threadIdx.x) & 3) * 8))) =
+        *(uint4*)(A_shared +
+                  ((((ax0_ax1_fused_0 * 640) + (((int)threadIdx.y) * 320)) +
+                    ((((int)threadIdx.x) >> 2) * 40)) +
+                   ((((int)threadIdx.x) & 3) * 8))) =
             make_uint4(__pack_half2(__float2half_rn(0.000000e+00f),
                                     __float2half_rn(0.000000e+00f)),
                        __pack_half2(__float2half_rn(0.000000e+00f),
@@ -843,16 +831,15 @@ __global__ void __launch_bounds__(64)
       int reorder_offset_inner = reorder_offset_local + ax0_ax1_fused_0_1 * 8;
       if (reorder_offset_inner < M_fwd) {
         int v0 = reorder_loc_ptr[reorder_offset_inner];
-        *(uint4 *)(B_shared +
-                   ((((ax0_ax1_fused_0_1 * 576) + (((int)threadIdx.y) * 288)) +
-                     ((((int)threadIdx.x) >> 3) * 72)) +
-                    ((((int)threadIdx.x) & 7) * 8))) =
-            *(uint4 *)(B_ptr + v0 * N);
+        *(uint4*)(B_shared +
+                  ((((ax0_ax1_fused_0_1 * 576) + (((int)threadIdx.y) * 288)) +
+                    ((((int)threadIdx.x) >> 3) * 72)) +
+                   ((((int)threadIdx.x) & 7) * 8))) = *(uint4*)(B_ptr + v0 * N);
       } else {
-        *(uint4 *)(B_shared +
-                   ((((ax0_ax1_fused_0_1 * 576) + (((int)threadIdx.y) * 288)) +
-                     ((((int)threadIdx.x) >> 3) * 72)) +
-                    ((((int)threadIdx.x) & 7) * 8))) = make_uint4(0, 0, 0, 0);
+        *(uint4*)(B_shared +
+                  ((((ax0_ax1_fused_0_1 * 576) + (((int)threadIdx.y) * 288)) +
+                    ((((int)threadIdx.x) >> 3) * 72)) +
+                   ((((int)threadIdx.x) & 7) * 8))) = make_uint4(0, 0, 0, 0);
       }
     }
 
@@ -865,17 +852,17 @@ __global__ void __launch_bounds__(64)
               "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, "
               "addr; }"
               : "=r"(addr)
-              : "l"((void *)((&(A_shared[((i2_0_1 * 640) + (ax1_0 * 16))])) +
-                             (((((int)threadIdx.x) & 15) * 40) +
-                              ((((int)threadIdx.x) >> 4) * 8)))));
+              : "l"((void*)((&(A_shared[((i2_0_1 * 640) + (ax1_0 * 16))])) +
+                            (((((int)threadIdx.x) & 15) * 40) +
+                             ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
           asm volatile(
               "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
               "{%0, %1, %2, %3}, [%4];"
-              : "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[0]),
-                "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[2]),
-                "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[1]),
-                "=r"(((unsigned *)(A_shared_warp + (ax1_0 * 8)))[3])
+              : "=r"(((unsigned*)(A_shared_warp + (ax1_0 * 8)))[0]),
+                "=r"(((unsigned*)(A_shared_warp + (ax1_0 * 8)))[2]),
+                "=r"(((unsigned*)(A_shared_warp + (ax1_0 * 8)))[1]),
+                "=r"(((unsigned*)(A_shared_warp + (ax1_0 * 8)))[3])
               : "r"(addr));
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -889,19 +876,19 @@ __global__ void __launch_bounds__(64)
               "{ .reg .u64 addr; cvta.to.shared.u64 addr, %1; cvt.u32.u64 %0, "
               "addr; }"
               : "=r"(addr)
-              : "l"((void *)((&(B_shared[(
-                                 ((i2_0_1 * 1152) + (((int)threadIdx.y) * 32)) +
-                                 (ax1_0_1 * 16))])) +
-                             (((((int)threadIdx.x) & 15) * 72) +
-                              ((((int)threadIdx.x) >> 4) * 8)))));
+              : "l"((void*)((&(B_shared[(
+                                ((i2_0_1 * 1152) + (((int)threadIdx.y) * 32)) +
+                                (ax1_0_1 * 16))])) +
+                            (((((int)threadIdx.x) & 15) * 72) +
+                             ((((int)threadIdx.x) >> 4) * 8)))));
 #if __CUDA_ARCH__ >= 750
           asm volatile(
               "ldmatrix.sync.aligned.m8n8.x4.trans.shared.b16"
               "{%0, %1, %2, %3}, [%4];"
-              : "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[0]),
-                "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[1]),
-                "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[2]),
-                "=r"(((unsigned *)(B_shared_warp + (ax1_0_1 * 8)))[3])
+              : "=r"(((unsigned*)(B_shared_warp + (ax1_0_1 * 8)))[0]),
+                "=r"(((unsigned*)(B_shared_warp + (ax1_0_1 * 8)))[1]),
+                "=r"(((unsigned*)(B_shared_warp + (ax1_0_1 * 8)))[2]),
+                "=r"(((unsigned*)(B_shared_warp + (ax1_0_1 * 8)))[3])
               : "r"(addr));
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -916,20 +903,20 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + (i1_0_4 * 8)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + (i1_0_4 * 8)))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
+                : "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + (i1_0_4 * 8)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + (i1_0_4 * 8)))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
           }
 
           {
@@ -937,112 +924,112 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                : "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "f"(((float *)(C_warp +
-                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
+                  "=f"(((float*)(C_warp +
+                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
           }
 #elif __CUDA_ARCH__ >= 750
           {
             asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-                : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(B_shared_warp + (i1_0_4 * 8)))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
+                : "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(B_shared_warp + (i1_0_4 * 8)))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
           }
 
           {
             asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-                : "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                : "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "f"(((float *)(C_warp +
-                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
+                  "=f"(((float*)(C_warp +
+                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
           }
 
           {
             asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-                : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
-                : "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 2)))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
+                : "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
+                : "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 2)))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
           }
 
           {
             asm volatile(
                 "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32"
                 "{%0, %1, %2, %3}, {%4, %5}, {%6}, {%7, %8, %9, %10};"
-                : "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
-                : "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 6)))[0]),
-                  "f"(((float *)(C_warp +
+                : "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "f"(((float *)(C_warp +
-                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
+                  "=f"(((float*)(C_warp +
+                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
+                : "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 6)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
           }
 #else
 #pragma message("FP16 kernels will not be compiled for SM75-.")
@@ -1053,7 +1040,7 @@ __global__ void __launch_bounds__(64)
   }
 
   for (int ax0_0 = 0; ax0_0 < 2; ++ax0_0) {
-    half *C_ptr_local = C_ptr + ax0_0 * N / 16 * 256;
+    half* C_ptr_local = C_ptr + ax0_0 * N / 16 * 256;
 
     for (int ax1_0_2 = 0; ax1_0_2 < 2; ++ax1_0_2) {
       for (int local_id = 0; local_id < 8; ++local_id) {
@@ -1071,9 +1058,9 @@ __global__ void __launch_bounds__(32)
     conv_backward_cuda_setting1_mode1_tf32tf32f32(
         int M_fwd, int K_original, int N, int kernel_volume, int split_k_iters,
         int split_mask_len, int reduced_mask_len, int reorder_loc_len,
-        float *__restrict__ A, float *__restrict__ B,
-        int *__restrict__ reduced_mask, int *__restrict__ out_in_map,
-        int *__restrict__ reorder_loc, float *__restrict__ C) {
+        float* __restrict__ A, float* __restrict__ B,
+        int* __restrict__ reduced_mask, int* __restrict__ out_in_map,
+        int* __restrict__ reorder_loc, float* __restrict__ C) {
   const int K_tile = 16;
   int K_tile_padded = K_tile * ((K_original + K_tile - 1) / K_tile);
 
@@ -1093,29 +1080,29 @@ __global__ void __launch_bounds__(32)
       blockIdx.x % ((K_original + 15) / 16 * kernel_volume * j_factors1);
   int blockIdx_z =
       blockIdx.x / ((K_original + 15) / 16 * kernel_volume * j_factors1);
-  float *cur_C = C + blockIdx_z * kernel_volume * K_original * N;
-  int *out_in_map_ptr = out_in_map +
+  float* cur_C = C + blockIdx_z * kernel_volume * K_original * N;
+  int* out_in_map_ptr = out_in_map +
                         (threadIdx.y * 16 + threadIdx.x / 2) * kernel_volume +
                         ((threadIdx.y * 256) % 16) / K_tile_padded +
                         ((threadIdx.x * 8) % 16) / K_tile_padded +
                         (blockIdx_y / j_factors1 * 16) / K_tile_padded;
-  float *A_ptr = A + ((threadIdx.y * 256 % 16) % K_tile_padded) +
+  float* A_ptr = A + ((threadIdx.y * 256 % 16) % K_tile_padded) +
                  ((threadIdx.x * 8 % 16) % K_tile_padded) +
                  ((blockIdx_y / j_factors1 * 16) % K_tile_padded);
-  float *B_ptr = B + (blockIdx_y % j_factors1) * 16 + (threadIdx.x * 8) % 16;
+  float* B_ptr = B + (blockIdx_y % j_factors1) * 16 + (threadIdx.x * 8) % 16;
   int reorder_offset = threadIdx.y * 256 / 16 + threadIdx.x * 8 / 16;
   int K_iters = ((M_fwd + 63) / 64 + split_k_iters - 1) / split_k_iters;
   int kernel_offset =
       (blockIdx_y / j_factors1) / ((K_original + K_tile - 1) / K_tile);
   int split_mask_iter = kernel_offset / split_mask_len;
-  int *reorder_loc_ptr = reorder_loc + split_mask_iter * reorder_loc_len;
-  int *reduced_mask_ptr = reduced_mask + split_mask_iter * reduced_mask_len;
+  int* reorder_loc_ptr = reorder_loc + split_mask_iter * reorder_loc_len;
+  int* reduced_mask_ptr = reduced_mask + split_mask_iter * reduced_mask_len;
   int bitmask_shift = kernel_offset - split_mask_iter * split_mask_len;
   int cur_C_ic_start =
       (blockIdx_y / j_factors1 * 16) % K_tile_padded + (threadIdx.x / 4);
   int cur_C_oc_start = (blockIdx_y % j_factors1) * 16 + threadIdx.y / 1 * 16 +
                        (threadIdx.x % 4) * 2;
-  float *C_ptr = cur_C + (kernel_offset * K_original + cur_C_ic_start) * N +
+  float* C_ptr = cur_C + (kernel_offset * K_original + cur_C_ic_start) * N +
                  cur_C_oc_start;
 
   int A_pred_guard = 0;
@@ -1144,8 +1131,8 @@ __global__ void __launch_bounds__(32)
   for (int _i2_0_0 = 0; _i2_0_0 < K_iters - 1; ++_i2_0_0) {
     int i2_0_0 = blockIdx_z + split_k_iters * _i2_0_0;
 
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
-    float *A_ptr_local = A_ptr;
+    int* out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
+    float* A_ptr_local = A_ptr;
     int reorder_offset_local = reorder_offset + i2_0_0 * 64;
     bool bit_flag = (bool)(reduced_mask_ptr[i2_0_0] & (1 << bitmask_shift));
     if (!bit_flag) continue;
@@ -1170,14 +1157,14 @@ __global__ void __launch_bounds__(32)
             A_ptr_local + input_idx * K_original +
                 ((ax0_ax1_fused_0 * 256 % 16) % K_tile_padded) + 4,
             A_pred_guard >> (4 * 4 / K_ld_factor));
-        *(ulonglong4 *)(A_shared + (((ax0_ax1_fused_0 * 640) +
-                                     ((((int)threadIdx.x) >> 1) * 40)) +
-                                    ((((int)threadIdx.x) & 1) * 8))) =
-            *reinterpret_cast<ulonglong4 *>(A_loaded);
+        *(ulonglong4*)(A_shared + (((ax0_ax1_fused_0 * 640) +
+                                    ((((int)threadIdx.x) >> 1) * 40)) +
+                                   ((((int)threadIdx.x) & 1) * 8))) =
+            *reinterpret_cast<ulonglong4*>(A_loaded);
       } else {
-        *(ulonglong4 *)(A_shared + (((ax0_ax1_fused_0 * 640) +
-                                     ((((int)threadIdx.x) >> 1) * 40)) +
-                                    ((((int)threadIdx.x) & 1) * 8))) =
+        *(ulonglong4*)(A_shared + (((ax0_ax1_fused_0 * 640) +
+                                    ((((int)threadIdx.x) >> 1) * 40)) +
+                                   ((((int)threadIdx.x) & 1) * 8))) =
             make_ulonglong4(0ULL, 0ULL, 0ULL, 0ULL);
       }
     }
@@ -1189,10 +1176,10 @@ __global__ void __launch_bounds__(32)
       global_load<N_ld_factor>(B_loaded[0], B_ptr + v0 * N, B_pred_guard);
       global_load<N_ld_factor>(B_loaded[1], B_ptr + v0 * N + 4,
                                B_pred_guard >> (4 * 4 / N_ld_factor));
-      *(ulonglong4 *)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
-                                   ((((int)threadIdx.x) >> 1) * 40)) +
-                                  ((((int)threadIdx.x) & 1) * 8))) =
-          *reinterpret_cast<ulonglong4 *>(B_loaded);
+      *(ulonglong4*)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
+                                  ((((int)threadIdx.x) >> 1) * 40)) +
+                                 ((((int)threadIdx.x) & 1) * 8))) =
+          *reinterpret_cast<ulonglong4*>(B_loaded);
     }
 
     __syncthreads();
@@ -1217,17 +1204,16 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 0))[0]),
-              "=f"(((float *)(C_warp + 0))[1]),
-              "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(A_shared_warp + 0))[2]),
-              "r"(((unsigned *)(A_shared_warp + 0))[3]),
-              "r"(((unsigned *)(B_shared_warp + 0))[0]),
-              "r"(((unsigned *)(B_shared_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[0]), "f"(((float *)(C_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[2]), "f"(((float *)(C_warp + 0))[3]));
+            : "=f"(((float*)(C_warp + 0))[0]), "=f"(((float*)(C_warp + 0))[1]),
+              "=f"(((float*)(C_warp + 0))[2]), "=f"(((float*)(C_warp + 0))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(A_shared_warp + 0))[2]),
+              "r"(((unsigned*)(A_shared_warp + 0))[3]),
+              "r"(((unsigned*)(B_shared_warp + 0))[0]),
+              "r"(((unsigned*)(B_shared_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[0]), "f"(((float*)(C_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[2]), "f"(((float*)(C_warp + 0))[3]));
       }
 
       {
@@ -1235,17 +1221,16 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 4))[0]),
-              "=f"(((float *)(C_warp + 4))[1]),
-              "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(A_shared_warp + 0))[2]),
-              "r"(((unsigned *)(A_shared_warp + 0))[3]),
-              "r"(((unsigned *)(B_shared_warp + 4))[0]),
-              "r"(((unsigned *)(B_shared_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[0]), "f"(((float *)(C_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[2]), "f"(((float *)(C_warp + 4))[3]));
+            : "=f"(((float*)(C_warp + 4))[0]), "=f"(((float*)(C_warp + 4))[1]),
+              "=f"(((float*)(C_warp + 4))[2]), "=f"(((float*)(C_warp + 4))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(A_shared_warp + 0))[2]),
+              "r"(((unsigned*)(A_shared_warp + 0))[3]),
+              "r"(((unsigned*)(B_shared_warp + 4))[0]),
+              "r"(((unsigned*)(B_shared_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[0]), "f"(((float*)(C_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[2]), "f"(((float*)(C_warp + 4))[3]));
       }
 
       {
@@ -1253,17 +1238,16 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 0))[0]),
-              "=f"(((float *)(C_warp + 0))[1]),
-              "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
-            : "r"(((unsigned *)(A_shared_warp + 4))[0]),
-              "r"(((unsigned *)(A_shared_warp + 4))[1]),
-              "r"(((unsigned *)(A_shared_warp + 4))[2]),
-              "r"(((unsigned *)(A_shared_warp + 4))[3]),
-              "r"(((unsigned *)(B_shared_warp + 2))[0]),
-              "r"(((unsigned *)(B_shared_warp + 2))[1]),
-              "f"(((float *)(C_warp + 0))[0]), "f"(((float *)(C_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[2]), "f"(((float *)(C_warp + 0))[3]));
+            : "=f"(((float*)(C_warp + 0))[0]), "=f"(((float*)(C_warp + 0))[1]),
+              "=f"(((float*)(C_warp + 0))[2]), "=f"(((float*)(C_warp + 0))[3])
+            : "r"(((unsigned*)(A_shared_warp + 4))[0]),
+              "r"(((unsigned*)(A_shared_warp + 4))[1]),
+              "r"(((unsigned*)(A_shared_warp + 4))[2]),
+              "r"(((unsigned*)(A_shared_warp + 4))[3]),
+              "r"(((unsigned*)(B_shared_warp + 2))[0]),
+              "r"(((unsigned*)(B_shared_warp + 2))[1]),
+              "f"(((float*)(C_warp + 0))[0]), "f"(((float*)(C_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[2]), "f"(((float*)(C_warp + 0))[3]));
       }
 
       {
@@ -1271,17 +1255,16 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 4))[0]),
-              "=f"(((float *)(C_warp + 4))[1]),
-              "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
-            : "r"(((unsigned *)(A_shared_warp + 4))[0]),
-              "r"(((unsigned *)(A_shared_warp + 4))[1]),
-              "r"(((unsigned *)(A_shared_warp + 4))[2]),
-              "r"(((unsigned *)(A_shared_warp + 4))[3]),
-              "r"(((unsigned *)(B_shared_warp + 6))[0]),
-              "r"(((unsigned *)(B_shared_warp + 6))[1]),
-              "f"(((float *)(C_warp + 4))[0]), "f"(((float *)(C_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[2]), "f"(((float *)(C_warp + 4))[3]));
+            : "=f"(((float*)(C_warp + 4))[0]), "=f"(((float*)(C_warp + 4))[1]),
+              "=f"(((float*)(C_warp + 4))[2]), "=f"(((float*)(C_warp + 4))[3])
+            : "r"(((unsigned*)(A_shared_warp + 4))[0]),
+              "r"(((unsigned*)(A_shared_warp + 4))[1]),
+              "r"(((unsigned*)(A_shared_warp + 4))[2]),
+              "r"(((unsigned*)(A_shared_warp + 4))[3]),
+              "r"(((unsigned*)(B_shared_warp + 6))[0]),
+              "r"(((unsigned*)(B_shared_warp + 6))[1]),
+              "f"(((float*)(C_warp + 4))[0]), "f"(((float*)(C_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[2]), "f"(((float*)(C_warp + 4))[3]));
       }
 #else
 #pragma message("TF32 kernels will not be compiled.")
@@ -1293,8 +1276,8 @@ __global__ void __launch_bounds__(32)
     int i2_0_0 = blockIdx_z + split_k_iters * (K_iters - 1);
     if (i2_0_0 >= (M_fwd + 63) / 64) continue;
 
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
-    float *A_ptr_local = A_ptr;
+    int* out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
+    float* A_ptr_local = A_ptr;
     int reorder_offset_local = reorder_offset + i2_0_0 * 64;
     bool bit_flag = (bool)(reduced_mask_ptr[i2_0_0] & (1 << bitmask_shift));
     if (!bit_flag) continue;
@@ -1319,14 +1302,14 @@ __global__ void __launch_bounds__(32)
             A_ptr_local + input_idx * K_original +
                 ((ax0_ax1_fused_0 * 256 % 16) % K_tile_padded) + 4,
             A_pred_guard >> (4 * 4 / K_ld_factor));
-        *(ulonglong4 *)(A_shared + (((ax0_ax1_fused_0 * 640) +
-                                     ((((int)threadIdx.x) >> 1) * 40)) +
-                                    ((((int)threadIdx.x) & 1) * 8))) =
-            *reinterpret_cast<ulonglong4 *>(A_loaded);
+        *(ulonglong4*)(A_shared + (((ax0_ax1_fused_0 * 640) +
+                                    ((((int)threadIdx.x) >> 1) * 40)) +
+                                   ((((int)threadIdx.x) & 1) * 8))) =
+            *reinterpret_cast<ulonglong4*>(A_loaded);
       } else {
-        *(ulonglong4 *)(A_shared + (((ax0_ax1_fused_0 * 640) +
-                                     ((((int)threadIdx.x) >> 1) * 40)) +
-                                    ((((int)threadIdx.x) & 1) * 8))) =
+        *(ulonglong4*)(A_shared + (((ax0_ax1_fused_0 * 640) +
+                                    ((((int)threadIdx.x) >> 1) * 40)) +
+                                   ((((int)threadIdx.x) & 1) * 8))) =
             make_ulonglong4(0ULL, 0ULL, 0ULL, 0ULL);
       }
     }
@@ -1339,14 +1322,14 @@ __global__ void __launch_bounds__(32)
         global_load<N_ld_factor>(B_loaded[0], B_ptr + v0 * N, B_pred_guard);
         global_load<N_ld_factor>(B_loaded[1], B_ptr + v0 * N + 4,
                                  B_pred_guard >> (4 * 4 / N_ld_factor));
-        *(ulonglong4 *)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
-                                     ((((int)threadIdx.x) >> 1) * 40)) +
-                                    ((((int)threadIdx.x) & 1) * 8))) =
-            *reinterpret_cast<ulonglong4 *>(B_loaded);
+        *(ulonglong4*)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
+                                    ((((int)threadIdx.x) >> 1) * 40)) +
+                                   ((((int)threadIdx.x) & 1) * 8))) =
+            *reinterpret_cast<ulonglong4*>(B_loaded);
       } else {
-        *(ulonglong4 *)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
-                                     ((((int)threadIdx.x) >> 1) * 40)) +
-                                    ((((int)threadIdx.x) & 1) * 8))) =
+        *(ulonglong4*)(B_shared + (((ax0_ax1_fused_0_1 * 640) +
+                                    ((((int)threadIdx.x) >> 1) * 40)) +
+                                   ((((int)threadIdx.x) & 1) * 8))) =
             make_ulonglong4(0, 0, 0, 0);
       }
     }
@@ -1373,17 +1356,16 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 0))[0]),
-              "=f"(((float *)(C_warp + 0))[1]),
-              "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(A_shared_warp + 0))[2]),
-              "r"(((unsigned *)(A_shared_warp + 0))[3]),
-              "r"(((unsigned *)(B_shared_warp + 0))[0]),
-              "r"(((unsigned *)(B_shared_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[0]), "f"(((float *)(C_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[2]), "f"(((float *)(C_warp + 0))[3]));
+            : "=f"(((float*)(C_warp + 0))[0]), "=f"(((float*)(C_warp + 0))[1]),
+              "=f"(((float*)(C_warp + 0))[2]), "=f"(((float*)(C_warp + 0))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(A_shared_warp + 0))[2]),
+              "r"(((unsigned*)(A_shared_warp + 0))[3]),
+              "r"(((unsigned*)(B_shared_warp + 0))[0]),
+              "r"(((unsigned*)(B_shared_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[0]), "f"(((float*)(C_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[2]), "f"(((float*)(C_warp + 0))[3]));
       }
 
       {
@@ -1391,17 +1373,16 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 4))[0]),
-              "=f"(((float *)(C_warp + 4))[1]),
-              "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
-            : "r"(((unsigned *)(A_shared_warp + 0))[0]),
-              "r"(((unsigned *)(A_shared_warp + 0))[1]),
-              "r"(((unsigned *)(A_shared_warp + 0))[2]),
-              "r"(((unsigned *)(A_shared_warp + 0))[3]),
-              "r"(((unsigned *)(B_shared_warp + 4))[0]),
-              "r"(((unsigned *)(B_shared_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[0]), "f"(((float *)(C_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[2]), "f"(((float *)(C_warp + 4))[3]));
+            : "=f"(((float*)(C_warp + 4))[0]), "=f"(((float*)(C_warp + 4))[1]),
+              "=f"(((float*)(C_warp + 4))[2]), "=f"(((float*)(C_warp + 4))[3])
+            : "r"(((unsigned*)(A_shared_warp + 0))[0]),
+              "r"(((unsigned*)(A_shared_warp + 0))[1]),
+              "r"(((unsigned*)(A_shared_warp + 0))[2]),
+              "r"(((unsigned*)(A_shared_warp + 0))[3]),
+              "r"(((unsigned*)(B_shared_warp + 4))[0]),
+              "r"(((unsigned*)(B_shared_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[0]), "f"(((float*)(C_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[2]), "f"(((float*)(C_warp + 4))[3]));
       }
 
       {
@@ -1409,17 +1390,16 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 0))[0]),
-              "=f"(((float *)(C_warp + 0))[1]),
-              "=f"(((float *)(C_warp + 0))[2]), "=f"(((float *)(C_warp + 0))[3])
-            : "r"(((unsigned *)(A_shared_warp + 4))[0]),
-              "r"(((unsigned *)(A_shared_warp + 4))[1]),
-              "r"(((unsigned *)(A_shared_warp + 4))[2]),
-              "r"(((unsigned *)(A_shared_warp + 4))[3]),
-              "r"(((unsigned *)(B_shared_warp + 2))[0]),
-              "r"(((unsigned *)(B_shared_warp + 2))[1]),
-              "f"(((float *)(C_warp + 0))[0]), "f"(((float *)(C_warp + 0))[1]),
-              "f"(((float *)(C_warp + 0))[2]), "f"(((float *)(C_warp + 0))[3]));
+            : "=f"(((float*)(C_warp + 0))[0]), "=f"(((float*)(C_warp + 0))[1]),
+              "=f"(((float*)(C_warp + 0))[2]), "=f"(((float*)(C_warp + 0))[3])
+            : "r"(((unsigned*)(A_shared_warp + 4))[0]),
+              "r"(((unsigned*)(A_shared_warp + 4))[1]),
+              "r"(((unsigned*)(A_shared_warp + 4))[2]),
+              "r"(((unsigned*)(A_shared_warp + 4))[3]),
+              "r"(((unsigned*)(B_shared_warp + 2))[0]),
+              "r"(((unsigned*)(B_shared_warp + 2))[1]),
+              "f"(((float*)(C_warp + 0))[0]), "f"(((float*)(C_warp + 0))[1]),
+              "f"(((float*)(C_warp + 0))[2]), "f"(((float*)(C_warp + 0))[3]));
       }
 
       {
@@ -1427,17 +1407,16 @@ __global__ void __launch_bounds__(32)
             "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
             "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
             "%13};"
-            : "=f"(((float *)(C_warp + 4))[0]),
-              "=f"(((float *)(C_warp + 4))[1]),
-              "=f"(((float *)(C_warp + 4))[2]), "=f"(((float *)(C_warp + 4))[3])
-            : "r"(((unsigned *)(A_shared_warp + 4))[0]),
-              "r"(((unsigned *)(A_shared_warp + 4))[1]),
-              "r"(((unsigned *)(A_shared_warp + 4))[2]),
-              "r"(((unsigned *)(A_shared_warp + 4))[3]),
-              "r"(((unsigned *)(B_shared_warp + 6))[0]),
-              "r"(((unsigned *)(B_shared_warp + 6))[1]),
-              "f"(((float *)(C_warp + 4))[0]), "f"(((float *)(C_warp + 4))[1]),
-              "f"(((float *)(C_warp + 4))[2]), "f"(((float *)(C_warp + 4))[3]));
+            : "=f"(((float*)(C_warp + 4))[0]), "=f"(((float*)(C_warp + 4))[1]),
+              "=f"(((float*)(C_warp + 4))[2]), "=f"(((float*)(C_warp + 4))[3])
+            : "r"(((unsigned*)(A_shared_warp + 4))[0]),
+              "r"(((unsigned*)(A_shared_warp + 4))[1]),
+              "r"(((unsigned*)(A_shared_warp + 4))[2]),
+              "r"(((unsigned*)(A_shared_warp + 4))[3]),
+              "r"(((unsigned*)(B_shared_warp + 6))[0]),
+              "r"(((unsigned*)(B_shared_warp + 6))[1]),
+              "f"(((float*)(C_warp + 4))[0]), "f"(((float*)(C_warp + 4))[1]),
+              "f"(((float*)(C_warp + 4))[2]), "f"(((float*)(C_warp + 4))[3]));
       }
 #else
 #pragma message("TF32 kernels will not be compiled.")
@@ -1463,9 +1442,9 @@ __global__ void __launch_bounds__(64)
     conv_backward_cuda_setting2_mode1_tf32tf32f32(
         int M_fwd, int K_original, int N, int kernel_volume, int split_k_iters,
         int split_mask_len, int reduced_mask_len, int reorder_loc_len,
-        float *__restrict__ A, float *__restrict__ B,
-        int *__restrict__ reduced_mask, int *__restrict__ out_in_map,
-        int *__restrict__ reorder_loc, float *__restrict__ C) {
+        float* __restrict__ A, float* __restrict__ B,
+        int* __restrict__ reduced_mask, int* __restrict__ out_in_map,
+        int* __restrict__ reorder_loc, float* __restrict__ C) {
   float C_warp[32];
   __shared__ float A_shared[2560];
   __shared__ float B_shared[4608];
@@ -1486,18 +1465,18 @@ __global__ void __launch_bounds__(64)
       blockIdx.x % ((K_original * kernel_volume + 31) / 32 * j_factors1);
   int blockIdx_z =
       blockIdx.x / ((K_original * kernel_volume + 31) / 32 * j_factors1);
-  float *cur_C = C + blockIdx_z * kernel_volume * N * K_original;
-  int *out_in_map_ptr = out_in_map +
+  float* cur_C = C + blockIdx_z * kernel_volume * N * K_original;
+  int* out_in_map_ptr = out_in_map +
                         (threadIdx.y * 8 + threadIdx.x / 4) * kernel_volume +
                         ((threadIdx.y * 256) % 32) / K_original +
                         ((threadIdx.x * 8) % 32) / K_original +
                         (blockIdx_y / j_factors1 * 32) / K_original;
-  float *A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) +
+  float* A_ptr = A + ((threadIdx.y * 256 % 32) % K_original) +
                  ((threadIdx.x * 8 % 32) % K_original) +
                  ((blockIdx_y / j_factors1 * 32) % K_original);
-  float *B_ptr = B + (blockIdx_y % j_factors1) * 64 + (threadIdx.x * 8) % 64;
+  float* B_ptr = B + (blockIdx_y % j_factors1) * 64 + (threadIdx.x * 8) % 64;
   int reorder_offset = threadIdx.y * 256 / 64 + threadIdx.x * 8 / 64;
-  float *C_ptr = cur_C + blockIdx_x / 1 * 108 * N / 16 * 256 +
+  float* C_ptr = cur_C + blockIdx_x / 1 * 108 * N / 16 * 256 +
                  blockIdx_y / j_factors1 * 2 * N / 16 * 256 +
                  (threadIdx.y % 1) * 2 * N / 16 * 256 +
                  (blockIdx_x % 1) * j_factors1 * 64 +
@@ -1506,15 +1485,15 @@ __global__ void __launch_bounds__(64)
   int K_iters = ((M_fwd + 63) / 64 + split_k_iters - 1) / split_k_iters;
   int kernel_offset = (blockIdx_y / j_factors1) / (K_original / 32);
   int split_mask_iter = kernel_offset / split_mask_len;
-  int *reorder_loc_ptr = reorder_loc + split_mask_iter * reorder_loc_len;
-  int *reduced_mask_ptr = reduced_mask + split_mask_iter * reduced_mask_len;
+  int* reorder_loc_ptr = reorder_loc + split_mask_iter * reorder_loc_len;
+  int* reduced_mask_ptr = reduced_mask + split_mask_iter * reduced_mask_len;
   int bitmask_shift = kernel_offset - split_mask_iter * split_mask_len;
 
   for (int _i2_0_0 = 0; _i2_0_0 < K_iters - 1; ++_i2_0_0) {
     int i2_0_0 = blockIdx_z + split_k_iters * _i2_0_0;
 
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
-    float *A_ptr_local = A_ptr;
+    int* out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
+    float* A_ptr_local = A_ptr;
     int reorder_offset_local = reorder_offset + i2_0_0 * 64;
     bool bit_flag = (bool)(reduced_mask_ptr[i2_0_0] & (1 << bitmask_shift));
     if (!bit_flag) continue;
@@ -1528,17 +1507,17 @@ __global__ void __launch_bounds__(64)
                                (ax0_ax1_fused_0 * 512 % 32) / K_original];
 
       if (input_idx != -1) {
-        *(ulonglong4 *)(A_shared + ((((ax0_ax1_fused_0 * 640) +
-                                      (((int)threadIdx.y) * 320)) +
-                                     ((((int)threadIdx.x) >> 2) * 40)) +
-                                    ((((int)threadIdx.x) & 3) * 8))) =
-            *(ulonglong4 *)(A_ptr_local + input_idx * K_original +
-                            ((ax0_ax1_fused_0 * 512 % 32) % K_original));
+        *(ulonglong4*)(A_shared + ((((ax0_ax1_fused_0 * 640) +
+                                     (((int)threadIdx.y) * 320)) +
+                                    ((((int)threadIdx.x) >> 2) * 40)) +
+                                   ((((int)threadIdx.x) & 3) * 8))) =
+            *(ulonglong4*)(A_ptr_local + input_idx * K_original +
+                           ((ax0_ax1_fused_0 * 512 % 32) % K_original));
       } else {
-        *(ulonglong4 *)(A_shared + ((((ax0_ax1_fused_0 * 640) +
-                                      (((int)threadIdx.y) * 320)) +
-                                     ((((int)threadIdx.x) >> 2) * 40)) +
-                                    ((((int)threadIdx.x) & 3) * 8))) =
+        *(ulonglong4*)(A_shared + ((((ax0_ax1_fused_0 * 640) +
+                                     (((int)threadIdx.y) * 320)) +
+                                    ((((int)threadIdx.x) >> 2) * 40)) +
+                                   ((((int)threadIdx.x) & 3) * 8))) =
             make_ulonglong4(0ULL, 0ULL, 0ULL, 0ULL);
       }
     }
@@ -1546,11 +1525,11 @@ __global__ void __launch_bounds__(64)
          ++ax0_ax1_fused_0_1) {
       int reorder_offset_inner = reorder_offset_local + ax0_ax1_fused_0_1 * 8;
       int v0 = reorder_loc_ptr[reorder_offset_inner];
-      *(ulonglong4 *)(B_shared + ((((ax0_ax1_fused_0_1 * 576) +
-                                    (((int)threadIdx.y) * 288)) +
-                                   ((((int)threadIdx.x) >> 3) * 72)) +
-                                  ((((int)threadIdx.x) & 7) * 8))) =
-          *(ulonglong4 *)(B_ptr + v0 * N);
+      *(ulonglong4*)(B_shared + ((((ax0_ax1_fused_0_1 * 576) +
+                                   (((int)threadIdx.y) * 288)) +
+                                  ((((int)threadIdx.x) >> 3) * 72)) +
+                                 ((((int)threadIdx.x) & 7) * 8))) =
+          *(ulonglong4*)(B_ptr + v0 * N);
     }
 
     __syncthreads();
@@ -1585,20 +1564,20 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + (i1_0_4 * 8)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + (i1_0_4 * 8)))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
+                : "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + (i1_0_4 * 8)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + (i1_0_4 * 8)))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
           }
 
           {
@@ -1606,28 +1585,28 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                : "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "f"(((float *)(C_warp +
-                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
+                  "=f"(((float*)(C_warp +
+                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
           }
 
           {
@@ -1635,20 +1614,20 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
-                : "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 2)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 2)))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
+                : "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
+                : "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 2)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 2)))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
           }
 
           {
@@ -1656,28 +1635,28 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
-                : "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 6)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 6)))[1]),
-                  "f"(((float *)(C_warp +
+                : "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "f"(((float *)(C_warp +
-                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
+                  "=f"(((float*)(C_warp +
+                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
+                : "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 6)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 6)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
           }
 #else
 #pragma message("TF32 kernels will not be compiled.")
@@ -1691,8 +1670,8 @@ __global__ void __launch_bounds__(64)
     int i2_0_0 = blockIdx_z + split_k_iters * (K_iters - 1);
     if (i2_0_0 >= (M_fwd + 63) / 64) continue;
 
-    int *out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
-    float *A_ptr_local = A_ptr;
+    int* out_in_map_ptr_local = out_in_map_ptr + i2_0_0 * 64 * kernel_volume;
+    float* A_ptr_local = A_ptr;
     int reorder_offset_local = reorder_offset + i2_0_0 * 64;
     bool bit_flag = (bool)(reduced_mask_ptr[i2_0_0] & (1 << bitmask_shift));
     if (!bit_flag) continue;
@@ -1706,17 +1685,17 @@ __global__ void __launch_bounds__(64)
                                (ax0_ax1_fused_0 * 512 % 32) / K_original];
 
       if (input_idx != -1) {
-        *(ulonglong4 *)(A_shared + ((((ax0_ax1_fused_0 * 640) +
-                                      (((int)threadIdx.y) * 320)) +
-                                     ((((int)threadIdx.x) >> 2) * 40)) +
-                                    ((((int)threadIdx.x) & 3) * 8))) =
-            *(ulonglong4 *)(A_ptr_local + input_idx * K_original +
-                            ((ax0_ax1_fused_0 * 512 % 32) % K_original));
+        *(ulonglong4*)(A_shared + ((((ax0_ax1_fused_0 * 640) +
+                                     (((int)threadIdx.y) * 320)) +
+                                    ((((int)threadIdx.x) >> 2) * 40)) +
+                                   ((((int)threadIdx.x) & 3) * 8))) =
+            *(ulonglong4*)(A_ptr_local + input_idx * K_original +
+                           ((ax0_ax1_fused_0 * 512 % 32) % K_original));
       } else {
-        *(ulonglong4 *)(A_shared + ((((ax0_ax1_fused_0 * 640) +
-                                      (((int)threadIdx.y) * 320)) +
-                                     ((((int)threadIdx.x) >> 2) * 40)) +
-                                    ((((int)threadIdx.x) & 3) * 8))) =
+        *(ulonglong4*)(A_shared + ((((ax0_ax1_fused_0 * 640) +
+                                     (((int)threadIdx.y) * 320)) +
+                                    ((((int)threadIdx.x) >> 2) * 40)) +
+                                   ((((int)threadIdx.x) & 3) * 8))) =
             make_ulonglong4(0ULL, 0ULL, 0ULL, 0ULL);
       }
     }
@@ -1725,16 +1704,16 @@ __global__ void __launch_bounds__(64)
       int reorder_offset_inner = reorder_offset_local + ax0_ax1_fused_0_1 * 8;
       if (reorder_offset_inner < M_fwd) {
         int v0 = reorder_loc_ptr[reorder_offset_inner];
-        *(ulonglong4 *)(B_shared + ((((ax0_ax1_fused_0_1 * 576) +
-                                      (((int)threadIdx.y) * 288)) +
-                                     ((((int)threadIdx.x) >> 3) * 72)) +
-                                    ((((int)threadIdx.x) & 7) * 8))) =
-            *(ulonglong4 *)(B_ptr + v0 * N);
+        *(ulonglong4*)(B_shared + ((((ax0_ax1_fused_0_1 * 576) +
+                                     (((int)threadIdx.y) * 288)) +
+                                    ((((int)threadIdx.x) >> 3) * 72)) +
+                                   ((((int)threadIdx.x) & 7) * 8))) =
+            *(ulonglong4*)(B_ptr + v0 * N);
       } else {
-        *(ulonglong4 *)(B_shared + ((((ax0_ax1_fused_0_1 * 576) +
-                                      (((int)threadIdx.y) * 288)) +
-                                     ((((int)threadIdx.x) >> 3) * 72)) +
-                                    ((((int)threadIdx.x) & 7) * 8))) =
+        *(ulonglong4*)(B_shared + ((((ax0_ax1_fused_0_1 * 576) +
+                                     (((int)threadIdx.y) * 288)) +
+                                    ((((int)threadIdx.x) >> 3) * 72)) +
+                                   ((((int)threadIdx.x) & 7) * 8))) =
             make_ulonglong4(0ULL, 0ULL, 0ULL, 0ULL);
       }
     }
@@ -1771,20 +1750,20 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + (i1_0_4 * 8)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + (i1_0_4 * 8)))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
+                : "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + (i1_0_4 * 8)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + (i1_0_4 * 8)))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
           }
 
           {
@@ -1792,28 +1771,28 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
-                : "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + (i0_0_3 * 8)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                : "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "f"(((float *)(C_warp +
-                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
+                  "=f"(((float*)(C_warp +
+                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
+                : "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + (i0_0_3 * 8)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
           }
 
           {
@@ -1821,20 +1800,20 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "=f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
-                : "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 2)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 2)))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
-                  "f"(((float *)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
+                : "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "=f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3])
+                : "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 2)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 2)))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[0]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[1]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[2]),
+                  "f"(((float*)(C_warp + ((i0_0_3 * 16) + (i1_0_4 * 8))))[3]));
           }
 
           {
@@ -1842,28 +1821,28 @@ __global__ void __launch_bounds__(64)
                 "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32"
                 "{%0, %1, %2, %3}, {%4, %5, %6, %7}, {%8, %9}, {%10, %11, %12, "
                 "%13};"
-                : "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "=f"(((float *)(C_warp +
-                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
-                : "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[2]),
-                  "r"(((unsigned *)(A_shared_warp + ((i0_0_3 * 8) + 4)))[3]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 6)))[0]),
-                  "r"(((unsigned *)(B_shared_warp + ((i1_0_4 * 8) + 6)))[1]),
-                  "f"(((float *)(C_warp +
+                : "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
-                  "f"(((float *)(C_warp +
+                  "=f"(((float*)(C_warp +
                                  (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
-                  "f"(((float *)(C_warp +
-                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
+                  "=f"(((float*)(C_warp +
+                                 (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3])
+                : "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[0]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[1]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[2]),
+                  "r"(((unsigned*)(A_shared_warp + ((i0_0_3 * 8) + 4)))[3]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 6)))[0]),
+                  "r"(((unsigned*)(B_shared_warp + ((i1_0_4 * 8) + 6)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[0]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[1]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[2]),
+                  "f"(((float*)(C_warp +
+                                (((i0_0_3 * 16) + (i1_0_4 * 8)) + 4)))[3]));
           }
 #else
 #pragma message("TF32 kernels will not be compiled.")
@@ -1874,7 +1853,7 @@ __global__ void __launch_bounds__(64)
   }
 
   for (int ax0_0 = 0; ax0_0 < 2; ++ax0_0) {
-    float *C_ptr_local = C_ptr + ax0_0 * N / 16 * 256;
+    float* C_ptr_local = C_ptr + ax0_0 * N / 16 * 256;
 
     for (int ax1_0_2 = 0; ax1_0_2 < 2; ++ax1_0_2) {
       for (int local_id = 0; local_id < 8; ++local_id) {
@@ -1892,9 +1871,9 @@ __global__ void __launch_bounds__(32)
     conv_backward_cuda_setting1_mode1_f32f32f32(
         int M_fwd, int K_original, int N, int kernel_volume, int split_k_iters,
         int split_mask_len, int reduced_mask_len, int reorder_loc_len,
-        float *__restrict__ A, float *__restrict__ B,
-        int *__restrict__ reduced_mask, int *__restrict__ out_in_map,
-        int *__restrict__ reorder_loc, float *__restrict__ C) {
+        float* __restrict__ A, float* __restrict__ B,
+        int* __restrict__ reduced_mask, int* __restrict__ out_in_map,
+        int* __restrict__ reorder_loc, float* __restrict__ C) {
   int j_factors1 = (N + 15) / 16;
   // int blockIdx_x = 0;
   int blockIdx_y =
@@ -1920,8 +1899,8 @@ __global__ void __launch_bounds__(32)
 
   int kernel_offset = blockIdx_m / (K_tile_padded / 16);
   int split_mask_iter = kernel_offset / split_mask_len;
-  int *reorder_loc_local = reorder_loc + split_mask_iter * reorder_loc_len;
-  int *reduced_mask_local = reduced_mask + split_mask_iter * reduced_mask_len;
+  int* reorder_loc_local = reorder_loc + split_mask_iter * reorder_loc_len;
+  int* reduced_mask_local = reduced_mask + split_mask_iter * reduced_mask_len;
   int bitmask_shift = kernel_offset - split_mask_iter * split_mask_len;
 
   int channel_offset =
@@ -1929,25 +1908,25 @@ __global__ void __launch_bounds__(32)
   int K_loops = ((M_fwd + 63) / 64 + split_k_iters - 1) / split_k_iters;
 
   // hoisting shared pointer offsets
-  int *out_in_map_ptr =
+  int* out_in_map_ptr =
       out_in_map + (threadIdx_x / (16 / 4)) * kernel_volume + kernel_offset;
-  float *A_ptr = A + channel_offset;
+  float* A_ptr = A + channel_offset;
 
   // reorder is performed on B's rows.
-  float *B_ptr = B + (blockIdx_n * 16) + ((threadIdx_x * 4) % 16);
+  float* B_ptr = B + (blockIdx_n * 16) + ((threadIdx_x * 4) % 16);
   int reorder_offset = threadIdx_x / (16 / 4);
 
-  float *A_shared_ptr = A_shared + (threadIdx_x * 4);
-  float *B_shared_ptr = B_shared + (threadIdx_x * 4);
+  float* A_shared_ptr = A_shared + (threadIdx_x * 4);
+  float* B_shared_ptr = B_shared + (threadIdx_x * 4);
 
-  float *A_shared_reduce_ptr = A_shared + (threadIdx_x / 4);
-  float *B_shared_reduce_ptr = B_shared + (threadIdx_x % 4);
+  float* A_shared_reduce_ptr = A_shared + (threadIdx_x / 4);
+  float* B_shared_reduce_ptr = B_shared + (threadIdx_x % 4);
 
   // splitK offset
-  float *cur_C = C + blockIdx_z * K_original * kernel_volume * N;
+  float* cur_C = C + blockIdx_z * K_original * kernel_volume * N;
   int cur_C_ic_start = (blockIdx_m * 16 + (threadIdx_x / 4)) % K_tile_padded;
   int cur_C_oc_start = blockIdx_n * 16 + (threadIdx_x % 4);
-  float *C_ptr = cur_C + (kernel_offset * K_original + cur_C_ic_start) * N +
+  float* C_ptr = cur_C + (kernel_offset * K_original + cur_C_ic_start) * N +
                  cur_C_oc_start;
 
   int A_pred_guard = 0;
@@ -1975,7 +1954,7 @@ __global__ void __launch_bounds__(32)
 #pragma unroll
   for (int _k_0 = 0; _k_0 < K_loops - 1; ++_k_0) {
     int k_0 = blockIdx_z + split_k_iters * _k_0;  // splitK offset
-    int *out_in_map_ptr_local = out_in_map_ptr + k_0 * 64 * kernel_volume;
+    int* out_in_map_ptr_local = out_in_map_ptr + k_0 * 64 * kernel_volume;
     int reorder_offset_local = reorder_offset + k_0 * 64;
 
     bool bit_flag = (bool)(reduced_mask_local[k_0] & (1 << bitmask_shift));
@@ -1993,9 +1972,9 @@ __global__ void __launch_bounds__(32)
         uint4 A_loaded = make_uint4(0, 0, 0, 0);
         global_load<K_ld_factor>(A_loaded, A_ptr + (input_idx * K_original),
                                  A_pred_guard);
-        *(uint4 *)(A_shared_ptr + (ax0_ax1_fused_0 * 128)) = A_loaded;
+        *(uint4*)(A_shared_ptr + (ax0_ax1_fused_0 * 128)) = A_loaded;
       } else {
-        *(uint4 *)(A_shared_ptr + (ax0_ax1_fused_0 * 128)) =
+        *(uint4*)(A_shared_ptr + (ax0_ax1_fused_0 * 128)) =
             make_uint4(0, 0, 0, 0);
       }
     }
@@ -2009,7 +1988,7 @@ __global__ void __launch_bounds__(32)
       //    *(float4*)(B_ptr + v0 * N);
       uint4 B_loaded = make_uint4(0, 0, 0, 0);
       global_load<N_ld_factor>(B_loaded, B_ptr + v0 * N, B_pred_guard);
-      *(uint4 *)(B_shared_ptr + (ax0_ax1_fused_0_1 * 128)) = B_loaded;
+      *(uint4*)(B_shared_ptr + (ax0_ax1_fused_0_1 * 128)) = B_loaded;
     }
 
     __syncthreads();
@@ -2032,7 +2011,7 @@ __global__ void __launch_bounds__(32)
     int k_0 = blockIdx_z + split_k_iters * _k_0;  // splitK offset
     if (k_0 >= (M_fwd + 63) / 64) break;
 
-    int *out_in_map_ptr_local = out_in_map_ptr + k_0 * 64 * kernel_volume;
+    int* out_in_map_ptr_local = out_in_map_ptr + k_0 * 64 * kernel_volume;
     int reorder_offset_local = reorder_offset + k_0 * 64;
 
     bool bit_flag = (bool)(reduced_mask_local[k_0] & (1 << bitmask_shift));
@@ -2050,9 +2029,9 @@ __global__ void __launch_bounds__(32)
         uint4 A_loaded = make_uint4(0, 0, 0, 0);
         global_load<K_ld_factor>(A_loaded, A_ptr + (input_idx * K_original),
                                  A_pred_guard);
-        *(uint4 *)(A_shared_ptr + (ax0_ax1_fused_0 * 128)) = A_loaded;
+        *(uint4*)(A_shared_ptr + (ax0_ax1_fused_0 * 128)) = A_loaded;
       } else {
-        *(uint4 *)(A_shared_ptr + (ax0_ax1_fused_0 * 128)) =
+        *(uint4*)(A_shared_ptr + (ax0_ax1_fused_0 * 128)) =
             make_uint4(0, 0, 0, 0);
       }
     }
@@ -2067,9 +2046,9 @@ __global__ void __launch_bounds__(32)
         //    *(float4*)(B_ptr + v0 * N);
         uint4 B_loaded = make_uint4(0, 0, 0, 0);
         global_load<N_ld_factor>(B_loaded, B_ptr + v0 * N, B_pred_guard);
-        *(uint4 *)(B_shared_ptr + (ax0_ax1_fused_0_1 * 128)) = B_loaded;
+        *(uint4*)(B_shared_ptr + (ax0_ax1_fused_0_1 * 128)) = B_loaded;
       } else {
-        *(uint4 *)(B_shared_ptr + (ax0_ax1_fused_0_1 * 128)) =
+        *(uint4*)(B_shared_ptr + (ax0_ax1_fused_0_1 * 128)) =
             make_uint4(0, 0, 0, 0);
       }
     }
@@ -2111,9 +2090,9 @@ __global__ void __launch_bounds__(64)
     conv_backward_cuda_setting2_mode1_f32f32f32(
         int M_fwd, int K_original, int N, int kernel_volume, int split_k_iters,
         int split_mask_len, int reduced_mask_len, int reorder_loc_len,
-        float *__restrict__ A, float *__restrict__ B,
-        int *__restrict__ reduced_mask, int *__restrict__ out_in_map,
-        int *__restrict__ reorder_loc, float *__restrict__ C) {
+        float* __restrict__ A, float* __restrict__ B,
+        int* __restrict__ reduced_mask, int* __restrict__ out_in_map,
+        int* __restrict__ reorder_loc, float* __restrict__ C) {
   int j_factors1 = (N + 63) / 64;
   // nt blockIdx_x = 0;
   int blockIdx_y =
@@ -2136,8 +2115,8 @@ __global__ void __launch_bounds__(64)
 
   int kernel_offset = blockIdx_m / (K_original / 32);
   int split_mask_iter = kernel_offset / split_mask_len;
-  int *reorder_loc_local = reorder_loc + split_mask_iter * reorder_loc_len;
-  int *reduced_mask_local = reduced_mask + split_mask_iter * reduced_mask_len;
+  int* reorder_loc_local = reorder_loc + split_mask_iter * reorder_loc_len;
+  int* reduced_mask_local = reduced_mask + split_mask_iter * reduced_mask_len;
   int bitmask_shift = kernel_offset - split_mask_iter * split_mask_len;
 
   int channel_offset =
@@ -2145,22 +2124,22 @@ __global__ void __launch_bounds__(64)
   int K_loops = ((M_fwd + 63) / 64 + split_k_iters - 1) / split_k_iters;
 
   // hoisting shared pointer offsets
-  int *out_in_map_ptr =
+  int* out_in_map_ptr =
       out_in_map + (threadIdx_x / (32 / 4)) * kernel_volume + kernel_offset;
-  float *A_ptr = A + channel_offset;
+  float* A_ptr = A + channel_offset;
 
   // reorder is performed on B's rows.
-  float *B_ptr = B + (blockIdx_n * 64) + ((threadIdx_x * 4) % 64);
+  float* B_ptr = B + (blockIdx_n * 64) + ((threadIdx_x * 4) % 64);
   int reorder_offset = threadIdx_x / (64 / 4);
 
-  float *A_shared_ptr = A_shared + (threadIdx_x * 4);
-  float *B_shared_ptr = B_shared + (threadIdx_x * 4);
+  float* A_shared_ptr = A_shared + (threadIdx_x * 4);
+  float* B_shared_ptr = B_shared + (threadIdx_x * 4);
 
-  float *A_shared_reduce_ptr = A_shared + (threadIdx_x / 16);
-  float *B_shared_reduce_ptr = B_shared + (threadIdx_x % 16);
+  float* A_shared_reduce_ptr = A_shared + (threadIdx_x / 16);
+  float* B_shared_reduce_ptr = B_shared + (threadIdx_x % 16);
 
   // splitK offset
-  float *cur_C = C + blockIdx_z * K_original * kernel_volume * N;
+  float* cur_C = C + blockIdx_z * K_original * kernel_volume * N;
   int C_m_offset = blockIdx_m * 32 + (threadIdx_x / 16);  // C_m_offset
   int C_n_offset = blockIdx_n * 64 + (threadIdx_x % 16);
   // float * C_ptr = cur_C + C_m_offset * N + C_n_offset;
@@ -2168,7 +2147,7 @@ __global__ void __launch_bounds__(64)
 #pragma unroll
   for (int _k_0 = 0; _k_0 < K_loops - 1; ++_k_0) {
     int k_0 = blockIdx_z + split_k_iters * _k_0;  // splitK offset
-    int *out_in_map_ptr_local = out_in_map_ptr + k_0 * 64 * kernel_volume;
+    int* out_in_map_ptr_local = out_in_map_ptr + k_0 * 64 * kernel_volume;
     int reorder_offset_local = reorder_offset + k_0 * 64;
 
     bool bit_flag = (bool)(reduced_mask_local[k_0] & (1 << bitmask_shift));
@@ -2180,12 +2159,12 @@ __global__ void __launch_bounds__(64)
       int input_idx =
           out_in_map_ptr_local[(ax0_ax1_fused_0 * 8) * kernel_volume];
       if (input_idx != -1) {
-        *(float4 *)(A_shared_ptr +
-                    (ax0_ax1_fused_0 *
-                     256)) =  // ax0_ax1_fused_0 * elements loaded in each loop
-            *(float4 *)(A_ptr + (input_idx * K_original));
+        *(float4*)(A_shared_ptr +
+                   (ax0_ax1_fused_0 *
+                    256)) =  // ax0_ax1_fused_0 * elements loaded in each loop
+            *(float4*)(A_ptr + (input_idx * K_original));
       } else {
-        *(float4 *)(A_shared_ptr + (ax0_ax1_fused_0 * 256)) =
+        *(float4*)(A_shared_ptr + (ax0_ax1_fused_0 * 256)) =
             make_float4(0.0, 0.0, 0.0, 0.0);
       }
     }
@@ -2195,8 +2174,8 @@ __global__ void __launch_bounds__(64)
          ++ax0_ax1_fused_0_1) {
       int reorder_offset_inner = reorder_offset_local + (ax0_ax1_fused_0_1 * 4);
       int v0 = reorder_loc_local[reorder_offset_inner];
-      *(float4 *)(B_shared_ptr + (ax0_ax1_fused_0_1 * 256)) =
-          *(float4 *)(B_ptr + v0 * N);
+      *(float4*)(B_shared_ptr + (ax0_ax1_fused_0_1 * 256)) =
+          *(float4*)(B_ptr + v0 * N);
     }
 
     __syncthreads();
@@ -2219,7 +2198,7 @@ __global__ void __launch_bounds__(64)
     int k_0 = blockIdx_z + split_k_iters * _k_0;  // splitK offset
     if (k_0 >= (M_fwd + 63) / 64) break;
 
-    int *out_in_map_ptr_local = out_in_map_ptr + k_0 * 64 * kernel_volume;
+    int* out_in_map_ptr_local = out_in_map_ptr + k_0 * 64 * kernel_volume;
     int reorder_offset_local = reorder_offset + k_0 * 64;
 
     bool bit_flag = (bool)(reduced_mask_local[k_0] & (1 << bitmask_shift));
@@ -2231,12 +2210,12 @@ __global__ void __launch_bounds__(64)
       int input_idx =
           *(out_in_map_ptr_local + (ax0_ax1_fused_0 * 8) * kernel_volume);
       if (input_idx != -1) {
-        *(float4 *)(A_shared_ptr +
-                    (ax0_ax1_fused_0 *
-                     256)) =  // ax0_ax1_fused_0 * elements loaded in each loop
-            *(float4 *)(A_ptr + (input_idx * K_original));
+        *(float4*)(A_shared_ptr +
+                   (ax0_ax1_fused_0 *
+                    256)) =  // ax0_ax1_fused_0 * elements loaded in each loop
+            *(float4*)(A_ptr + (input_idx * K_original));
       } else {
-        *(float4 *)(A_shared_ptr + (ax0_ax1_fused_0 * 256)) =
+        *(float4*)(A_shared_ptr + (ax0_ax1_fused_0 * 256)) =
             make_float4(0.0, 0.0, 0.0, 0.0);
       }
     }
@@ -2247,10 +2226,10 @@ __global__ void __launch_bounds__(64)
       int reorder_offset_inner = reorder_offset_local + (ax0_ax1_fused_0_1 * 4);
       if (reorder_offset_inner < M_fwd) {
         int v0 = reorder_loc_local[reorder_offset_inner];
-        *(float4 *)(B_shared_ptr + (ax0_ax1_fused_0_1 * 256)) =
-            *(float4 *)(B_ptr + v0 * N);
+        *(float4*)(B_shared_ptr + (ax0_ax1_fused_0_1 * 256)) =
+            *(float4*)(B_ptr + v0 * N);
       } else {
-        *(float4 *)(B_shared_ptr + (ax0_ax1_fused_0_1 * 256)) =
+        *(float4*)(B_shared_ptr + (ax0_ax1_fused_0_1 * 256)) =
             make_float4(0.0, 0.0, 0.0, 0.0);
       }
     }
@@ -2281,9 +2260,9 @@ __global__ void __launch_bounds__(64)
 }
 
 at::Tensor conv_backward_wgrad_implicit_gemm_sorted_cuda(
-    const at::Tensor &_in_feats, const at::Tensor &_kernel,
-    const at::Tensor &_out_in_map, const at::Tensor &_reduced_mask,
-    const at::Tensor &_reorder_loc, int64_t split_k_iters, bool allow_tf32,
+    const at::Tensor& _in_feats, const at::Tensor& _kernel,
+    const at::Tensor& _out_in_map, const at::Tensor& _reduced_mask,
+    const at::Tensor& _reorder_loc, int64_t split_k_iters, bool allow_tf32,
     bool allow_fp16) {
   c10::cuda::CUDAGuard guard(_in_feats.device());
   bool is_tf = allow_tf32;
@@ -2314,9 +2293,9 @@ at::Tensor conv_backward_wgrad_implicit_gemm_sorted_cuda(
       throw std::runtime_error(
           "FP16 kernels are not supported for implicit GEMM now for SM75-.");
     }
-    auto in_feats = reinterpret_cast<half *>(_in_feats.data_ptr<at::Half>());
-    auto kernel = reinterpret_cast<half *>(_kernel.data_ptr<at::Half>());
-    auto out_feats = reinterpret_cast<half *>(_out_feats.data_ptr<at::Half>());
+    auto in_feats = reinterpret_cast<half*>(_in_feats.data_ptr<at::Half>());
+    auto kernel = reinterpret_cast<half*>(_kernel.data_ptr<at::Half>());
+    auto out_feats = reinterpret_cast<half*>(_out_feats.data_ptr<at::Half>());
 
     if (num_out_channels % 64 == 0 && num_in_channels % 32 == 0) {
       int j_factors1 = num_out_channels / 64 / 1;

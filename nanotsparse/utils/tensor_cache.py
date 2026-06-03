@@ -1,6 +1,6 @@
 import copy
 from enum import Enum
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import torch
 
@@ -33,9 +33,9 @@ class TensorCache:
     def __init__(
         self,
     ) -> None:
-        self.cmaps: Dict[Tuple[int, ...], Tuple[torch.Tensor, Tuple[int, ...]]] = {}
-        self.kmaps: Dict[Tuple[Any, ...], Any] = {}
-        self.hashmaps: Dict[Tuple[int, ...], Tuple[Any, ...]] = {}
+        self.cmaps: dict[tuple[int, ...], tuple[torch.Tensor, tuple[int, ...]]] = {}
+        self.kmaps: dict[tuple[Any, ...], Any] = {}
+        self.hashmaps: dict[tuple[int, ...], tuple[Any, ...]] = {}
 
 
 def get_global_tensor_cache():

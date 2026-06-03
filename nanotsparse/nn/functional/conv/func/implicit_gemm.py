@@ -1,5 +1,3 @@
-from typing import Dict
-
 import torch
 from torch.autograd import Function
 
@@ -17,8 +15,8 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
         ctx,
         input: torch.Tensor,
         weight: torch.Tensor,
-        kmap: Dict,
-        config: Dict,
+        kmap: dict,
+        config: dict,
         transposed: bool = False,
     ) -> torch.Tensor:
         sizes = kmap["sizes"]

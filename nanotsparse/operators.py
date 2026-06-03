@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 import torch
 
 from nanotsparse.tensor import SparseTensor
@@ -9,7 +7,7 @@ from nanotsparse.tensor import SparseTensor
 __all__ = ["cat", "generative_add"]
 
 
-def cat(inputs: List[SparseTensor]) -> SparseTensor:
+def cat(inputs: list[SparseTensor]) -> SparseTensor:
     feats = torch.cat([input.feats for input in inputs], dim=1)
     output = SparseTensor(
         coords=inputs[0].coords,
@@ -37,8 +35,8 @@ def scatter_sum(
     src: torch.Tensor,
     index: torch.Tensor,
     dim: int = -1,
-    out: Optional[torch.Tensor] = None,
-    dim_size: Optional[int] = None,
+    out: torch.Tensor | None = None,
+    dim_size: int | None = None,
 ) -> torch.Tensor:
     index = broadcast(index, src, dim)
     if out is None:

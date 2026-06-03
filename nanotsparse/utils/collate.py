@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 
 import numpy as np
 import torch
@@ -8,7 +8,7 @@ from nanotsparse import SparseTensor
 __all__ = ["sparse_collate", "sparse_collate_fn"]
 
 
-def sparse_collate(inputs: List[SparseTensor]) -> SparseTensor:
+def sparse_collate(inputs: list[SparseTensor]) -> SparseTensor:
     coords, feats = [], []
     stride = inputs[0].stride
 
@@ -33,7 +33,7 @@ def sparse_collate(inputs: List[SparseTensor]) -> SparseTensor:
     return output
 
 
-def sparse_collate_fn(inputs: List[Any]) -> Any:
+def sparse_collate_fn(inputs: list[Any]) -> Any:
     if isinstance(inputs[0], dict):
         output = {}
         for name in inputs[0].keys():

@@ -1,5 +1,4 @@
 from itertools import repeat
-from typing import List, Tuple, Union
 
 import numpy as np
 
@@ -23,11 +22,11 @@ def ravel_hash(x: np.ndarray) -> np.ndarray:
 
 def sparse_quantize(
     coords,
-    voxel_size: Union[float, Tuple[float, ...]] = 1,
+    voxel_size: float | tuple[float, ...] = 1,
     *,
     return_index: bool = False,
     return_inverse: bool = False,
-) -> List[np.ndarray]:
+) -> list[np.ndarray]:
     if isinstance(voxel_size, (float, int)):
         voxel_size = tuple(repeat(voxel_size, 3))
     assert isinstance(voxel_size, tuple) and len(voxel_size) == 3

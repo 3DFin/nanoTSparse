@@ -1,5 +1,3 @@
-from typing import Optional, Tuple
-
 from torch import nn
 
 from nanotsparse import SparseTensor
@@ -11,8 +9,8 @@ __all__ = ["SparseCrop"]
 class SparseCrop(nn.Module):
     def __init__(
         self,
-        coords_min: Optional[Tuple[int, ...]] = None,
-        coords_max: Optional[Tuple[int, ...]] = None,
+        coords_min: tuple[int, ...] | None = None,
+        coords_max: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__()
         self.coords_min = coords_min

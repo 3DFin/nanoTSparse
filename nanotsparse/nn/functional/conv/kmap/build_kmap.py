@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Union
+from typing import Union
 
 import torch
 
@@ -16,11 +16,11 @@ cta_M_wgrad = 64
 def build_kernel_map(
     _coords: torch.Tensor,
     input_node_num: int,
-    kernel_size: Union[int, Tuple[int, ...]] = 2,
-    stride: Union[int, Tuple[int, ...]] = 2,
-    padding: Union[int, Tuple[int, ...]] = 0,
+    kernel_size: int | tuple[int, ...] = 2,
+    stride: int | tuple[int, ...] = 2,
+    padding: int | tuple[int, ...] = 0,
     hashmap: Union["torch.classes.nanotsparse.GPUHashTable", torch.classes.nanotsparse.CPUHashTable] = None,
-    spatial_range: Union[int, Tuple[int, ...]] = 0,
+    spatial_range: int | tuple[int, ...] = 0,
     mode="hashmap",
     dataflow=Dataflow.ImplicitGEMM,
     downsample_mode="spconv",
@@ -29,7 +29,7 @@ def build_kernel_map(
     generative: bool = False,
     split_mask_num: int = 1,
     split_mask_num_bwd: int = 1,
-) -> Dict:
+) -> dict:
 
     kmap = dict(
         [
@@ -178,12 +178,12 @@ def build_kernel_map(
 
 
 def transpose_kernel_map(
-    kmap: Dict,
+    kmap: dict,
     ifsort: bool = False,
     training: bool = False,
     split_mask_num: int = 1,
     split_mask_num_bwd: int = 1,
-) -> Dict:
+) -> dict:
 
     out_in_map = torch.ops.nanotsparse.convert_transposed_out_in_map(
         kmap["out_in_map"], make_divisible(kmap["sizes"][0], cta_M)

@@ -1,5 +1,3 @@
-from typing import Dict, List, Optional, Tuple, Union
-
 import torch
 
 from nanotsparse import SparseTensor
@@ -13,12 +11,12 @@ __all__ = ["conv3d"]
 def conv3d(
     input: SparseTensor,
     weight: torch.Tensor,
-    kernel_size: Union[int, List[int], Tuple[int, ...]],
-    bias: Optional[torch.Tensor] = None,
-    stride: Union[int, List[int], Tuple[int, ...]] = 1,
-    padding: Union[int, Tuple[int, ...]] = 0,
-    dilation: Union[int, Tuple[int, ...]] = 1,
-    config: Dict = None,
+    kernel_size: int | list[int] | tuple[int, ...],
+    bias: torch.Tensor | None = None,
+    stride: int | list[int] | tuple[int, ...] = 1,
+    padding: int | tuple[int, ...] = 0,
+    dilation: int | tuple[int, ...] = 1,
+    config: dict = None,
     transposed: bool = False,
     generative: bool = False,
     training: bool = False,

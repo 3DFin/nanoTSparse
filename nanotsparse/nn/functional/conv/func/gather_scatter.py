@@ -1,5 +1,3 @@
-from typing import Dict
-
 import torch
 from torch.autograd import Function
 
@@ -17,8 +15,8 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
         ctx,
         input: torch.Tensor,
         weight: torch.Tensor,
-        kmap: Dict,
-        config: Dict,
+        kmap: dict,
+        config: dict,
         transposed: bool = False,
     ) -> torch.Tensor:
         nbmaps = kmap["nbmaps"]

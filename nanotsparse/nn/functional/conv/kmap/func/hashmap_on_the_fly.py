@@ -1,5 +1,3 @@
-from typing import Dict, Optional, Tuple
-
 import torch
 
 import nanotsparse.backends
@@ -7,18 +5,18 @@ from nanotsparse.utils import make_tensor
 
 
 def build_kmap_implicit_GEMM_hashmap_on_the_fly(
-    kmap: Dict,
+    kmap: dict,
     input_node_num: int,
     _coords: torch.Tensor,
     kernel_size: torch.Tensor,
     stride: torch.Tensor,
     padding: torch.Tensor,
-    spatial_range: Optional[Tuple[int]] = None,
+    spatial_range: tuple[int] | None = None,
     cta_M: int = 128,
     subm: bool = False,
     ifsort: bool = False,
     split_mask_num: int = 1,
-) -> Dict:
+) -> dict:
     kmap["coords"] = _coords
     kmap["spatial_range"] = spatial_range
     # coords = _coords[:, [3, 0, 1, 2]]
@@ -90,16 +88,16 @@ def build_kmap_implicit_GEMM_hashmap_on_the_fly(
 
 
 def build_kmap_Gather_Scatter_hashmap_on_the_fly(
-    kmap: Dict,
+    kmap: dict,
     input_node_num: int,
     _coords: torch.Tensor,
     kernel_size: torch.Tensor,
     stride: torch.Tensor,
     padding: torch.Tensor,
-    spatial_range: Optional[Tuple[int]] = None,
+    spatial_range: tuple[int] | None = None,
     cta_M: int = 128,
     subm: bool = False,
-) -> Dict:
+) -> dict:
 
     kmap = build_kmap_implicit_GEMM_hashmap_on_the_fly(
         kmap,

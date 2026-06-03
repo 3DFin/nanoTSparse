@@ -14,9 +14,7 @@ def set_kmap_mode(kmap_mode: str):
     if kmap_mode in ["hashmap_on_the_fly", "hashmap"]:
         _global_kmap_mode = kmap_mode
     else:
-        assert (
-            0
-        ), f'Unsupport kmap_mode: {kmap_mode}. Please set kmap_mode to "hashmap_on_the_fly" or "hashmap".'
+        assert 0, f'Unsupport kmap_mode: {kmap_mode}. Please set kmap_mode to "hashmap_on_the_fly" or "hashmap".'
 
 
 def get_downsample_mode():
@@ -29,9 +27,7 @@ def set_downsample_mode(downsample_mode: str):
     if downsample_mode in ["spconv", "minkowski"]:
         _global_downsample_mode = downsample_mode
     else:
-        assert (
-            0
-        ), f'Unsupport downsample_mode {downsample_mode}. Please set downsample_mode to "spconv" or "minkowski".'
+        assert 0, f'Unsupport downsample_mode {downsample_mode}. Please set downsample_mode to "spconv" or "minkowski".'
 
 
 class ConvMode(Enum):
@@ -62,4 +58,4 @@ def set_conv_mode(conv_mode):
     elif isinstance(conv_mode, ConvMode):
         _global_conv_mode = conv_mode
     else:
-        assert 0, f"Unsupport conv_mode input type"
+        assert 0, "Unsupport conv_mode input type"

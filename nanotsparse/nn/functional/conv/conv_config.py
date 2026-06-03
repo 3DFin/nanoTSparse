@@ -1,7 +1,7 @@
-from typing import Any, Dict, Tuple, Union
 from enum import Enum
+
+from .conv_mode import ConvMode
 from .utils import AttributeDict
-from .conv_mode import ConvMode, get_kmap_mode, get_downsample_mode
 
 
 class Dataflow(Enum):
@@ -42,10 +42,8 @@ def keys_check(conv_config):
     if "split_mask_num_bwd" not in conv_config:
         flag = True
         conv_config["split_mask_num_bwd"] = _default_conv_config["split_mask_num_bwd"]
-    if flag == True:
-        print(
-            "Warning: Missing fields for ConvConfig. Use default configs for these fields."
-        )
+    if flag:
+        print("Warning: Missing fields for ConvConfig. Use default configs for these fields.")
 
 
 def get_global_conv_config():
@@ -64,9 +62,7 @@ def clear_global_conv_config():
     _global_conv_config = None
 
 
-def get_default_conv_config(
-    conv_mode: ConvMode = ConvMode.mode0, training: bool = False
-):
+def get_default_conv_config(conv_mode: ConvMode = ConvMode.mode0, training: bool = False):
     config = _default_conv_config
     if conv_mode == ConvMode.mode0:
         pass

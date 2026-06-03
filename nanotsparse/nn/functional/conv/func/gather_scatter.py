@@ -5,8 +5,6 @@ from torch.autograd import Function
 
 # from torch.cuda.amp import custom_bwd, custom_fwd
 
-import nanotsparse
-
 buffer = torch.Tensor()
 
 __all__ = ["GatherScatterConvolutionFuntion"]
@@ -36,23 +34,30 @@ class GatherScatterConvolutionFuntion(Function):  # TorchSparse_v2
 
         if input.device.type == "cuda":
             output = torch.ops.nanotsparse.conv_forward_gather_scatter_cuda(
-                input, weight, nbmaps,  sizes[1] if not transposed else sizes[0], conv_mode, nbsizes, transposed
+                input,
+                weight,
+                nbmaps,
+                sizes[1] if not transposed else sizes[0],
+                conv_mode,
+                nbsizes,
+                transposed,
             )
 
         elif input.device.type == "cpu":
             output = torch.ops.nanotsparse.conv_forward_gather_scatter_cpu(
-                input, weight, nbmaps, nbsizes, sizes[1] if not transposed else sizes[0], transposed
+                input,
+                weight,
+                nbmaps,
+                nbsizes,
+                sizes[1] if not transposed else sizes[0],
+                transposed,
             )
         else:
             if not transposed:
-                output = torch.zeros(
-                    sizes[1], weight.size(-1), dtype=input.dtype, device=input.device
-                )
+                output = torch.zeros(sizes[1], weight.size(-1), dtype=input.dtype, device=input.device)
             else:
                 # TODO(Haotian): ensure the original, upsampled size to be the same.
-                output = torch.zeros(
-                    sizes[0], weight.size(-1), dtype=input.dtype, device=input.device
-                )
+                output = torch.zeros(sizes[0], weight.size(-1), dtype=input.dtype, device=input.device)
 
             # use the native pytorch XLA APIs for the TPU.
             cur_st = 0

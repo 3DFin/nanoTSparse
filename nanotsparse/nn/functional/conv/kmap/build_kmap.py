@@ -1,12 +1,11 @@
 from typing import Dict, Tuple, Union
-import math
+
 import torch
 
-from nanotsparse.utils import make_ntuple, make_tensor, make_divisible
-
-from .func import *
+from nanotsparse.utils import make_divisible, make_ntuple, make_tensor
 
 from ..conv_config import *
+from .func import *
 
 __all__ = ["build_kernel_map", "transpose_kernel_map"]
 
@@ -31,7 +30,6 @@ def build_kernel_map(
     split_mask_num: int = 1,
     split_mask_num_bwd: int = 1,
 ) -> Dict:
-    from nanotsparse.nn import functional as F
 
     kmap = dict(
         [
@@ -43,7 +41,7 @@ def build_kernel_map(
             ("reorder_loc", None),
             ("nbmaps", None),
             ("nbsizes", None),
-            ("hashmap",  hashmap),
+            ("hashmap", hashmap),
             ("spatial_range", spatial_range),
         ]
     )
@@ -54,9 +52,7 @@ def build_kernel_map(
     if spatial_range is not None:
         new_spatial_range = [0, 0, 0]
         for i in range(len(new_spatial_range)):
-            new_spatial_range[i] = (
-                spatial_range[i + 1] + 2 * padding[i] - (kernel_size[i] - 1) - 1
-            ) // stride[i] + 1
+            new_spatial_range[i] = (spatial_range[i + 1] + 2 * padding[i] - (kernel_size[i] - 1) - 1) // stride[i] + 1
         new_spatial_range = spatial_range[:1] + tuple(new_spatial_range)
         kmap["spatial_range"] = new_spatial_range
     else:
@@ -100,12 +96,9 @@ def build_kernel_map(
             )
 
         else:
-            raise ValueError(
-                "[Build kernel map] unsupported dataflow: {}".format(dataflow)
-            )
+            raise ValueError(f"[Build kernel map] unsupported dataflow: {dataflow}")
 
     elif mode == "hashmap":
-
         if dataflow == Dataflow.ImplicitGEMM:
             kmap = build_kmap_implicit_GEMM_hashmap(
                 kmap,
@@ -138,36 +131,26 @@ def build_kernel_map(
                 generative=generative,
             )
 
-
         else:
-            raise ValueError(
-                "[Build kernel map] unsupported dataflow: {}".format(dataflow)
-            )
+            raise ValueError(f"[Build kernel map] unsupported dataflow: {dataflow}")
 
     else:
-        raise ValueError("[Build kernel map] unknown mode: {}".format(mode))
+        raise ValueError(f"[Build kernel map] unknown mode: {mode}")
 
     if dataflow == Dataflow.ImplicitGEMM:
         if ifsort:
             if training:
                 out_in_map_bwd = torch.ops.nanotsparse.convert_transposed_out_in_map(
-                    kmap["out_in_map"],
-                    make_divisible(kmap["sizes"][0], cta_M)
+                    kmap["out_in_map"], make_divisible(kmap["sizes"][0], cta_M)
                 )
                 bitmask_bwd = torch.ops.nanotsparse.derive_bitmask_from_out_in_map(
-                        out_in_map_bwd, split_mask_num_bwd, kmap["sizes"][0]
-                    )
+                    out_in_map_bwd, split_mask_num_bwd, kmap["sizes"][0]
+                )
                 sorted_mask_bwd, reorder_loc_bwd = torch.sort(bitmask_bwd, descending=True)
                 reorder_loc_bwd = reorder_loc_bwd.to(torch.int32)
-                reorder_out_in_map_bwd = torch.ops.nanotsparse.reorder_out_in_map_cuda(
-                    out_in_map_bwd, reorder_loc_bwd
-                )
-                reduced_sorted_mask_bwd_wgrad = torch.ops.nanotsparse.reduce_bitmask_cuda(
-                    sorted_mask_bwd, cta_M_wgrad
-                )
-                reduced_sorted_mask_bwd_dgrad = torch.ops.nanotsparse.reduce_bitmask_cuda(
-                    sorted_mask_bwd, cta_M
-                )
+                reorder_out_in_map_bwd = torch.ops.nanotsparse.reorder_out_in_map_cuda(out_in_map_bwd, reorder_loc_bwd)
+                reduced_sorted_mask_bwd_wgrad = torch.ops.nanotsparse.reduce_bitmask_cuda(sorted_mask_bwd, cta_M_wgrad)
+                reduced_sorted_mask_bwd_dgrad = torch.ops.nanotsparse.reduce_bitmask_cuda(sorted_mask_bwd, cta_M)
             else:
                 out_in_map_bwd = None
                 reorder_out_in_map_bwd = None
@@ -177,8 +160,7 @@ def build_kernel_map(
         else:
             if training:
                 out_in_map_bwd = torch.ops.nanotsparse.convert_transposed_out_in_map(
-                    kmap["out_in_map"],
-                    make_divisible(kmap["sizes"][0], cta_M)
+                    kmap["out_in_map"], make_divisible(kmap["sizes"][0], cta_M)
                 )
             else:
                 out_in_map_bwd = None
@@ -202,11 +184,9 @@ def transpose_kernel_map(
     split_mask_num: int = 1,
     split_mask_num_bwd: int = 1,
 ) -> Dict:
-    from nanotsparse.nn import functional as F
 
     out_in_map = torch.ops.nanotsparse.convert_transposed_out_in_map(
-        kmap["out_in_map"],
-        make_divisible(kmap["sizes"][0], cta_M)
+        kmap["out_in_map"], make_divisible(kmap["sizes"][0], cta_M)
     )
 
     if ifsort:
@@ -215,12 +195,8 @@ def transpose_kernel_map(
             reorder_out_in_map_bwd = kmap["reorder_out_in_map"]
             reorder_loc_bwd = kmap["reorder_loc"]
             sorted_mask_bwd = kmap["sorted_mask"]
-            reduced_sorted_mask_bwd_wgrad = torch.ops.nanotsparse.reduce_bitmask_cuda(
-                sorted_mask_bwd, cta_M_wgrad
-            )
-            reduced_sorted_mask_bwd_dgrad = torch.ops.nanotsparse.reduce_bitmask_cuda(
-                sorted_mask_bwd, cta_M
-            )
+            reduced_sorted_mask_bwd_wgrad = torch.ops.nanotsparse.reduce_bitmask_cuda(sorted_mask_bwd, cta_M_wgrad)
+            reduced_sorted_mask_bwd_dgrad = torch.ops.nanotsparse.reduce_bitmask_cuda(sorted_mask_bwd, cta_M)
             kmap["out_in_map_bwd_t"] = out_in_map_bwd
             kmap["reorder_out_in_map_bwd_t"] = reorder_out_in_map_bwd
             kmap["reduced_sorted_mask_bwd_wgrad_t"] = reduced_sorted_mask_bwd_wgrad
@@ -233,17 +209,11 @@ def transpose_kernel_map(
             kmap["reduced_sorted_mask_bwd_dgrad_t"] = None
             kmap["reorder_loc_bwd_t"] = None
 
-        bitmask = torch.ops.nanotsparse.derive_bitmask_from_out_in_map(
-            out_in_map, split_mask_num, kmap["sizes"][0]
-        )
+        bitmask = torch.ops.nanotsparse.derive_bitmask_from_out_in_map(out_in_map, split_mask_num, kmap["sizes"][0])
         sorted_mask, reorder_loc = torch.sort(bitmask, descending=True)
         reorder_loc = reorder_loc.to(torch.int32)
-        reorder_out_in_map = torch.ops.nanotsparse.reorder_out_in_map_cuda(
-            out_in_map, reorder_loc
-        )
-        reduced_sorted_mask = torch.ops.nanotsparse.reduce_bitmask_cuda(
-            sorted_mask, cta_M
-        )
+        reorder_out_in_map = torch.ops.nanotsparse.reorder_out_in_map_cuda(out_in_map, reorder_loc)
+        reduced_sorted_mask = torch.ops.nanotsparse.reduce_bitmask_cuda(sorted_mask, cta_M)
         kmap["reorder_out_in_map_t"] = reorder_out_in_map
         kmap["reduced_sorted_mask_t"] = reduced_sorted_mask
         kmap["reorder_loc_t"] = reorder_loc

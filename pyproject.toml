@@ -1,3 +1,18 @@
 [build-system]
 requires = ["setuptools", "ninja", "torch >= 2.6"]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+extend-exclude = ["nanotsparse/nn/functional/conv/utils/*"]
+
+[tool.ruff.lint]
+select = ["B", "C90", "E", "F", "W", "B9", "I", "N", "UP"]
+ignore = ["D10", "E501", "C901", "E722", "D",   "F403", "F405", "N803", "N802", "N806", "N812", "N816"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["nanotsparse"]

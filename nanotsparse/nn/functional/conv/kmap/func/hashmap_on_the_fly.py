@@ -1,4 +1,5 @@
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional, Tuple
+
 import torch
 
 import nanotsparse.backends
@@ -25,21 +26,15 @@ def build_kmap_implicit_GEMM_hashmap_on_the_fly(
     coords = _coords.contiguous()
     if spatial_range is not None:
         coords_max_tuple = tuple(x - 1 for x in spatial_range)
-        coords_max = make_tensor(
-            coords_max_tuple, dtype=torch.int, device=coords.device
-        )
+        coords_max = make_tensor(coords_max_tuple, dtype=torch.int, device=coords.device)
     else:
         coords_max = coords.max(0).values
         if not subm:
-            coords_max[1:] = (
-                coords_max[1:] + 2 * padding - (kernel_size - 1)
-            ) // stride
+            coords_max[1:] = (coords_max[1:] + 2 * padding - (kernel_size - 1)) // stride
 
     if nanotsparse.tensor.get_allow_negative_coordinates():
         coords_min = coords.min(0).values
-        coords_min[1:] = torch.div(
-            coords_min[1:] - 2 * padding + (kernel_size - 1), stride
-        )
+        coords_min[1:] = torch.div(coords_min[1:] - 2 * padding + (kernel_size - 1), stride)
     else:
         coords_min = make_tensor((0, 0, 0, 0), dtype=torch.int, device=coords.device)
 
@@ -48,10 +43,9 @@ def build_kmap_implicit_GEMM_hashmap_on_the_fly(
     else:
         hash_func = torch.ops.nanotsparse.build_kernel_map_downsample_hashmap
 
-
-    assert (
-        nanotsparse.backends.hash_rsv_ratio >= 2
-    ), f"hash_rsv_ratio should be no less than 2, now {nanotsparse.backends.hash_rsv_ratio}."
+    assert nanotsparse.backends.hash_rsv_ratio >= 2, (
+        f"hash_rsv_ratio should be no less than 2, now {nanotsparse.backends.hash_rsv_ratio}."
+    )
 
     to_insert = False
     hashmap = kmap["hashmap"]
@@ -82,17 +76,11 @@ def build_kmap_implicit_GEMM_hashmap_on_the_fly(
     kmap["sizes"] = (input_node_num, coords.shape[0])
 
     if ifsort:
-        bitmask = torch.ops.nanotsparse.derive_bitmask_from_out_in_map(
-            out_in_map, split_mask_num, kmap["sizes"][1]
-        )
+        bitmask = torch.ops.nanotsparse.derive_bitmask_from_out_in_map(out_in_map, split_mask_num, kmap["sizes"][1])
         sorted_mask, reorder_loc = torch.sort(bitmask, descending=True)
         reorder_loc = reorder_loc.to(torch.int32)
-        reorder_out_in_map = torch.ops.nanotsparse.reorder_out_in_map_cuda(
-            out_in_map, reorder_loc
-        )
-        reduced_sorted_mask = torch.ops.nanotsparse.reduce_bitmask_cuda(
-            sorted_mask, cta_M
-        )
+        reorder_out_in_map = torch.ops.nanotsparse.reorder_out_in_map_cuda(out_in_map, reorder_loc)
+        reduced_sorted_mask = torch.ops.nanotsparse.reduce_bitmask_cuda(sorted_mask, cta_M)
         kmap["reorder_out_in_map"] = reorder_out_in_map
         kmap["reduced_sorted_mask"] = reduced_sorted_mask
         kmap["reorder_loc"] = reorder_loc

@@ -4,7 +4,6 @@ import torch
 from torch.autograd import Function
 
 # from torch.cuda.amp import custom_bwd, custom_fwd
-
 import nanotsparse
 import nanotsparse.backends
 
@@ -50,7 +49,6 @@ class ImplicitGEMMConvolutionFuntion(Function):  # TorchSparse++
         weight = weight.contiguous()
 
         if input.device.type == "cuda":
-
             # input, weight, out_in_map, out_feats
             num_out_feats = sizes[1] if not transposed else sizes[0]
             num_out_channels = weight.shape[-1]

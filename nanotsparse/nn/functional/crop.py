@@ -16,14 +16,10 @@ def spcrop(
 
     mask = torch.ones((coords.shape[0], 3), dtype=torch.bool, device=coords.device)
     if coords_min is not None:
-        coords_min = torch.tensor(
-            coords_min, dtype=torch.int, device=coords.device
-        ).unsqueeze(dim=0)
+        coords_min = torch.tensor(coords_min, dtype=torch.int, device=coords.device).unsqueeze(dim=0)
         mask &= coords[:, :3] >= coords_min
     if coords_max is not None:
-        coords_max = torch.tensor(
-            coords_max, dtype=torch.int, device=coords.device
-        ).unsqueeze(dim=0)
+        coords_max = torch.tensor(coords_max, dtype=torch.int, device=coords.device).unsqueeze(dim=0)
         # Using "<" instead of "<=" is for the backward compatability (in
         # some existing detection codebase). We might need to reflect this
         # in the document or change it back to "<=" in the future.

@@ -16,9 +16,7 @@ from torch.utils.cpp_extension import (
 
 # see https://github.com/Dao-AILab/flash-attention/blob/main/setup.py
 def get_cuda_bare_metal_version(cuda_dir):
-    raw_output = subprocess.check_output(
-        [cuda_dir + "/bin/nvcc", "-V"], universal_newlines=True
-    )
+    raw_output = subprocess.check_output([cuda_dir + "/bin/nvcc", "-V"], universal_newlines=True)
     output = raw_output.split()
     release_idx = output.index("release") + 1
     bare_metal_version = parse(output[release_idx].split(",")[0])
@@ -33,14 +31,12 @@ print("nanotsparse version:", __version__)
 
 build_ext = BuildExtension.with_options(use_ninja=True)
 
-if (torch.cuda.is_available() and CUDA_HOME is not None) or (
-    os.getenv("FORCE_CUDA", "0") == "1"
-):
+if (torch.cuda.is_available() and CUDA_HOME is not None) or (os.getenv("FORCE_CUDA", "0") == "1"):
     device = "cuda"
-    module_code = f"nanotsparse_module_cuda.cu"
+    module_code = "nanotsparse_module_cuda.cu"
 else:
     device = "cpu"
-    module_code = f"nanotsparse_module_cpp.cpp"
+    module_code = "nanotsparse_module_cpp.cpp"
 
 
 base_dir = os.path.join("nanotsparse", "csrc")
@@ -48,9 +44,7 @@ base_dir = os.path.join("nanotsparse", "csrc")
 sources = [os.path.join(base_dir, module_code)]
 
 for fpath in glob.glob(os.path.join(base_dir, "**", "*")):
-    if (fpath.endswith("_cpu.cpp") and device in ["cpu", "cuda"]) or (
-        fpath.endswith("_cuda.cu") and device == "cuda"
-    ):
+    if (fpath.endswith("_cpu.cpp") and device in ["cpu", "cuda"]) or (fpath.endswith("_cuda.cu") and device == "cuda"):
         sources.append(fpath)
 
 

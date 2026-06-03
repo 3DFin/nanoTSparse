@@ -1,8 +1,10 @@
-from sympy.physics.units import km
-from typing import Dict, Tuple, Union, Optional
+from typing import Dict, Optional, Tuple
+
 import torch
 
+import nanotsparse
 from nanotsparse.utils import make_tensor
+
 
 def build_kmap_implicit_GEMM_hashmap(
     kmap: Dict,
@@ -34,9 +36,7 @@ def build_kmap_implicit_GEMM_hashmap(
                 downsample_mode=downsample_mode,
             )
         else:
-            coords = F.spupsample_generative(
-                _coords, stride, kernel_size, padding, spatial_range
-            )
+            coords = F.spupsample_generative(_coords, stride, kernel_size, padding, spatial_range)
 
     kernel_volume = torch.prod(kernel_size)
 
@@ -49,7 +49,6 @@ def build_kmap_implicit_GEMM_hashmap(
             hashmap = torch.classes.nanotsparse.GPUHashTable(_coords.shape[0] * nanotsparse.backends.hash_rsv_ratio)
         to_insert = True
 
-
     if to_insert:
         if not generative:
             hashmap.insert_coords(_coords[:, [1, 2, 3, 0]])
@@ -61,7 +60,10 @@ def build_kmap_implicit_GEMM_hashmap(
     if not generative:
         results = (
             hashmap.lookup_coords(
-                coords[:, [1, 2, 3, 0]], kernel_size.contiguous(), stride.contiguous(), kernel_volume
+                coords[:, [1, 2, 3, 0]],
+                kernel_size.contiguous(),
+                stride.contiguous(),
+                kernel_volume,
             )
             - 1
         )
@@ -82,22 +84,17 @@ def build_kmap_implicit_GEMM_hashmap(
     kmap["hashmap"] = hashmap
 
     if ifsort:
-        bitmask = torch.ops.nanotsparse.derive_bitmask_from_out_in_map(
-            results, split_mask_num, kmap["sizes"][1]
-        )
+        bitmask = torch.ops.nanotsparse.derive_bitmask_from_out_in_map(results, split_mask_num, kmap["sizes"][1])
         sorted_mask, reorder_loc = torch.sort(bitmask, descending=True)
         reorder_loc = reorder_loc.to(torch.int32)
-        reorder_out_in_map = torch.ops.nanotsparse.reorder_out_in_map_cuda(
-            results, reorder_loc
-        )
-        reduced_sorted_mask = torch.ops.nanotsparse.reduce_bitmask_cuda(
-            sorted_mask, cta_M
-        )
+        reorder_out_in_map = torch.ops.nanotsparse.reorder_out_in_map_cuda(results, reorder_loc)
+        reduced_sorted_mask = torch.ops.nanotsparse.reduce_bitmask_cuda(sorted_mask, cta_M)
         kmap["reorder_out_in_map"] = reorder_out_in_map
         kmap["reduced_sorted_mask"] = reduced_sorted_mask
         kmap["reorder_loc"] = reorder_loc
         kmap["sorted_mask"] = sorted_mask
     return kmap
+
 
 def build_kmap_Gather_Scatter_hashmap(
     kmap: Dict,

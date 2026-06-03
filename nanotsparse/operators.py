@@ -11,7 +11,12 @@ __all__ = ["cat", "generative_add"]
 
 def cat(inputs: List[SparseTensor]) -> SparseTensor:
     feats = torch.cat([input.feats for input in inputs], dim=1)
-    output = SparseTensor(coords=inputs[0].coords, feats=feats, stride=inputs[0].stride, spatial_range=inputs[0].spatial_range)
+    output = SparseTensor(
+        coords=inputs[0].coords,
+        feats=feats,
+        stride=inputs[0].stride,
+        spatial_range=inputs[0].spatial_range,
+    )
     output._caches = inputs[0]._caches
     return output
 
@@ -57,8 +62,6 @@ def generative_add(a: SparseTensor, b: SparseTensor) -> SparseTensor:
     union_features = torch.cat([input_a.F, input_b.F], dim=0)
     unique_coords, unique_idx = torch.unique(union_coords, dim=0, return_inverse=True)
     out_feature = scatter_sum(union_features, unique_idx, dim=0)
-    out_tensor = SparseTensor(
-        out_feature, unique_coords, input_a.s, spatial_range=input_a.spatial_range
-    )
+    out_tensor = SparseTensor(out_feature, unique_coords, input_a.s, spatial_range=input_a.spatial_range)
     out_tensor._caches = input_a._caches
     return out_tensor

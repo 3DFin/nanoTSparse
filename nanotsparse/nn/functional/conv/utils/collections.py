@@ -25,9 +25,6 @@
 #       IMPORT
 # --------------------------------------
 
-import collections
-
-from . import compat
 
 # =========================================
 #       CONSTANTS
@@ -43,9 +40,7 @@ DEFAULT_RESERVED_KEY_SUFFIX = None
 
 
 class AttributeDict(dict):
-
-    """
-    :class:`~attributedict.collections.AttributeDict` is a seamlessly extended dictionary object (subclass of `dict`),
+    """:class:`~attributedict.collections.AttributeDict` is a seamlessly extended dictionary object (subclass of `dict`),
     with access to additional attribute get/set/delete of key/values.
 
     @example:
@@ -66,7 +61,7 @@ class AttributeDict(dict):
         entries = entries or {}
         entries = self._reject_reserved_keys(entries)
 
-        super(AttributeDict, self).__init__(entries)
+        super().__init__(entries)
 
         self.update(entries)
 
@@ -109,8 +104,7 @@ class AttributeDict(dict):
         return object
 
     def update(self, entries={}, *args, **kwargs):
-        """
-        Update dictionary.
+        """Update dictionary.
 
         @example:
 
@@ -169,8 +163,7 @@ class AttributeDict(dict):
         return result
 
     def __getitem__(self, key):
-        """
-        Provides `dict` style property access to dictionary key-values.
+        """Provides `dict` style property access to dictionary key-values.
 
         @example:
 
@@ -187,8 +180,7 @@ class AttributeDict(dict):
         return result
 
     def __setitem__(self, key, value):
-        """
-        Provides `dict` style property assignment to dictionary key-values.
+        """Provides `dict` style property assignment to dictionary key-values.
 
         @example:
 
@@ -208,8 +200,7 @@ class AttributeDict(dict):
         return result
 
     def __delitem__(self, key):
-        """
-        Provides `dict` style property deletion to dictionary key-values.
+        """Provides `dict` style property deletion to dictionary key-values.
 
         @example:
 
@@ -226,8 +217,7 @@ class AttributeDict(dict):
         return result
 
     def __getattr__(self, key):
-        """
-        Provides `object` style attribute access to dictionary key-values.
+        """Provides `object` style attribute access to dictionary key-values.
 
         @example:
 
@@ -244,8 +234,7 @@ class AttributeDict(dict):
             raise AttributeError(error)
 
     def __setattr__(self, key, value):
-        """
-        Provides `object` style attribute assignment to dictionary key-values.
+        """Provides `object` style attribute assignment to dictionary key-values.
 
         @example:
 
@@ -262,8 +251,7 @@ class AttributeDict(dict):
             raise AttributeError(error)
 
     def __delattr__(self, key):
-        """
-        Provides `object` style attribute deletion to dictionary key-values.
+        """Provides `object` style attribute deletion to dictionary key-values.
 
         @example:
 
@@ -280,54 +268,38 @@ class AttributeDict(dict):
             raise AttributeError(error)
 
     def __str__(self):
-        """
-        String value of the dictionary instance.
-        """
+        """String value of the dictionary instance."""
         return str(self.__dict__)
 
     def __repr__(self):
-        """
-        String representation of the dictionary instance.
-        """
+        """String representation of the dictionary instance."""
         return repr(self.__dict__)
 
     def __dir__(self):
         return dir(type(self)) + list(self.__dict__.keys())
 
     def __iter__(self):
-        """
-        Iterate over dictionary key/values.
-        """
+        """Iterate over dictionary key/values."""
         return iter(self.__dict__.keys())
 
     def __len__(self):
-        """
-        Get number of items.
-        """
+        """Get number of items."""
         return len(self.__dict__.keys())
 
     def __contains__(self, key):
-        """
-        Check if key exists.
-        """
+        """Check if key exists."""
         return self.__dict__.__contains__(key)
 
     def __reduce__(self):
-        """
-        Return state information for pickling.
-        """
+        """Return state information for pickling."""
         return self.__dict__.__reduce__()
 
     def __eq__(self, other):
-        """
-        Check dictionary is equal to another provided dictionary.
-        """
+        """Check dictionary is equal to another provided dictionary."""
         return self.__dict__.__eq__(other)
 
     def __ne__(self, other):
-        """
-        Check dictionary is inequal to another provided dictionary.
-        """
+        """Check dictionary is inequal to another provided dictionary."""
         return self.__dict__.__ne__(other)
 
     def to_dict(self):
@@ -372,14 +344,13 @@ __all__ = [
 # --------------------------------------
 
 if __name__ == "__main__":
-
     data = {"a": {"b": {"c": [1, 2, 3]}}}
 
     object = AttributeDict(data)
 
-    print("object = AttributeDict({0})\n".format(data))
+    print(f"object = AttributeDict({data})\n")
 
-    print("object\n\n\t{0}\n".format(object))
-    print("object.a\n\n\t{0}\n".format(object.a))
-    print("object.a.b\n\n\t{0}\n".format(object.a.b))
-    print("object.a.b.c\n\n\t{0}\n".format(object.a.b.c))
+    print(f"object\n\n\t{object}\n")
+    print(f"object.a\n\n\t{object.a}\n")
+    print(f"object.a.b\n\n\t{object.a.b}\n")
+    print(f"object.a.b.c\n\n\t{object.a.b.c}\n")

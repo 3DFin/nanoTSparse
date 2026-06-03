@@ -1,5 +1,3 @@
-from typing import Any, Dict, Tuple, Union, Optional, List
-
 import numpy as np
 import torch
 
@@ -31,9 +29,7 @@ def generate_feature_map(
         )
         batch_indices.append(inds_total)
 
-    features = np.random.uniform(
-        data_range[0], data_range[1], size=[num_points.sum(), num_channels]
-    ).astype(dtype)
+    features = np.random.uniform(data_range[0], data_range[1], size=[num_points.sum(), num_channels]).astype(dtype)
 
     sparse_dict = dict(
         [
@@ -90,7 +86,7 @@ def dense_to_subm(feats, coords):
 
     mask = np.zeros(feats.shape, dtype=np.int32)
 
-    for j, coord in enumerate(coords):
+    for _, coord in enumerate(coords):
         dense_slice = (coord[0], slice(None), *coord[1:])
         mask[dense_slice] = 1
 

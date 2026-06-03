@@ -13,15 +13,15 @@ If you use this project, please cite the original `TorchSparse` project (see at 
 - Dependencies modernization: We added `tsl::robin_map` (replacing `sparsehash`) and replaced `openMP` with `Taskflow`. While `Taskflow` might seem like overkill, it is header-only and 100% cross-platform (working seamlessly on macOS and supporting all types of integer indexing on Windows).
 - We now cache the full hashmap instead of just the key/value pair as tensors. This approach is more robust, as it avoids cumbersome workflows and allows for better alignment between the CPU and GPU versions.
 - We improved the general training runtime by re-enabling `amp` on CUDA and fixing a double `__sync_threads()` call.
-- Mask Sorting Fix (for backward): We fixed an inconsistent behavior regarding mask sorting in the backward pass for small kernels. In `Torchsparse++` 2.1, the backward pass *always* used a sorted mask for small kernels (with a hardcoded threshold `kernel_volume < 32`) even when `ifsort=false` was used. Bitmask generation and sorting were *always* performed during training, even if not required afterward. This was an hidden control flow that unnecessarily consumes time and memory. This behavior was caused by the fact that bitmasks were coded on 32-bit wide integers, requiring the kernel volume to be split such that it does not exceeded 32 offsets. For example, a single split is fine for a 3x3x3 kernel, but a 5x5x5 kernel requires at least 4 splits.
+- Mask Sorting Fix (for backward): We fixed an inconsistent behavior regarding mask sorting in the backward pass for small kernels. In `Torchsparse++` 2.1, the backward pass _always_ used a sorted mask for small kernels (with a hardcoded threshold `kernel_volume < 32`) even when `ifsort=false` was used. Bitmask generation and sorting were _always_ performed during training, even if not required afterward. This was an hidden control flow that unnecessarily consumes time and memory. This behavior was caused by the fact that bitmasks were coded on 32-bit wide integers, requiring the kernel volume to be split such that it does not exceeded 32 offsets. For example, a single split is fine for a 3x3x3 kernel, but a 5x5x5 kernel requires at least 4 splits.
 - Build System: We reviewed and improved the build system. It is now PEP 517 compatible.
 - Distribution Compatibility: We created an ABI-compatible build (using Python's stable ABI) to simplify distribution.
 
 # TODO, WIP:
 
-- Add `CIBuildWheels` workflow, at least for CPU.
 - Implement proper `TORCH_CHECK` for functions.
-- Add FakeTensors for compile compat.
+- Add `CIBuildWheels` workflow for CUDA.
+- Add FakeTensors for torch compile compatiblity.
 - Use the Torch stable ABI / header-only interface.
 - Support asynchronous (Async) loading for SM80+ architectures. Experimental port to Cute/CuteDSL.
 - Test / Integrate PointCNN++ kernel.

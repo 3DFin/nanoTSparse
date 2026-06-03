@@ -1,8 +1,8 @@
-#include "reduce_bitmask_cuda.h"
-
 #include <c10/cuda/CUDAGuard.h>
+
 #include <cstdint>
 
+#include "reduce_bitmask_cuda.h"
 
 // 1 block -- 4 warps -- 128 threads
 // 1 warp -- 8 output elements (4 threads for 1 reduced element in int32)
@@ -10,16 +10,13 @@
 // threads in 1st warp finish the final reduction of 4 numbers
 
 #define thd_per_blk 128
-#define output_per_blk 32 // thd_per_blk / 4  -> (4 threads for 1 reduced element in int32)
+#define output_per_blk \
+  32  // thd_per_blk / 4  -> (4 threads for 1 reduced element in int32)
 
-__global__
-void __launch_bounds__(thd_per_blk) reduce_mask_cuda_int32(
-                                         const int* __restrict__ bitmask,
-                                         int output_node_num,
-                                         int reduced_row_num,
-                                         int reduce_tile,
-                                         int* __restrict__ reduced_bitmask) {
-
+__global__ void __launch_bounds__(thd_per_blk)
+    reduce_mask_cuda_int32(const int* __restrict__ bitmask, int output_node_num,
+                           int reduced_row_num, int reduce_tile,
+                           int* __restrict__ reduced_bitmask) {
   int split_mask_iter = blockIdx.y;
   int thread_size = reduce_tile / 4;
   int blockIdx_x = (int)blockIdx.x;
@@ -32,7 +29,8 @@ void __launch_bounds__(thd_per_blk) reduce_mask_cuda_int32(
   int* final_reduce_ptr = bitmask_shared + (laneid << 2);
 
   const int* bitmask_blk = bitmask + split_mask_iter * output_node_num;
-  int* reduced_bitmask_blk = reduced_bitmask + split_mask_iter * reduced_row_num;
+  int* reduced_bitmask_blk =
+      reduced_bitmask + split_mask_iter * reduced_row_num;
   int block_offset = blockIdx_x * thd_per_blk * thread_size;
   int thread_offset = block_offset + (threadIdx_x * thread_size);
   int load_len = min(thread_size, output_node_num - thread_offset);
@@ -45,43 +43,43 @@ void __launch_bounds__(thd_per_blk) reduce_mask_cuda_int32(
   __syncthreads();
 
   // final reduction
-  if(warpid == 0){
-    #pragma unroll
-    for(int i = 1; i < 4; i++){
+  if (warpid == 0) {
+#pragma unroll
+    for (int i = 1; i < 4; i++) {
       final_reduce_ptr[0] = final_reduce_ptr[0] | final_reduce_ptr[i];
     }
     int output_offset = (blockIdx_x << 5) + laneid;
-    if (output_offset < reduced_row_num){
+    if (output_offset < reduced_row_num) {
       reduced_bitmask_blk[output_offset] = final_reduce_ptr[0];
     }
   }
 }
 
+at::Tensor reduce_bitmask_cuda(const at::Tensor& _bitmask_int, int64_t M_tile) {
+  c10::cuda::CUDAGuard guard(_bitmask_int.device());
+  if (M_tile % 4 != 0) {
+    throw std::runtime_error(
+        "[Bitmask reduce] reduce tile size must be multiple of 4.");
+  }
+  int split_mask_num = _bitmask_int.size(0);
+  int output_node_num = _bitmask_int.size(1);
+  int reduced_row_num = (output_node_num - 1) / M_tile + 1;
 
-at::Tensor reduce_bitmask_cuda(
-    const at::Tensor& _bitmask_int,
-    int64_t M_tile
-){
-    c10::cuda::CUDAGuard guard(_bitmask_int.device());
-    if (M_tile % 4 != 0)
-    {
-      throw std::runtime_error("[Bitmask reduce] reduce tile size must be multiple of 4.");
-    }
-    int split_mask_num = _bitmask_int.size(0);
-    int output_node_num = _bitmask_int.size(1);
-    int reduced_row_num = (output_node_num - 1) / M_tile + 1;
+  const auto options =
+      at::TensorOptions().dtype(torch::kInt32).device(_bitmask_int.device());
+  at::Tensor _reduced_bitmask_int =
+      at::zeros({split_mask_num, reduced_row_num}, options);
 
-    const auto options = at::TensorOptions().dtype(torch::kInt32).device(_bitmask_int.device());
-    at::Tensor _reduced_bitmask_int = at::zeros({split_mask_num, reduced_row_num}, options);
+  const auto* bitmask_int = _bitmask_int.data_ptr<int>();
+  auto* reduced_bitmask_int = _reduced_bitmask_int.data_ptr<int>();
 
-    const auto* bitmask_int = _bitmask_int.data_ptr<int>();
-    auto* reduced_bitmask_int = _reduced_bitmask_int.data_ptr<int>();
+  const dim3 num_blocks(((reduced_row_num - 1) / output_per_blk + 1),
+                        split_mask_num);
+  const dim3 num_threads(thd_per_blk);
 
-    const dim3 num_blocks(((reduced_row_num - 1) / output_per_blk + 1), split_mask_num);
-    const dim3 num_threads(thd_per_blk);
+  reduce_mask_cuda_int32<<<num_blocks, num_threads>>>(
+      bitmask_int, output_node_num, reduced_row_num, M_tile,
+      reduced_bitmask_int);
 
-    reduce_mask_cuda_int32<<<num_blocks, num_threads>>>(
-        bitmask_int, output_node_num, reduced_row_num, M_tile, reduced_bitmask_int);
-
-    return _reduced_bitmask_int;
+  return _reduced_bitmask_int;
 }

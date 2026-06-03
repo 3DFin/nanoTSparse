@@ -1,9 +1,10 @@
 #pragma once
 
 #include <ATen/Operators.h>
-#include <cstdint>
 #include <torch/all.h>
 #include <torch/library.h>
+
+#include <cstdint>
 
 at::Tensor conv_forward_gather_scatter_cuda_fallback(
     at::Tensor &in_feat, at::Tensor &kernel, const at::Tensor &neighbor_map,

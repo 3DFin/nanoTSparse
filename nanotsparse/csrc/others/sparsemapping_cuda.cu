@@ -1,23 +1,22 @@
-#include "sparsemapping_cuda.h"
-
-
-#include <algorithm>
 #include <c10/cuda/CUDAGuard.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <vector>
+
+#include "sparsemapping_cuda.h"
 
 #define NDim 4
 #define MAX_KVOL 27
 
-template <typename type_int> // int32_t or int64_t
-__host__ __device__ inline type_int
-transform_coords(int *in_coords, int *coords_min, int *coords_max) {
+template <typename type_int>  // int32_t or int64_t
+__host__ __device__ inline type_int transform_coords(int *in_coords,
+                                                     int *coords_min,
+                                                     int *coords_max) {
   type_int cur = 0;
   int sizes[NDim];
 #pragma unroll
-  for (int i = 0; i < NDim; i++)
-    sizes[i] = coords_max[i] - coords_min[i] + 1;
+  for (int i = 0; i < NDim; i++) sizes[i] = coords_max[i] - coords_min[i] + 1;
 #pragma unroll
   for (int i = 0; i < NDim; i++) {
     cur *= sizes[i];
@@ -26,15 +25,15 @@ transform_coords(int *in_coords, int *coords_min, int *coords_max) {
   return cur;
 }
 
-template <typename type_int> // int32_t or int64_t
-__host__ __device__ inline void
-inverse_transform_coords(type_int *in_coords, int *coords_min, int *coords_max,
-                         int *out_coords) {
+template <typename type_int>  // int32_t or int64_t
+__host__ __device__ inline void inverse_transform_coords(type_int *in_coords,
+                                                         int *coords_min,
+                                                         int *coords_max,
+                                                         int *out_coords) {
   type_int cur = in_coords[0];
   int sizes[NDim];
 #pragma unroll
-  for (int i = 0; i < NDim; i++)
-    sizes[i] = coords_max[i] - coords_min[i] + 1;
+  for (int i = 0; i < NDim; i++) sizes[i] = coords_max[i] - coords_min[i] + 1;
 #pragma unroll
   for (int i = NDim - 1; i >= 0; i--) {
     out_coords[i] = coords_min[i] + (cur % sizes[i]);
@@ -43,19 +42,18 @@ inverse_transform_coords(type_int *in_coords, int *coords_min, int *coords_max,
 }
 
 template <typename type_hashtable_device_view,
-          typename type_int> // int32_t or int64_t
+          typename type_int>  // int32_t or int64_t
 __global__ void inverse_transform_coords_and_insert_kernel(
     type_hashtable_device_view table, int n_points, type_int *in_coords,
     int *coords_min, int *coords_max, int *out_coords) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx >= n_points)
-    return;
+  if (idx >= n_points) return;
   inverse_transform_coords(in_coords + idx, coords_min, coords_max,
                            out_coords + idx * NDim);
   table.insert(in_coords[idx] + 1, idx + 1);
 }
 
-template <typename type_int, bool odd> // int32_t or int64_t
+template <typename type_int, bool odd>  // int32_t or int64_t
 __global__ void downsample_grid_kmap_stage1_specialized_fast(
     int n_points, int kernel_volume, int *in_coords, int *kernel_sizes,
     int *stride, int *padding, int *coords_min, int *coords_max,
@@ -64,18 +62,16 @@ __global__ void downsample_grid_kmap_stage1_specialized_fast(
   int idx = tidx / kernel_volume;
   int _kernel_idx = tidx % kernel_volume;
   int kernel_idx = _kernel_idx;
-  if (idx >= n_points)
-    return;
+  if (idx >= n_points) return;
   int coords_out[NDim];
-  coords_out[0] = in_coords[idx * NDim]; // batch_idx
+  coords_out[0] = in_coords[idx * NDim];  // batch_idx
   if constexpr (odd) {
 #pragma unroll
     for (int i = 1; i <= NDim - 1; i++) {
       int cur_offset = _kernel_idx % kernel_sizes[i - 1];
       cur_offset -= (kernel_sizes[i - 1] - 1);
       coords_out[i] = in_coords[idx * NDim + i] + padding[i - 1] + cur_offset;
-      if (coords_out[i] % stride[i - 1] != 0)
-        return;
+      if (coords_out[i] % stride[i - 1] != 0) return;
       coords_out[i] /= stride[i - 1];
       _kernel_idx /= kernel_sizes[i - 1];
     }
@@ -85,8 +81,7 @@ __global__ void downsample_grid_kmap_stage1_specialized_fast(
       int cur_offset = _kernel_idx % kernel_sizes[i - 1];
       cur_offset -= (kernel_sizes[i - 1] - 1);
       coords_out[i] = in_coords[idx * NDim + i] + padding[i - 1] + cur_offset;
-      if (coords_out[i] % stride[i - 1] != 0)
-        return;
+      if (coords_out[i] % stride[i - 1] != 0) return;
       coords_out[i] /= stride[i - 1];
       _kernel_idx /= kernel_sizes[i - 1];
     }
@@ -103,16 +98,16 @@ __global__ void downsample_grid_kmap_stage1_specialized_fast(
 }
 
 template <typename type_hashtable_device_view,
-          typename type_int> // int32_t or int64_t
-__global__ void
-downsample_hashmap_kmap_stage3(type_hashtable_device_view table, int n_points,
-                               int n_points_out, int kernel_volume,
-                               type_int *in_out_in_map, int *out_in_map) {
+          typename type_int>  // int32_t or int64_t
+__global__ void downsample_hashmap_kmap_stage3(type_hashtable_device_view table,
+                                               int n_points, int n_points_out,
+                                               int kernel_volume,
+                                               type_int *in_out_in_map,
+                                               int *out_in_map) {
   int tidx = blockIdx.x * blockDim.x + threadIdx.x;
   int idx = tidx / kernel_volume;
   int kernel_idx = tidx % kernel_volume;
-  if (idx >= n_points)
-    return;
+  if (idx >= n_points) return;
   int opt_coords = in_out_in_map[tidx];
   if (opt_coords >= 0) {
     int oidx = table.lookup(opt_coords + 1) - 1;
@@ -122,34 +117,32 @@ downsample_hashmap_kmap_stage3(type_hashtable_device_view table, int n_points,
 }
 
 template <typename type_hashtable_device_view,
-          typename type_int> // int32_t or int64_t
-__global__ void
-subm_hashmap_kmap_stage1(type_hashtable_device_view table, int n_points,
-                         int kernel_volume, int *in_coords, int *coords_min,
-                         int *coords_max, type_int *out_coords) {
+          typename type_int>  // int32_t or int64_t
+__global__ void subm_hashmap_kmap_stage1(type_hashtable_device_view table,
+                                         int n_points, int kernel_volume,
+                                         int *in_coords, int *coords_min,
+                                         int *coords_max,
+                                         type_int *out_coords) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx >= n_points)
-    return;
+  if (idx >= n_points) return;
   type_int grid_index = transform_coords<type_int>(
-      in_coords + idx * NDim, coords_min, coords_max); // 4D to 1D
+      in_coords + idx * NDim, coords_min, coords_max);  // 4D to 1D
   out_coords[idx] = grid_index;
   table.insert(grid_index + 1, idx + 1);
 }
 
 // only support odd kernel shapes
 template <typename type_hashtable_device_view,
-          typename type_int> // int32_t or int64_t
+          typename type_int>  // int32_t or int64_t
 __global__ void subm_hashmap_kmap_stage2_odd_kernel(
     type_hashtable_device_view table, int n_points, int kernel_volume,
     int *in_coords, int *coords_min, int *coords_max, int *kernel_sizes,
     int *out_in_map) {
-
   int tidx = blockIdx.x * blockDim.x + threadIdx.x;
   int idx = tidx / (kernel_volume / 2);
   int _kernel_idx = tidx % (kernel_volume / 2);
   int kernel_idx = _kernel_idx;
-  if (idx >= n_points)
-    return;
+  if (idx >= n_points) return;
 
   if (_kernel_idx == 0) {
     out_in_map[idx * kernel_volume + kernel_volume / 2] = idx;
@@ -169,7 +162,6 @@ __global__ void subm_hashmap_kmap_stage2_odd_kernel(
   if (coords_out[1] >= coords_min[1] && coords_out[1] <= coords_max[1] &&
       coords_out[2] >= coords_min[2] && coords_out[2] <= coords_max[2] &&
       coords_out[3] >= coords_min[3] && coords_out[3] <= coords_max[3]) {
-
     type_int grid_index =
         transform_coords<type_int>(coords_out, coords_min, coords_max);
     int input_idx = table.lookup(grid_index + 1) - 1;
@@ -183,21 +175,19 @@ __global__ void subm_hashmap_kmap_stage2_odd_kernel(
 
 // support even kernel shapes
 template <typename type_hashtable_device_view,
-          typename type_int> // int32_t or int64_t
+          typename type_int>  // int32_t or int64_t
 __global__ void subm_hashmap_kmap_stage2_even_kernel(
     type_hashtable_device_view table, int n_points, int kernel_volume,
     int *in_coords, int *coords_min, int *coords_max, int *kernel_sizes,
     int *out_in_map) {
-
   int tidx = blockIdx.x * blockDim.x + threadIdx.x;
   int idx = tidx / kernel_volume;
   int _kernel_idx = tidx % kernel_volume;
   int kernel_idx = _kernel_idx;
-  if (idx >= n_points)
-    return;
+  if (idx >= n_points) return;
 
   int coords_out[NDim];
-  coords_out[0] = in_coords[idx * NDim]; // batch_idx
+  coords_out[0] = in_coords[idx * NDim];  // batch_idx
 
 #pragma unroll
   for (int i = NDim - 1; i > 0; i--) {
@@ -211,7 +201,6 @@ __global__ void subm_hashmap_kmap_stage2_even_kernel(
   if (coords_out[1] >= coords_min[1] && coords_out[1] <= coords_max[1] &&
       coords_out[2] >= coords_min[2] && coords_out[2] <= coords_max[2] &&
       coords_out[3] >= coords_min[3] && coords_out[3] <= coords_max[3]) {
-
     type_int grid_index =
         transform_coords<type_int>(coords_out, coords_min, coords_max);
     int input_idx = table.lookup(grid_index + 1) - 1;
@@ -229,18 +218,16 @@ __global__ void get_masks_from_kmap_kernel(int n_points, int n_points_out,
                                            int *kmap_sizes, int *cum_kmap_sizes,
                                            int *input_mask, int *output_mask) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx >= n_points)
-    return;
+  if (idx >= n_points) return;
   for (int i = 0; i < kernel_volume; i++) {
     if (n_points == n_points_out && kernel_volume % 2 == 1 &&
-        i == kernel_volume / 2) // central point for impair kernel size with
-                                // stride 1 (submanifold)
+        i == kernel_volume / 2)  // central point for impair kernel size with
+                                 // stride 1 (submanifold)
       continue;
     int kmap_size = kmap_sizes[i];
     int cum_size = i == 0 ? 0 : cum_kmap_sizes[i - 1];
     int *cur_in_kmap = kmap + cum_size * 2;
-    if (idx >= kmap_size)
-      continue;
+    if (idx >= kmap_size) continue;
     // manual unroll
     int input_idx = cur_in_kmap[idx * 2];
     int output_idx = cur_in_kmap[idx * 2 + 1];
@@ -250,12 +237,11 @@ __global__ void get_masks_from_kmap_kernel(int n_points, int n_points_out,
   }
 }
 
-
-std::vector<at::Tensor>
-build_kernel_map_subm_hashmap(GPUHashMap &table, const at::Tensor& _in_coords,
-                              const at::Tensor& _coords_min, const at::Tensor& _coords_max,
-                              const at::Tensor& _kernel_sizes, const at::Tensor& _stride,
-                              const at::Tensor& _padding, bool to_insert) {
+std::vector<at::Tensor> build_kernel_map_subm_hashmap(
+    GPUHashMap &table, const at::Tensor &_in_coords,
+    const at::Tensor &_coords_min, const at::Tensor &_coords_max,
+    const at::Tensor &_kernel_sizes, const at::Tensor &_stride,
+    const at::Tensor &_padding, bool to_insert) {
   c10::cuda::CUDAGuard guard(_in_coords.device());
   int n_points = _in_coords.size(0);
   int kernel_volume = (int)(torch::prod(_kernel_sizes).item<int>());
@@ -291,21 +277,22 @@ build_kernel_map_subm_hashmap(GPUHashMap &table, const at::Tensor& _in_coords,
         <<<(int)ceil((double)n_points * (kernel_volume / 2) / 256), 256>>>(
             table.get_device_view(), n_points, kernel_volume, in_coords,
             coords_min, coords_max, kernel_sizes,
-            out_in_map); // only support odd kernel shapes
+            out_in_map);  // only support odd kernel shapes
   } else {
     subm_hashmap_kmap_stage2_even_kernel<GPUHashMap::device_view, int64_t>
         <<<(int)ceil((double)n_points * (kernel_volume) / 256), 256>>>(
             table.get_device_view(), n_points, kernel_volume, in_coords,
             coords_min, coords_max, kernel_sizes,
-            out_in_map); // only support even kernel shapes
+            out_in_map);  // only support even kernel shapes
   }
   return {_out_in_map};
 }
 
 std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
-    GPUHashMap &table, const at::Tensor& _in_coords, const at::Tensor& _coords_min,
-    const at::Tensor& _coords_max, const at::Tensor& _kernel_sizes, const at::Tensor& _stride,
-    const at::Tensor& _padding, bool to_insert) {
+    GPUHashMap &table, const at::Tensor &_in_coords,
+    const at::Tensor &_coords_min, const at::Tensor &_coords_max,
+    const at::Tensor &_kernel_sizes, const at::Tensor &_stride,
+    const at::Tensor &_padding, bool to_insert) {
   c10::cuda::CUDAGuard guard(_in_coords.device());
   int n_points = _in_coords.size(0);
   int kernel_volume = (int)(torch::prod(_kernel_sizes).item<int>());
@@ -366,8 +353,7 @@ std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
         "space for hashtable:\n # Python \nimport "
         "nanotsparse.backends\nnanotsparse.backends.hash_rsv_ratio=#Value");
 
-  at::Tensor final_out_coords =
-      at::zeros({n_out_points_scalar, NDim}, options);
+  at::Tensor final_out_coords = at::zeros({n_out_points_scalar, NDim}, options);
   inverse_transform_coords_and_insert_kernel<<<
       (int)ceil((double)n_out_points_scalar / 256), 256>>>(
       table.get_device_view(), n_out_points_scalar, out_coords, coords_min,
@@ -388,9 +374,10 @@ std::vector<at::Tensor> build_kernel_map_downsample_hashmap(
   return {_out_in_map, final_out_coords};
 }
 
-std::vector<at::Tensor> build_mask_from_kmap(int64_t n_points, int64_t n_out_points,
-                                             const at::Tensor& _kmap,
-                                             const at::Tensor& _kmap_sizes) {
+std::vector<at::Tensor> build_mask_from_kmap(int64_t n_points,
+                                             int64_t n_out_points,
+                                             const at::Tensor &_kmap,
+                                             const at::Tensor &_kmap_sizes) {
   c10::cuda::CUDAGuard guard(_kmap.device());
   int kernel_volume = _kmap_sizes.size(0);
   auto options =

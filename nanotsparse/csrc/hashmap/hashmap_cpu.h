@@ -1,20 +1,19 @@
 #pragma once
 
-#include <cstdint>
 #include <torch/all.h>
+#include <tsl/robin_map.h>
 
 #include <array>
 #include <cassert>
 #include <cstddef>
-#include <vector>
-
-#include <tsl/robin_map.h>
-
+#include <cstdint>
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/taskflow.hpp>
+#include <vector>
 
-template <typename coord_type, typename index_type> class HashTableCPU {
-private:
+template <typename coord_type, typename index_type>
+class HashTableCPU {
+ private:
   struct VoxelKey {
     std::array<coord_type, 4> coords;
 
@@ -46,7 +45,7 @@ private:
 
   tsl::robin_map<VoxelKey, index_type, VoxelKeyHash> hashmap;
 
-public:
+ public:
   HashTableCPU() = default;
   HashTableCPU(size_t size) { hashmap.reserve(size); }
 
@@ -113,7 +112,7 @@ public:
           for (size_t k = 0; k < kernel_volume; ++k) {
             const auto &k_offsets = offsets[k];
             coord_type out_coords[4];
-            out_coords[3] = in_coords[3]; // batch is the same
+            out_coords[3] = in_coords[3];  // batch is the same
             for (size_t dim = 0; dim < 3; ++dim) {
               out_coords[dim] =
                   in_coords[dim] * strides_raw[dim] + k_offsets[dim];
@@ -132,6 +131,6 @@ public:
 
 using CPUHashMap = HashTableCPU<int, int>;
 
-std::vector<at::Tensor>
-build_mask_from_kmap_native(int64_t n_points, int64_t n_out_points,
-                            const at::Tensor& neighbor_maps, const at::Tensor& kmap_sizes);
+std::vector<at::Tensor> build_mask_from_kmap_native(
+    int64_t n_points, int64_t n_out_points, const at::Tensor &neighbor_maps,
+    const at::Tensor &kmap_sizes);

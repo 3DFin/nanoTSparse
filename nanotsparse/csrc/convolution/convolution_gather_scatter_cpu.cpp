@@ -1,14 +1,12 @@
 #include "convolution_gather_scatter_cpu.h"
 
+#include <algorithm>
+#include <cassert>
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/taskflow.hpp>
 
-#include <algorithm>
-#include <cassert>
-
 void scatter_cpu(int n_in, int c, const float *in_feats, float *out_feat,
                  const int *kmap, bool transpose, tf::Executor &executor) {
-
   tf::Taskflow taskflow;
   taskflow.for_each_index(0, n_in, 1, [&](int i) {
     assert(out_pos >= 0);
@@ -128,7 +126,8 @@ at::Tensor conv_forward_gather_scatter_cpu(const at::Tensor &in_feats,
     // scatter_add
     scatter_cpu(neighbor_offsets_ptr[k], c_out,
                 out_buffer_activated.data_ptr<float>(), out_feat_ptr,
-                neighbor_maps.data_ptr<int>() + cur_offset, transpose, executor);
+                neighbor_maps.data_ptr<int>() + cur_offset, transpose,
+                executor);
 
     cur_offset += 2 * num_neighbors;
   }
@@ -139,7 +138,6 @@ std::vector<at::Tensor> conv_backward_gather_scatter_cpu(
     const at::Tensor &in_feats, const at::Tensor &grad_out_feats,
     const at::Tensor &kernel, const at::Tensor &neighbor_maps,
     const at::Tensor &neighbor_offsets, bool transpose) {
-
   auto grad_in_feats = torch::zeros_like(in_feats);
   auto grad_kernel = torch::zeros_like(kernel);
 
@@ -187,7 +185,8 @@ std::vector<at::Tensor> conv_backward_gather_scatter_cpu(
     gather_cpu(out_grad_buffer_activated.size(0), c_out,
                grad_out_feats.data_ptr<float>(),
                out_grad_buffer_activated.data_ptr<float>(),
-               neighbor_maps.data_ptr<int>() + cur_offset, !transpose, executor);
+               neighbor_maps.data_ptr<int>() + cur_offset, !transpose,
+               executor);
 
     gather_cpu(in_buffer_activated.size(0), c_in, in_feats.data_ptr<float>(),
                in_buffer_activated.data_ptr<float>(),
@@ -209,5 +208,5 @@ std::vector<at::Tensor> conv_backward_gather_scatter_cpu(
 
     cur_offset += 2 * neighbor_offsets_ptr[k];
   }
-  return { grad_in_feats, grad_kernel };
+  return {grad_in_feats, grad_kernel};
 }

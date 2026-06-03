@@ -1,9 +1,10 @@
-#include "downsample_cuda.h"
-
 #include <c10/cuda/CUDAGuard.h>
+
 #include <algorithm>
 #include <cstdio>
 #include <vector>
+
+#include "downsample_cuda.h"
 
 #define NDim 4
 
@@ -59,10 +60,8 @@ __host__ __device__ inline void inverse_transform_coords(int64_t *in_coords,
 // later! coords Nx4 or Nx3? impl. problematic
 __host__ __device__ int get_output_coords(int kernel_volume, int *in_coords,
                                           int *kernel_sizes, int *stride,
-                                          int *coords_min,
-                                          int *coords_max,
-                                          int *padding,
-                                          int *out_coords) {
+                                          int *coords_min, int *coords_max,
+                                          int *padding, int *out_coords) {
   int point_counter = 0;
   int upper[NDim - 1], lower[NDim - 1], counter[NDim - 1], cur;
   bool valid = false;
@@ -80,10 +79,8 @@ __host__ __device__ int get_output_coords(int kernel_volume, int *in_coords,
       // cur = in_coords[j] + (lower[j - 1] + counter[j - 1]) ;
       cur = in_coords[j] + (lower[j - 1] + counter[j - 1]) + padding[j - 1];
       int cur_div = cur / stride[j - 1];
-      if (((cur % (stride[j - 1])) == 0) &&
-          (cur_div >= coords_min[j])  &&
-          (cur_div <= coords_max[j])
-      ) {
+      if (((cur % (stride[j - 1])) == 0) && (cur_div >= coords_min[j]) &&
+          (cur_div <= coords_max[j])) {
         out_coords[point_counter * NDim + j] = cur_div;
       } else
         valid = false;
@@ -108,17 +105,16 @@ __host__ __device__ int get_output_coords(int kernel_volume, int *in_coords,
 
 __global__ void get_output_coords_kernel(int n_points, int n_kernel,
                                          int *in_coords, int *kernel_sizes,
-                                         int *stride,
-                                         int *coords_min, int *coords_max,
-                                         int *padding,
+                                         int *stride, int *coords_min,
+                                         int *coords_max, int *padding,
                                          int *n_out_points,
                                          int64_t *transformed_coords) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= n_points) return;
   int coords_out[256 * NDim];
-  int point_counter = get_output_coords(
-      n_kernel, in_coords + idx * NDim, kernel_sizes, stride,
-      coords_min, coords_max, padding, coords_out);
+  int point_counter =
+      get_output_coords(n_kernel, in_coords + idx * NDim, kernel_sizes, stride,
+                        coords_min, coords_max, padding, coords_out);
   for (int i = 0; i < point_counter; i++) {
     int old_idx = atomicAdd(n_out_points, 1);
     int64_t cur_transformed_coord =
@@ -142,9 +138,12 @@ __global__ void inverse_transform_coords_kernel(int n_points,
 Idea: launch get_output_coords_kernel then inverse_transform_coords_kernel
 */
 
-at::Tensor downsample_cuda(const at::Tensor& _in_coords, const at::Tensor& _coords_max,
-                           const at::Tensor& _coords_min, const at::Tensor& _kernel_sizes,
-                           const at::Tensor& _stride, const at::Tensor& _padding) {
+at::Tensor downsample_cuda(const at::Tensor &_in_coords,
+                           const at::Tensor &_coords_max,
+                           const at::Tensor &_coords_min,
+                           const at::Tensor &_kernel_sizes,
+                           const at::Tensor &_stride,
+                           const at::Tensor &_padding) {
   c10::cuda::CUDAGuard guard(_in_coords.device());
   int N = _in_coords.size(0);
   int kernel_volume = (int)(torch::prod(_kernel_sizes).item<int>());
@@ -155,19 +154,19 @@ at::Tensor downsample_cuda(const at::Tensor& _in_coords, const at::Tensor& _coor
   int *stride = _stride.data_ptr<int>();
   int *padding = _padding.data_ptr<int>();
 
-  at::Tensor _out_coords_transformed = at::zeros({kernel_volume * N}, at::TensorOptions()
-                                            .dtype(at::ScalarType::Long)
-                                            .device(_in_coords.device()));
+  at::Tensor _out_coords_transformed =
+      at::zeros({kernel_volume * N}, at::TensorOptions()
+                                         .dtype(at::ScalarType::Long)
+                                         .device(_in_coords.device()));
   at::Tensor _n_out_points = at::zeros({1}, at::TensorOptions()
-                                       .dtype(at::ScalarType::Int)
-                                       .device(_in_coords.device()));
+                                                .dtype(at::ScalarType::Int)
+                                                .device(_in_coords.device()));
 
-  int* n_out_points = _n_out_points.data_ptr<int>();
+  int *n_out_points = _n_out_points.data_ptr<int>();
 
   get_output_coords_kernel<<<int(ceil((double)N / 256)), 256>>>(
-      N, kernel_volume, in_coords, kernel_sizes, stride,
-      coords_min, coords_max, padding,
-      n_out_points, _out_coords_transformed.data_ptr<int64_t>());
+      N, kernel_volume, in_coords, kernel_sizes, stride, coords_min, coords_max,
+      padding, n_out_points, _out_coords_transformed.data_ptr<int64_t>());
 
   int n_out_points_scalar = (int)_n_out_points.item<int>();
 
@@ -175,14 +174,16 @@ at::Tensor downsample_cuda(const at::Tensor& _in_coords, const at::Tensor& _coor
       at::slice(_out_coords_transformed, 0, 0, n_out_points_scalar)));
 
   int num_out_points = _out_coords_transformed.size(0);
-  at::Tensor _out_coords = at::zeros({num_out_points, NDim}, at::TensorOptions()
-                                               .dtype(at::ScalarType::Int)
-                                               .device(_in_coords.device()));
-  int* out_coords = _out_coords.data_ptr<int>();
+  at::Tensor _out_coords =
+      at::zeros({num_out_points, NDim}, at::TensorOptions()
+                                            .dtype(at::ScalarType::Int)
+                                            .device(_in_coords.device()));
+  int *out_coords = _out_coords.data_ptr<int>();
 
-  inverse_transform_coords_kernel<<<int(ceil((double)num_out_points / 256)), 256>>>(
-      num_out_points, _out_coords_transformed.data_ptr<int64_t>(),
-      coords_min, coords_max, out_coords);
+  inverse_transform_coords_kernel<<<int(ceil((double)num_out_points / 256)),
+                                    256>>>(
+      num_out_points, _out_coords_transformed.data_ptr<int64_t>(), coords_min,
+      coords_max, out_coords);
 
   return _out_coords;
 }

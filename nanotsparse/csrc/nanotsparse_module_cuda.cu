@@ -6,11 +6,8 @@
 #include "convolution/convolution_backward_wgrad_implicit_gemm_sorted_cuda.h"
 #include "convolution/convolution_forward_implicit_gemm_cuda.h"
 #include "convolution/convolution_forward_implicit_gemm_sorted_cuda.h"
-
 #include "convolution/convolution_gather_scatter_cuda.h"
-
 #include "hashmap/hashmap_cuda.h"
-
 #include "others/downsample_cuda.h"
 #include "others/query_cuda.h"
 #include "others/reduce_bitmask_cuda.h"
@@ -84,84 +81,97 @@ static std::vector<at::Tensor> build_kernel_map_downsample_impl(
 }
 
 TORCH_LIBRARY(nanotsparse, m) {
-
   m.class_<GPUHashTableHolder>("GPUHashTable")
-      .def(torch::init<int64_t>()) // can't have overloaded init != pybind
+      .def(torch::init<int64_t>())  // can't have overloaded init != pybind
       .def("insert_coords", &GPUHashTableHolder::insert_coords)
       .def("lookup_coords", &GPUHashTableHolder::lookup_coords);
 
   m.class_<CPUHashTableHolder>("CPUHashTable")
-      .def(torch::init<int64_t>()) // can't have overloaded init != pybind
+      .def(torch::init<int64_t>())  // can't have overloaded init != pybind
       .def("insert_coords", &CPUHashTableHolder::insert_coords)
       .def("lookup_coords", &CPUHashTableHolder::lookup_coords);
 
-  m.def("conv_forward_gather_scatter_cpu("
-        "Tensor in_feats, Tensor kernel, Tensor neighbor_maps, "
-        "Tensor neighbor_offsets, int output_size, bool transposed) "
-        "-> Tensor");
+  m.def(
+      "conv_forward_gather_scatter_cpu("
+      "Tensor in_feats, Tensor kernel, Tensor neighbor_maps, "
+      "Tensor neighbor_offsets, int output_size, bool transposed) "
+      "-> Tensor");
 
-  m.def("conv_backward_gather_scatter_cpu("
-        "Tensor in_feats, Tensor grad_out_feats, Tensor kernel, "
-        "Tensor neighbor_maps, Tensor neighbor_offsets, bool transposed) -> "
-        "Tensor[]");
+  m.def(
+      "conv_backward_gather_scatter_cpu("
+      "Tensor in_feats, Tensor grad_out_feats, Tensor kernel, "
+      "Tensor neighbor_maps, Tensor neighbor_offsets, bool transposed) -> "
+      "Tensor[]");
 
-  m.def("conv_forward_gather_scatter_cuda("
-        "Tensor in_feats, Tensor kernel, Tensor neighbor_maps, "
-        "int output_size, int conv_mode, Tensor neighbor_offsets,  bool "
-        "transposed) "
-        "-> Tensor");
+  m.def(
+      "conv_forward_gather_scatter_cuda("
+      "Tensor in_feats, Tensor kernel, Tensor neighbor_maps, "
+      "int output_size, int conv_mode, Tensor neighbor_offsets,  bool "
+      "transposed) "
+      "-> Tensor");
 
-  m.def("conv_backward_gather_scatter_cuda("
-        "Tensor in_feats, Tensor grad_out_feats, Tensor kernel, "
-        "Tensor neighbor_maps, Tensor neighbor_offsets, bool transposed) -> "
-        "Tensor[]");
+  m.def(
+      "conv_backward_gather_scatter_cuda("
+      "Tensor in_feats, Tensor grad_out_feats, Tensor kernel, "
+      "Tensor neighbor_maps, Tensor neighbor_offsets, bool transposed) -> "
+      "Tensor[]");
 
-  m.def("conv_forward_implicit_gemm_cuda("
-        "Tensor _in_feats, Tensor _kernel, Tensor _out_in_map, "
-        "int num_out_feats, int num_out_channels, "
-        "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
+  m.def(
+      "conv_forward_implicit_gemm_cuda("
+      "Tensor _in_feats, Tensor _kernel, Tensor _out_in_map, "
+      "int num_out_feats, int num_out_channels, "
+      "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
 
-  m.def("conv_backward_wgrad_implicit_gemm_cuda("
-        "Tensor _in_feats, Tensor _kernel, "
-        "Tensor _out_in_map, int split_k_iters, "
-        "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
+  m.def(
+      "conv_backward_wgrad_implicit_gemm_cuda("
+      "Tensor _in_feats, Tensor _kernel, "
+      "Tensor _out_in_map, int split_k_iters, "
+      "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
 
-  m.def("conv_forward_implicit_gemm_sorted_cuda("
-        "Tensor _in_feats, Tensor _kernel, Tensor _out_in_map, "
-        "Tensor _reduced_mask, Tensor _reorder_loc, "
-        "int num_out_feats, int num_out_channels, "
-        "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
+  m.def(
+      "conv_forward_implicit_gemm_sorted_cuda("
+      "Tensor _in_feats, Tensor _kernel, Tensor _out_in_map, "
+      "Tensor _reduced_mask, Tensor _reorder_loc, "
+      "int num_out_feats, int num_out_channels, "
+      "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
 
-  m.def("conv_backward_wgrad_implicit_gemm_sorted_cuda("
-        "Tensor _in_feats, Tensor _kernel, Tensor _out_in_map, "
-        "Tensor _reduced_mask, Tensor _reorder_loc, int split_k_iters, "
-        "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
+  m.def(
+      "conv_backward_wgrad_implicit_gemm_sorted_cuda("
+      "Tensor _in_feats, Tensor _kernel, Tensor _out_in_map, "
+      "Tensor _reduced_mask, Tensor _reorder_loc, int split_k_iters, "
+      "bool allow_tf32=False, bool allow_fp16=True) -> Tensor");
 
-  m.def("build_mask_from_kmap("
-        "int n_points, int n_out_points, "
-        "Tensor neighbor_maps, Tensor kmap_sizes) -> Tensor[]");
+  m.def(
+      "build_mask_from_kmap("
+      "int n_points, int n_out_points, "
+      "Tensor neighbor_maps, Tensor kmap_sizes) -> Tensor[]");
 
-  m.def("build_kernel_map_subm_hashmap("
-        "__torch__.torch.classes.nanotsparse.GPUHashTable table, "
-        "Tensor in_coords, Tensor coords_min, Tensor coords_max, "
-        "Tensor kernel_sizes, Tensor stride, Tensor padding, "
-        "bool to_insert) -> Tensor[]");
+  m.def(
+      "build_kernel_map_subm_hashmap("
+      "__torch__.torch.classes.nanotsparse.GPUHashTable table, "
+      "Tensor in_coords, Tensor coords_min, Tensor coords_max, "
+      "Tensor kernel_sizes, Tensor stride, Tensor padding, "
+      "bool to_insert) -> Tensor[]");
 
-  m.def("build_kernel_map_downsample_hashmap("
-        "__torch__.torch.classes.nanotsparse.GPUHashTable table, "
-        "Tensor in_coords, Tensor coords_min, Tensor coords_max, "
-        "Tensor kernel_sizes, Tensor stride, Tensor padding, "
-        "bool to_insert) -> Tensor[]");
+  m.def(
+      "build_kernel_map_downsample_hashmap("
+      "__torch__.torch.classes.nanotsparse.GPUHashTable table, "
+      "Tensor in_coords, Tensor coords_min, Tensor coords_max, "
+      "Tensor kernel_sizes, Tensor stride, Tensor padding, "
+      "bool to_insert) -> Tensor[]");
 
-  m.def("derive_bitmask_from_out_in_map("
-        "Tensor out_in_map, int split_mask_num, int valid_n) -> Tensor");
-  m.def("reorder_out_in_map_cuda("
-        "Tensor out_in_map, Tensor reorder_loc) -> Tensor");
+  m.def(
+      "derive_bitmask_from_out_in_map("
+      "Tensor out_in_map, int split_mask_num, int valid_n) -> Tensor");
+  m.def(
+      "reorder_out_in_map_cuda("
+      "Tensor out_in_map, Tensor reorder_loc) -> Tensor");
   m.def("reduce_bitmask_cuda(Tensor bitmask, int M_tile) -> Tensor");
   m.def("convert_transposed_out_in_map(Tensor out_in_map, int size) -> Tensor");
-  m.def("downsample_cuda("
-        "Tensor in_coords, Tensor coords_max, Tensor coords_min, "
-        "Tensor kernel_sizes, Tensor stride, Tensor padding) -> Tensor");
+  m.def(
+      "downsample_cuda("
+      "Tensor in_coords, Tensor coords_max, Tensor coords_min, "
+      "Tensor kernel_sizes, Tensor stride, Tensor padding) -> Tensor");
 }
 
 TORCH_LIBRARY_IMPL(nanotsparse, CPU, m) {
@@ -195,4 +205,4 @@ TORCH_LIBRARY_IMPL(nanotsparse, CUDA, m) {
   m.impl("downsample_cuda", &downsample_cuda);
 }
 
-} // namespace nanotsparse
+}  // namespace nanotsparse

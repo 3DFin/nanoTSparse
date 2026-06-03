@@ -1,52 +1,67 @@
-#include "../hashmap/hashmap_cuda.h"
-
 #include <c10/cuda/CUDAGuard.h>
+
 #include <cstdint>
 
+#include "../hashmap/hashmap_cuda.h"
 
-__global__ void convert_out_in_map_kernel(const int* __restrict__ out_in_map, int* out_in_map_t, int n, int kernel_volume){
+__global__ void convert_out_in_map_kernel(const int* __restrict__ out_in_map,
+                                          int* out_in_map_t, int n,
+                                          int kernel_volume) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if(idx >= n * kernel_volume) return;
+  if (idx >= n * kernel_volume) return;
   int input_idx = out_in_map[idx];
-  if(input_idx < 0) return;
-  out_in_map_t[idx % kernel_volume + input_idx * kernel_volume] = idx / kernel_volume;
+  if (input_idx < 0) return;
+  out_in_map_t[idx % kernel_volume + input_idx * kernel_volume] =
+      idx / kernel_volume;
 }
 
-__global__ void derive_bit_mask_from_out_in_map_kernel(const int* __restrict__ out_in_map, int* __restrict__ bitmask, int valid_n, int n, int kernel_volume, int split_mask_num){
+__global__ void derive_bit_mask_from_out_in_map_kernel(
+    const int* __restrict__ out_in_map, int* __restrict__ bitmask, int valid_n,
+    int n, int kernel_volume, int split_mask_num) {
   int tidx = blockIdx.x * blockDim.x + threadIdx.x;
   int idx = tidx / split_mask_num;
-  if(idx >= valid_n) return;
+  if (idx >= valid_n) return;
   int split_mask_iter = tidx % split_mask_num;
   int split_mask_len = (kernel_volume + split_mask_num - 1) / split_mask_num;
-  const int* cur_out_in_map = out_in_map + kernel_volume * idx + split_mask_iter * split_mask_len;
-  if (split_mask_iter == (split_mask_num - 1)) // The last tile
+  const int* cur_out_in_map =
+      out_in_map + kernel_volume * idx + split_mask_iter * split_mask_len;
+  if (split_mask_iter == (split_mask_num - 1))  // The last tile
     split_mask_len = kernel_volume - split_mask_iter * split_mask_len;
   int cur_bitmask = 0;
-  for(int i = 0; i < split_mask_len; i++){
-    cur_bitmask += (int)(cur_out_in_map[i] >= 0) * (int)(1u << i);  // Beware, split_mask_len should be < 32. or  (kernel_volume + split_mask_num - 1) / split_mask_num < 32.
-    // this mean that for a 5x5x5 kernel, the split_mask_num should be at least 4.
+  for (int i = 0; i < split_mask_len; i++) {
+    cur_bitmask += (int)(cur_out_in_map[i] >= 0) *
+                   (int)(1u << i);  // Beware, split_mask_len should be < 32. or
+                                    // (kernel_volume + split_mask_num - 1) /
+                                    // split_mask_num < 32.
+    // this mean that for a 5x5x5 kernel, the split_mask_num should be at
+    // least 4.
   }
   bitmask[split_mask_iter * n + idx] = cur_bitmask;
 }
 
-at::Tensor convert_transposed_out_in_map(const at::Tensor& out_in_map, int64_t size) {
+at::Tensor convert_transposed_out_in_map(const at::Tensor& out_in_map,
+                                         int64_t size) {
   c10::cuda::CUDAGuard guard(out_in_map.device());
-  at::Tensor out_in_map_t = torch::full(
-      {size, out_in_map.sizes()[1]},
-      -1,
-      out_in_map.options()
-  );
+  at::Tensor out_in_map_t =
+      torch::full({size, out_in_map.sizes()[1]}, -1, out_in_map.options());
 
-  convert_out_in_map_kernel<<<(out_in_map.size(0) * out_in_map.size(1) + 255) / 256, 256>>>(
-    out_in_map.data_ptr<int>(), out_in_map_t.data_ptr<int>(), out_in_map.size(0), out_in_map.size(1));
+  convert_out_in_map_kernel<<<
+      (out_in_map.size(0) * out_in_map.size(1) + 255) / 256, 256>>>(
+      out_in_map.data_ptr<int>(), out_in_map_t.data_ptr<int>(),
+      out_in_map.size(0), out_in_map.size(1));
   return out_in_map_t;
 }
 
-at::Tensor derive_bitmask_from_out_in_map(const at::Tensor& out_in_map, int64_t split_mask_num, int64_t valid_n) {
+at::Tensor derive_bitmask_from_out_in_map(const at::Tensor& out_in_map,
+                                          int64_t split_mask_num,
+                                          int64_t valid_n) {
   c10::cuda::CUDAGuard guard(out_in_map.device());
-  at::Tensor bitmask = at::full(
-      {split_mask_num, out_in_map.size(0)}, -1, at::device(out_in_map.device()).dtype(at::ScalarType::Int));
-  derive_bit_mask_from_out_in_map_kernel<<<(split_mask_num * out_in_map.size(0) + 255) / 256, 256>>>(
-    out_in_map.data_ptr<int>(), bitmask.data_ptr<int>(), valid_n, out_in_map.size(0), out_in_map.size(1), split_mask_num);
+  at::Tensor bitmask =
+      at::full({split_mask_num, out_in_map.size(0)}, -1,
+               at::device(out_in_map.device()).dtype(at::ScalarType::Int));
+  derive_bit_mask_from_out_in_map_kernel<<<
+      (split_mask_num * out_in_map.size(0) + 255) / 256, 256>>>(
+      out_in_map.data_ptr<int>(), bitmask.data_ptr<int>(), valid_n,
+      out_in_map.size(0), out_in_map.size(1), split_mask_num);
   return bitmask;
 }

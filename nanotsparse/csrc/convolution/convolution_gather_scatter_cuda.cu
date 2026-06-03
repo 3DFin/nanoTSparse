@@ -1,6 +1,5 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
-
 #include <cuda.h>
 #include <cuda_runtime.h>
 
@@ -11,7 +10,8 @@
 
 #define CONVERT_FLOAT(pointer) (reinterpret_cast<float *>(&(pointer))[0])
 #define CONVERT_HALF2(pointer) (reinterpret_cast<half2 *>(&(pointer))[0])
-#define CONVERT_HALF2_CONST(pointer) (reinterpret_cast<const half2 *>(&(pointer))[0])
+#define CONVERT_HALF2_CONST(pointer) \
+  (reinterpret_cast<const half2 *>(&(pointer))[0])
 #define CONVERT_INT4(pointer) (reinterpret_cast<int4 *>(&(pointer))[0])
 
 template <typename scalar_t>
@@ -30,11 +30,9 @@ __global__ void gather_kernel(const int n_k, const int n_in, const int c,
     i = index / (c >> 1);
     j = index % (c >> 1);
   }
-  if (i >= n_k)
-    return;
+  if (i >= n_k) return;
   int in_pos = kmap[2 * i + transpose];
-  if (in_pos < 0)
-    return;
+  if (in_pos < 0) return;
   if (isfloat) {
     out_feat[i * c + j] = in_feat[in_pos * c + j];
   } else {
@@ -59,11 +57,9 @@ __global__ void scatter_kernel(const int n_in, const int n_out, const int c,
     i = index / (c >> 1);
     j = index % (c >> 1);
   }
-  if (i >= n_in)
-    return;
+  if (i >= n_in) return;
   int out_pos = kmap[2 * i + 1 - transpose];
-  if (out_pos < 0 || out_pos >= n_out)
-    return;
+  if (out_pos < 0 || out_pos >= n_out) return;
   if (isfloat) {
     out_feat[out_pos * c + j] += in_feat[i * c + j];
   } else {

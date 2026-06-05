@@ -11,7 +11,7 @@ std::vector<at::Tensor> build_mask_from_kmap_native(
   TORCH_CHECK(n_points > 0, "n_points must be positive");
   TORCH_CHECK(n_out_points > 0, "n_out_points must be positive");
 
-  TORCH_CHECK(neighbor_maps.dim() == 1, "neighbor_maps must be a 1D tensor");
+  TORCH_CHECK(neighbor_maps.dim() == 2, "neighbor_maps must be a 2D tensor");
   TORCH_CHECK(neighbor_maps.scalar_type() == at::ScalarType::Int,
               "neighbor_maps must be an Int tensor");
   TORCH_CHECK(neighbor_maps.numel() > 0,

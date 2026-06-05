@@ -57,7 +57,7 @@ at::Tensor conv_forward_gather_scatter_cpu(const at::Tensor& in_feats,
                   kernel.scalar_type() == at::ScalarType::Half,
               "kernel must be a Float or a Half tensor");
 
-  TORCH_CHECK(neighbor_maps.dim() == 1, "neighbor_maps must be a 1D tensor");
+  TORCH_CHECK(neighbor_maps.dim() == 2, "neighbor_maps must be a 2D tensor");
   TORCH_CHECK(neighbor_maps.scalar_type() == at::ScalarType::Int,
               "neighbor_maps must be an Int tensor");
 
@@ -195,7 +195,7 @@ std::vector<at::Tensor> conv_backward_gather_scatter_cpu(
                   kernel.scalar_type() == at::ScalarType::Half,
               "kernel must be a Float or a Half tensor");
 
-  TORCH_CHECK(neighbor_maps.dim() == 1, "neighbor_maps must be a 1D tensor");
+  TORCH_CHECK(neighbor_maps.dim() == 2, "neighbor_maps must be a 2D tensor");
   TORCH_CHECK(neighbor_maps.scalar_type() == at::ScalarType::Int,
               "neighbor_maps must be an Int tensor");
 

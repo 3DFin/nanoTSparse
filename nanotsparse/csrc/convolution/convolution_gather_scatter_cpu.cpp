@@ -11,8 +11,8 @@ void scatter_cpu(int n_in, int c, const float* in_feats, float* out_feat,
                  const int* kmap, bool transpose, tf::Executor& executor) {
   tf::Taskflow taskflow;
   taskflow.for_each_index(0, n_in, 1, [&](int i) {
-    assert(out_pos >= 0);
     int out_pos = kmap[2 * i + 1 - transpose] * c;
+    assert(out_pos >= 0);
     int in_pos = i * c;
     for (int j = 0; j < c; j++) {
       out_feat[out_pos + j] += in_feats[in_pos + j];
@@ -25,8 +25,8 @@ void gather_cpu(int n_k, int c, const float* in_feats, float* out_feat,
                 const int* kmap, bool transpose, tf::Executor& executor) {
   tf::Taskflow taskflow;
   taskflow.for_each_index(0, n_k, 1, [&](int i) {
-    assert(in_pos >= 0);
     int in_pos = kmap[2 * i + transpose] * c;
+    assert(in_pos >= 0);
     int out_pos = i * c;
     for (int j = 0; j < c; j++) {
       out_feat[out_pos + j] = in_feats[in_pos + j];
